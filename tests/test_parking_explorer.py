@@ -10,7 +10,8 @@ from streamlit.testing.v1 import AppTest
 
 from tests import app_env
 from parking_explorer import (charger_records, distance_m, fee, hours, map_html,
-                              parking_records, seoul_parking, station_search)
+                              parking_records, place_distance_m, restriction_label,
+                              seoul_parking, station_search)
 
 
 class ParkingExplorerTest(unittest.TestCase):
@@ -54,11 +55,54 @@ class ParkingExplorerTest(unittest.TestCase):
             self.assertIsNone(seoul_parking("마포구"))
         seoul_parking.clear()
 
+    def test_failed_requests_retry_and_successful_results_are_cached(self):
+        for fetch, argument, payload in (
+            (seoul_parking, "마포구", {"result_state": "0000", "res_value": {"parking_list": []}}),
+            (station_search, "홍대입구역", [{"title": "홍대입구역 2호선", "latitude": 37.55, "longitude": 126.93}]),
+        ):
+            with self.subTest(fetch=fetch.__name__):
+                fetch.clear()
+                with patch("parking_explorer.requests.post") as post:
+                    response = post.return_value
+                    response.json.return_value = payload
+                    post.side_effect = [requests.Timeout(), response]
+                    self.assertFalse(fetch(argument))
+                    recovered = fetch(argument)
+                    self.assertIsNotNone(recovered)
+                    self.assertEqual(fetch(argument), recovered)
+                    self.assertEqual(post.call_count, 2)
+                fetch.clear()
+
+    def test_known_restriction_is_not_hidden_when_note_is_missing(self):
+        restricted = pd.DataFrame([{"restriction_code": "Y", "restriction_note": None}])
+        self.assertEqual(restriction_label(restricted), "이용제한 있음 · 상세 정보 미제공")
+        mixed = pd.DataFrame([{"restriction_code": "Y", "restriction_note": "입주민 전용"},
+                              {"restriction_code": "N", "restriction_note": None}])
+        self.assertEqual(restriction_label(mixed), "일부 충전기 이용제한 있음 · 입주민 전용")
+        partial = pd.DataFrame([{"restriction_code": "N"}, {"restriction_code": None}])
+        self.assertIn("제한 여부 미확인", restriction_label(partial))
+        self.assertIn("제한 여부 미확인", restriction_label(pd.DataFrame()))
+
+    def test_parking_segment_uses_nearest_coordinate_without_double_counting(self):
+        station = {"name": "검색역", "latitude": 37.52, "longitude": 127.03}
+        rows = [{"parking_code": "388", "infra_type": "time", "parking_name": "긴 주차구간",
+                 "position_list": [{"lat": 37.54, "lng": 127.03}, {"lat": 37.52, "lng": 127.03}]}]
+        records = parking_records(rows + rows)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(len(records[0]["positions"]), 2)
+        self.assertGreater(distance_m(station, records[0]), 2000)
+        self.assertEqual(place_distance_m(station, records[0]), 0)
+        html = map_html(records, station)
+        payload = json.loads(re.search(r"const data=(.*?);\nconst esc", html, re.S).group(1))
+        self.assertEqual(payload["places"][0]["latitude"], station["latitude"])
+        self.assertEqual(len(payload["places"][0]["positions"]), 2)
+        self.assertEqual(records[0]["latitude"], 37.54, "Rendering must not mutate cached records")
+
     def test_distance_boundary_and_html_escaping(self):
         station = {"name": "홍대입구역", "latitude": 37.55, "longitude": 126.93}
         self.assertEqual(distance_m(station, station), 0)
         self.assertGreater(distance_m(station, {"latitude": 37.56, "longitude": 126.93}), 1000)
-        html = map_html([{"name": "</script><img onerror=alert(1)>"}], station, 500, False)
+        html = map_html([{"name": "</script><img onerror=alert(1)>", "latitude": 37.55, "longitude": 126.93}], station, 500, False)
         self.assertNotIn("</script><img onerror", html)
         self.assertIn("\\u003c/script>", html)
         self.assertIn('"animate": false', html)
@@ -77,7 +121,9 @@ class ParkingExplorerTest(unittest.TestCase):
     def test_public_map_search_and_station_highlight(self):
         station = {"name": "홍대입구역 2호선", "latitude": 37.55687, "longitude": 126.92378}
         place = {"id": "public-1", "name": "홍대 테스트 주차장", "address": "서울 마포구 양화로",
-                 "latitude": 37.557, "longitude": 126.924, "operation": "공영", "kind": "주차장",
+                 "latitude": 37.58, "longitude": 126.924, "operation": "공영", "kind": "주차장",
+                 "positions": [{"latitude": 37.58, "longitude": 126.924},
+                               {"latitude": 37.557, "longitude": 126.924}],
                  "price": "유료 · 기본 10분 500원", "hours": "24시간", "note": "현장 확인",
                  "capacity": "10면", "operator": "서울시", "updated": "2026-11-09"}
         with patch("parking_explorer.seoul_parking", return_value=[place]), \
@@ -93,6 +139,7 @@ class ParkingExplorerTest(unittest.TestCase):
             payload = json.loads(re.search(r"const data=(.*?);\nconst esc", html, re.S).group(1))
             self.assertEqual(payload["places"][0]["name"], "홍대 테스트 주차장")
             self.assertEqual(payload["station"]["name"], station["name"])
+            self.assertEqual(payload["places"][0]["latitude"], 37.557)
             app.checkbox(key="parking_pin_animation").uncheck().run()
             self.assertIn('"animate": false', app.get("iframe")[0].proto.srcdoc)
             app.text_input(key="parking_keyword").set_value("일치하지않는장소").run()

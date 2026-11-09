@@ -1,6 +1,7 @@
 from contextlib import redirect_stdout
 from io import StringIO
 import os
+import ssl
 from pathlib import Path
 import tempfile
 import unittest
@@ -29,7 +30,8 @@ class RemoteConnectionTest(unittest.TestCase):
 
     def test_remote_always_enables_tls_without_ca(self):
         args, listeners = self.connection_args({'host': 'database.example.invalid'})
-        self.assertEqual(args['ssl'], {'check_hostname': False})
+        self.assertTrue(args['ssl'].check_hostname)
+        self.assertEqual(args['ssl'].verify_mode, ssl.CERT_REQUIRED)
         self.assertEqual(listeners, 1)
 
     def test_local_default_and_explicit_ssl(self):
@@ -45,19 +47,45 @@ class RemoteConnectionTest(unittest.TestCase):
     def test_ca_file_environment_fallback_and_secret_priority(self):
         with tempfile.TemporaryDirectory() as directory:
             ca = Path(directory) / 'ca.pem'
-            ca.touch()
-            args, _ = self.connection_args({}, {'MYSQL_SSL_CA': str(ca)})
-            self.assertEqual(args['ssl'], {'ca': str(ca), 'check_hostname': True})
-            args, _ = self.connection_args({'ssl_ca': ''}, {'MYSQL_SSL_CA': str(ca)})
-            self.assertEqual(args['ssl'], {'check_hostname': False})
-            args, _ = self.connection_args({'ssl_ca': str(ca)}, {'MYSQL_SSL_CA': '/missing/env.pem'})
-            self.assertEqual(args['ssl']['ca'], str(ca))
+            from datetime import datetime, timedelta, timezone
+            from cryptography import x509
+            from cryptography.hazmat.primitives import hashes, serialization
+            from cryptography.hazmat.primitives.asymmetric import rsa
+            key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+            subject = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, 'Test CA')])
+            now = datetime.now(timezone.utc)
+            cert = (x509.CertificateBuilder().subject_name(subject).issuer_name(subject)
+                    .public_key(key.public_key()).serial_number(x509.random_serial_number())
+                    .not_valid_before(now - timedelta(days=1)).not_valid_after(now + timedelta(days=1))
+                    .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+                    .sign(key, hashes.SHA256()))
+            ca.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+            original_context = ssl.create_default_context
+            with patch('db.connection.ssl.create_default_context', wraps=original_context) as create_context:
+                args, _ = self.connection_args({}, {'MYSQL_SSL_CA': str(ca)})
+                create_context.assert_called_once_with(cafile=str(ca))
+                self.assertTrue(args['ssl'].check_hostname)
+                self.assertEqual(args['ssl'].verify_mode, ssl.CERT_REQUIRED)
+                create_context.reset_mock()
+                args, _ = self.connection_args({'ssl_ca': ''}, {'MYSQL_SSL_CA': str(ca)})
+                create_context.assert_called_once_with(cafile=None)
+                self.assertTrue(args['ssl'].check_hostname)
+                create_context.reset_mock()
+                self.connection_args({'ssl_ca': str(ca)}, {'MYSQL_SSL_CA': '/missing/env.pem'})
+                create_context.assert_called_once_with(cafile=str(ca))
 
-    def test_absent_ca_file_keeps_tls_enabled(self):
+    def test_absent_ca_file_fails_before_opening_connection(self):
         with tempfile.TemporaryDirectory() as directory:
-            args, listeners = self.connection_args({'ssl_ca': str(Path(directory) / 'missing.pem')})
-        self.assertEqual(args['ssl'], {'check_hostname': False})
-        self.assertEqual(listeners, 1)
+            with self.assertRaisesRegex(ValueError, 'CA 인증서 파일을 찾을 수 없습니다'):
+                self.connection_args({'ssl_ca': str(Path(directory) / 'missing.pem')})
+
+    def test_invalid_ca_contents_fail_without_leaking_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ca = Path(directory) / 'private-path.pem'
+            ca.write_text('not a certificate')
+            with self.assertRaisesRegex(ValueError, '인증서 형식') as caught:
+                self.connection_args({'ssl_ca': str(ca)})
+            self.assertNotIn(str(ca), str(caught.exception))
 
     def test_invalid_ca_type_fails_without_value_in_error(self):
         with patch.dict(os.environ, {}, clear=True), patch.object(streamlit, 'secrets', {'mysql': {'ssl_ca': ['invalid']}}):

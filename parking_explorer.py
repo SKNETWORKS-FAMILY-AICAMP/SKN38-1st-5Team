@@ -54,9 +54,13 @@ def fee(row):
 def parking_records(rows):
     result = []
     for row in rows:
-        position = next((p for p in row.get("position_list", []) if valid_position(p.get("lat"), p.get("lng"))), None)
-        if position is None:
+        positions = [{"latitude": float(p["lat"]), "longitude": float(p["lng"])}
+                     for p in (row.get("position_list") or [])
+                     if isinstance(p, dict) and valid_position(p.get("lat"), p.get("lng"))]
+        positions = list({(p["latitude"], p["longitude"]): p for p in positions}.values())
+        if not positions:
             continue
+        position = positions[0]
         kind = row.get("parking_type")
         operation = {"NS": "공영", "NW": "공영", "NP": "민영", "BP": "공영"}.get(kind, "부설·기타")
         holiday = " · ".join(f"{day} { {'Y': '유료', 'N': '무료'}.get(row.get(key), '정보 미제공')}"
@@ -65,7 +69,7 @@ def parking_records(rows):
             "id": f"seoul-{row.get('parking_code')}-{row.get('infra_type')}",
             "name": text(row.get("parking_name"), "주차장"),
             "address": text(row.get("new_juso") or row.get("address")),
-            "latitude": float(position["lat"]), "longitude": float(position["lng"]),
+            **position, "positions": positions,
             "operation": operation, "kind": "주차장", "price": fee(row),
             "hours": " / ".join(f"{day} {hours(row.get(a), row.get(b))}" for day, a, b in (
                 ("평일", "weekday_begin_time", "weekday_end_time"),
@@ -75,7 +79,14 @@ def parking_records(rows):
             "capacity": text(row.get("capacity")) + "면", "operator": "서울시 주차정보안내시스템",
             "updated": text(row.get("sync_time")),
         })
-    return list({r["id"]: r for r in result}.values())
+    facilities = {}
+    for record in result:
+        if record["id"] in facilities:
+            combined = facilities[record["id"]]["positions"] + record["positions"]
+            facilities[record["id"]]["positions"] = list({(p["latitude"], p["longitude"]): p for p in combined}.values())
+        else:
+            facilities[record["id"]] = record
+    return list(facilities.values())
 
 
 def valid_position(lat, lon):
@@ -86,40 +97,53 @@ def valid_position(lat, lon):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def _fetch_seoul_parking(district):
+    response = requests.post(SOURCE + "/search/parking/list.do", data={
+        "Gu": district, "Dong": "", "Keyword": "", "index": 1, "Type": 63, "Rule": 0,
+    }, timeout=(3, 8))
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict) or payload.get("result_state") != "0000":
+        raise ValueError("Parking source unavailable")
+    return parking_records(payload["res_value"]["parking_list"])
+
+
 def seoul_parking(district):
     try:
-        response = requests.post(SOURCE + "/search/parking/list.do", data={
-            "Gu": district, "Dong": "", "Keyword": "", "index": 1, "Type": 63, "Rule": 0,
-        }, timeout=(3, 8))
-        response.raise_for_status()
-        payload = response.json()
-        if payload.get("result_state") != "0000":
-            raise ValueError("Parking source unavailable")
-        return parking_records(payload["res_value"]["parking_list"])
+        return _fetch_seoul_parking(district)
     except (requests.RequestException, ValueError, KeyError, TypeError):
         return None
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
+def _fetch_stations(keyword):
+    response = requests.post(SOURCE + "/search/parking/destination.do",
+                             data={"Keyword": keyword, "index": 1}, timeout=(3, 8))
+    response.raise_for_status()
+    rows = response.json()
+    if not isinstance(rows, list):
+        raise ValueError("Station source unavailable")
+    result = []
+    for row in rows:
+        name = text(row.get("title"), "")
+        # Exclude businesses, exits and bus stops that merely contain a station name.
+        if not re.fullmatch(r".+역\s+(?:\d+호선|[가-힣A-Za-z·]+선|공항철도|서해선|신림선)", name):
+            continue
+        if valid_position(row.get("latitude"), row.get("longitude")):
+            result.append({"name": name, "latitude": float(row["latitude"]), "longitude": float(row["longitude"])})
+    return result
+
+
 def station_search(keyword):
     try:
-        response = requests.post(SOURCE + "/search/parking/destination.do",
-                                 data={"Keyword": keyword, "index": 1}, timeout=(3, 8))
-        response.raise_for_status()
-        rows = response.json()
-        if not isinstance(rows, list):
-            return []
-        result = []
-        for row in rows:
-            name = text(row.get("title"), "")
-            # Exclude businesses, exits and bus stops that merely contain a station name.
-            if not re.fullmatch(r".+역\s+(?:\d+호선|[가-힣A-Za-z·]+선|공항철도|서해선|신림선)", name):
-                continue
-            if valid_position(row.get("latitude"), row.get("longitude")):
-                result.append({"name": name, "latitude": float(row["latitude"]), "longitude": float(row["longitude"])})
-        return result
+        return _fetch_stations(keyword)
     except (requests.RequestException, ValueError, KeyError, TypeError):
         return []
+
+
+# Keep cache clearing available for maintenance and deterministic tests.
+seoul_parking.clear = _fetch_seoul_parking.clear
+station_search.clear = _fetch_stations.clear
 
 
 def distance_m(a, b):
@@ -128,6 +152,29 @@ def distance_m(a, b):
     delta_lon = math.radians(b["longitude"] - a["longitude"])
     h = math.sin(delta_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(delta_lon / 2) ** 2
     return 6371000 * 2 * math.asin(math.sqrt(min(1, h)))
+
+
+def nearest_position(station, place):
+    positions = place.get("positions") or [place]
+    return min(positions, key=lambda p: distance_m(station, p))
+
+
+def place_distance_m(station, place):
+    return distance_m(station, nearest_position(station, place))
+
+
+def restriction_label(devices):
+    notes = list(dict.fromkeys(text(v, "") for v in devices.get("restriction_note", [])))
+    notes = [note for note in notes if note]
+    codes = {text(v, "") for v in devices.get("restriction_code", [])}
+    known = {code for code in codes if code in {"Y", "N"}}
+    if "Y" in known:
+        label = "일부 충전기 이용제한 있음" if "N" in known else "이용제한 있음"
+    elif known == {"N"}:
+        label = "일부 충전기 제한 여부 미확인" if codes - known else "제공 자료상 이용제한 없음"
+    else:
+        label = "제한 여부 미확인"
+    return " · ".join([label, *notes]) if notes else label + " · 상세 정보 미제공"
 
 
 def charger_records(points, details):
@@ -144,7 +191,7 @@ def charger_records(points, details):
             "id": f"charger-{point.place_id}", "name": text(point.place_name, "충전소"),
             "address": text(point.address), "latitude": float(point.latitude), "longitude": float(point.longitude),
             "kind": "충전소", "operation": "충전소", "price": parking + " / 충전요금: 금액 정보 미제공 (운영사·회원·출력별 확인)",
-            "hours": values("operating_time_text"), "note": "이용제한: " + values("restriction_note"),
+            "hours": values("operating_time_text"), "note": restriction_label(devices),
             "capacity": f"충전기 {int(point.charger_count)}기", "operator": text(point.operator_name),
             "updated": "환경공단 수집 자료 · 실시간 상태 아님",
         })
@@ -161,6 +208,8 @@ def fallback_parking(points):
 
 
 def map_html(records, station=None, radius=500, animate=True):
+    if station:
+        records = [{**place, **nearest_position(station, place)} for place in records]
     payload = {"places": records, "station": station, "radius": radius, "animate": animate}
     # Escaping '<' prevents source data from terminating the script element.
     data = json.dumps(payload, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
@@ -186,7 +235,8 @@ def explorer(records, district, facility):
         st.caption("역 검색 결과가 없어요. 정확한 역 이름을 입력해 주세요.")
     nearby = []
     if station:
-        nearby = sorted([(distance_m(station, p), p) for p in records if distance_m(station, p) <= radius], key=lambda x: (x[0], x[1]["id"]))
+        distances = [(place_distance_m(station, p), p) for p in records]
+        nearby = sorted([(d, p) for d, p in distances if d <= radius], key=lambda x: (x[0], x[1]["id"]))
         st.caption(f"{station['name']} 기준 직선거리 {radius:,}m 안 {facility} {len(nearby)}곳 · 현재 동네·검색·운영 조건에 맞는 시설만 강조해요.")
         if not nearby:
             st.info("선택한 반경에 표시할 시설이 없어요. 반경을 늘리거나 동네·검색 조건을 바꿔 주세요.")

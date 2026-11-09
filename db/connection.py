@@ -1,5 +1,6 @@
 import os
 import re
+import ssl
 from functools import lru_cache
 from pathlib import Path
 from threading import RLock
@@ -107,12 +108,14 @@ def _cached_engine() -> Engine:
     )
     connect_args = {"connect_timeout": 5, "read_timeout": 15, "write_timeout": 15}
     if config["ssl_enabled"]:
-        # 빈 dict는 PyMySQL에서 TLS를 끄므로 비어 있지 않은 옵션을 전달한다.
-        ssl_options = {"check_hostname": False}
         ca_path = Path(config["ssl_ca"]).expanduser() if config["ssl_ca"] else None
-        if ca_path is not None and ca_path.is_file():
-            ssl_options = {"ca": str(ca_path), "check_hostname": True}
-        connect_args["ssl"] = ssl_options
+        if ca_path is not None and not ca_path.is_file():
+            raise ValueError("MySQL CA 인증서 파일을 찾을 수 없습니다. 접속 설정을 확인하세요.")
+        try:
+            # Pass a context: PyMySQL's dict options disable hostname checks without an explicit CA.
+            connect_args["ssl"] = ssl.create_default_context(cafile=str(ca_path) if ca_path else None)
+        except (OSError, ssl.SSLError, ValueError):
+            raise ValueError("MySQL CA 인증서 파일을 읽을 수 없습니다. 인증서 형식을 확인하세요.") from None
     engine = create_engine(
         url,
         pool_pre_ping=True,

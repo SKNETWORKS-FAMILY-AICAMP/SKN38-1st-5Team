@@ -32,7 +32,15 @@ for(const p of data.places){
  const marker=L.marker(pos,{icon,title:p.name,alt:p.name,keyboard:true,riseOnHover:true,zIndexOffset:near?500:0}).addTo(map);
  marker.bindTooltip(`<b>${esc(p.name)}</b><br>${esc(p.price)}<br>${esc(p.hours)}${distance!==null?`<br>${esc(data.station.name)} · 직선 ${Math.round(distance)}m`:''}`,{direction:'top',offset:[0,-14]});
  marker.bindPopup(detail(p,distance),{maxWidth:340,maxHeight:300,autoPan:true});
- marker.on('click',()=>{document.getElementById('detail').innerHTML=detail(p,distance)});
+ marker.on('popupopen',()=>{document.getElementById('detail').innerHTML=detail(p,distance)});
+ for(const position of (p.positions||[])){
+  if(position.latitude===p.latitude&&position.longitude===p.longitude)continue;
+  const part=L.circleMarker([position.latitude,position.longitude],{radius:4,color,weight:1,fillOpacity:.65}).addTo(map);
+  part.bindTooltip(esc(p.name)+' · 주차구간 위치');
+  part.bindPopup(detail(p,distance),{maxWidth:340,maxHeight:300});
+  part.on('popupopen',()=>{document.getElementById('detail').innerHTML=detail(p,distance)});
+  markers.push(part);
+ }
  markers.push(marker);
 }
 if(center){
