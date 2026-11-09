@@ -23,7 +23,7 @@ with st.container(horizontal=True, vertical_alignment="center", gap="medium"):
 if incomplete_transit(row):
     st.caption("이 구의 승객 수에는 일부 행정동 자료가 빠져 있어요. 실제 이용 규모보다 적게 집계될 수 있어요.")
 
-with st.expander("자세한 자료도 펼쳐봐요", icon=":material/table_chart:",
+with st.expander("자세한 자료 보기", icon=":material/table_chart:",
                  on_change="rerun", key="b_details") as details:
     if details.open:
         detail = st.segmented_control("자료 종류", ["25구 순위", "차량 구성", "주차·충전 시설", "시간대별 승객"],

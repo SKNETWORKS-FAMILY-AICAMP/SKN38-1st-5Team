@@ -23,7 +23,7 @@ type_names = (dict(zip(vehicle_types.vehicle_type_code, vehicle_types.vehicle_ty
               if vehicle_types is not None else {})
 usage_names = {"official": "관용", "private": "자가용", "commercial": "영업용"}
 with st.container(border=True, gap="small", key="national_filters"):
-    st.markdown("**어디의 어떤 차가 궁금하세요?**")
+    st.markdown("**조회 조건**")
     province_picker, type_picker, usage_picker = st.columns(3, gap="medium")
     with province_picker:
         province = st.selectbox(
@@ -88,8 +88,8 @@ chart_column, table_column = st.columns([3, 2], gap="medium")
 with chart_column:
     with st.container(border=True, key="national_chart_card"):
         st.markdown("**시도마다 차가 얼마나 있을까요?**")
-        st.caption("현재 선택 조건 기준 · 서울은 코랄색 막대로 콕 짚었어요."
-                   if valid_totals.is_seoul.any() else "현재 선택 조건의 등록 대수를 한눈에 살펴봐요.")
+        st.caption("현재 선택 조건 기준 · 서울은 코랄색 막대로 표시했어요."
+                   if valid_totals.is_seoul.any() else "현재 선택 조건의 시도별 등록 대수예요.")
         if valid_totals.empty:
             st.caption("시도별 합계 자료 없음")
         else:
@@ -122,7 +122,7 @@ with chart_column:
 
 with table_column:
     with st.container(border=True, key="national_table_card"):
-        st.markdown("**등록 자료도 찬찬히 살펴봐요**")
+        st.markdown("**등록 자료 표**")
         st.caption(f"선택 조건에 맞는 {len(frame):,}개 항목 · 단위: 대")
         frame["usage_name"] = frame.usage_code.astype(object).map(usage_names)
         count_column = st.column_config.NumberColumn(format="localized")
