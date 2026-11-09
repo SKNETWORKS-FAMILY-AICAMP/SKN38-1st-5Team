@@ -10,22 +10,19 @@ from ui import (RANK_HEIGHT, date_text, district_row, load_frame,
                 number, rank_text, ranking_chart, select_rank_region, top_three, word)
 
 
-def _comparison(row: pd.Series, field: str, digits: int, unit: str) -> str:
+def _comparison(row: pd.Series, field: str, digits: int, unit: str) -> tuple[str, str]:
     values = [row.get(field), row.get(f"{field}_seoul_avg"), row.get(f"{field}_vs_seoul")]
     if any(value is None or pd.isna(value) for value in values):
-        return "서울 평균 비교 자료 없음"
-    return f"{float(values[2]):+,.{digits}f}{unit}"
+        return "서울 평균 비교 자료 없음", "off"
+    arrow = "auto" if round(float(values[2]), digits) else "off"
+    return f"{float(values[2]):+,.{digits}f}{unit}", arrow
 
 
 def _metric(row: pd.Series, field: str, label: str, digits: int, unit: str) -> None:
-    with st.container(border=True, height="stretch", gap="xsmall", key=f"ownership_metric_{field}"):
-        st.metric(label, number(row.get(field), digits, unit),
-                  delta=_comparison(row, field, digits, "%p" if field == "electric_share_pct" else unit),
-                  delta_color="inverse", delta_description="서울 평균 대비")
-        change = row.get(f"{field}_vs_seoul")
-        if change is not None and pd.notna(change) and change != 0:
-            color, background = ("#DC2626", "#FEE2E2") if change > 0 else ("#2563EB", "#DBEAFE")
-            st.html(f'<style>.st-key-ownership_metric_{field} [data-testid="stMetricDelta"] {{color:{color} !important;background-color:{background} !important;}} .st-key-ownership_metric_{field} [data-testid="stMetricDelta"] svg {{fill:currentColor !important;}}</style>')
+    delta, arrow = _comparison(row, field, digits, "%p" if field == "electric_share_pct" else unit)
+    with st.container(border=True, height="stretch", gap="xsmall"):
+        st.metric(label, number(row.get(field), digits, unit), delta=delta,
+                  delta_color="off", delta_arrow=arrow, delta_description="서울 평균 대비")
         average = number(row.get(f"{field}_seoul_avg"), digits, unit)
         count = row.get(f"{field}_seoul_count")
         included = f" · {int(count)}개 구 기준" if count is not None and pd.notna(count) else ""
@@ -34,9 +31,9 @@ def _metric(row: pd.Series, field: str, label: str, digits: int, unit: str) -> N
 
 def _polish(chart: alt.Chart | alt.LayerChart) -> alt.Chart | alt.LayerChart:
     return chart.configure_view(stroke=None).configure_axis(
-        labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelFontSize=13,
+        labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelFontSize=15, titleFontSize=15,
         labelColor="#1B2340", titleColor="#4A5270", gridColor="#EEF0FA",
-    ).configure_legend(labelFont="Noto Sans KR", labelFontSize=13, labelColor="#1B2340")
+    ).configure_legend(labelFont="Noto Sans KR", labelFontSize=15, labelColor="#1B2340")
 
 
 def _vehicle_composition(frame: pd.DataFrame, scope: str, district_name: str) -> None:
@@ -61,11 +58,14 @@ def _vehicle_composition(frame: pd.DataFrame, scope: str, district_name: str) ->
         tooltip=[alt.Tooltip("vehicle_type_name:N", title="차종"),
                  alt.Tooltip("vehicle_count:Q", title="등록 대수", format=",d")],
     )
-    bars = base.mark_bar(size=26, cornerRadiusEnd=5).encode(color=alt.condition(alt.datum.vehicle_count == float(rows.vehicle_count.max()), alt.value("#E76F51"), alt.value("#8E98CF")))
-    labels = base.mark_text(align="left", x=5, dx=0, dy=-21, color="#1B2340", fontSize=12).encode(
+    highest = int(rows.vehicle_count.max())
+    bars = base.mark_bar(size=26, cornerRadiusEnd=5).encode(
+        color=alt.condition(alt.datum.vehicle_count == highest, alt.value("#E76F51"), alt.value("#8E98CF")),
+    )
+    labels = base.mark_text(align="left", x=5, dx=0, dy=-23, color="#1B2340", fontSize=15).encode(
         x=alt.value(5), text=alt.Text("vehicle_count:Q", format=",d"),
     )
-    chart = (bars + labels).properties(height=250)
+    chart = (bars + labels).properties(height=310)
     st.altair_chart(_polish(chart), width="stretch", key="ownership_vehicle_types",
                     alt=f"{district_name} {'전체 차량' if scope == 'all' else '전기차'}의 차종별 등록 대수")
 
@@ -91,7 +91,7 @@ def _fuel_composition(row: pd.Series, district_name: str) -> None:
         tooltip=[alt.Tooltip("fuel:N", title="연료 범위"),
                  alt.Tooltip("count:Q", title="등록 대수", format=",d"),
                  alt.Tooltip("share:Q", title="비중 (%)", format=".2f")],
-    ).properties(height=250)
+    ).properties(height=310)
     st.altair_chart(_polish(chart), width="stretch", key="ownership_fuel_composition",
                     alt=f"{district_name} 전체 차량 중 전기차와 전기차 외 차량의 구성")
     st.caption(f"전기차 {number(electric, suffix='대')} · 전기차 외 {number(int(total) - int(electric), suffix='대')}")
@@ -105,6 +105,16 @@ rank_row = district_row(ranking, region_id)
 district_name = word(row.get("district_name"), word(rank_row.get("district_name"), "선택한 동네"))
 
 render_hero(district_name, ranking=ranking)
+
+st.html("""<style>
+.st-key-ownership_content h3 { font-size: 30px; }
+.st-key-ownership_content [data-testid="stMarkdownContainer"] p { font-size: 18px; }
+.st-key-ownership_content [data-testid="stCaptionContainer"] p { font-size: 16px; }
+.st-key-ownership_content [data-testid="stMetricValue"] p { font-size: 36px; }
+.st-key-ownership_content div:has(> [data-testid="stMetricDelta"]) { flex-wrap: wrap; }
+.st-key-ownership_content [data-testid="stMetricDelta"]:has([data-testid="stMetricDeltaIcon-Up"]) { color: #D01F1F; }
+.st-key-ownership_content [data-testid="stMetricDelta"]:has([data-testid="stMetricDeltaIcon-Down"]) { color: #2563EB; }
+</style>""")
 
 with st.container(gap="small", key="ownership_content"):
     st.subheader(f"{district_name}의 차량 보유 현황", anchor=False)

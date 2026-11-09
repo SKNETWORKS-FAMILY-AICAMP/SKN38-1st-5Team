@@ -34,8 +34,8 @@ COLORS = ["#27336B", "#8E98CF", "#EEF0FA", "#E4E7E6"]
 MISSING = "자료 없음"
 MAP_HEIGHT = 560
 MAP_PANEL_HEIGHT = 672
-RANK_HEIGHT = 450
-RANK_BAR_LEFT = 84
+RANK_HEIGHT = 550
+RANK_BAR_LEFT = 96
 
 
 def load_options() -> dict:
@@ -291,12 +291,12 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
         color=alt.condition("datum.highest", alt.value("#E76F51"), alt.value("#8E98CF")))
     weight = alt.expr("datum.selected ? 700 : 400")
     label_color = alt.condition("datum.selected", alt.value("#7A2418"), alt.value("#1B2340"))
-    ranks = base.mark_text(align="right", x=18, fontSize=13, cursor="pointer").encode(
+    ranks = base.mark_text(align="right", x=20, fontSize=15, cursor="pointer").encode(
         text="rank_label:N",
         color=alt.condition("datum.selected", alt.value("#7A2418"), alt.value("#4A5270")))
-    names = base.mark_text(align="left", x=24, fontSize=13, fontWeight=weight,
+    names = base.mark_text(align="left", x=26, fontSize=15, fontWeight=weight,
                            cursor="pointer").encode(text="name:N", color=label_color)
-    values = base.mark_text(align="left", dx=4, fontSize=13, fontWeight=weight,
+    values = base.mark_text(align="left", dx=4, fontSize=15, fontWeight=weight,
                             cursor="pointer").encode(x=x, text="label:N", color=label_color)
     selection = alt.selection_point(name="rank", fields=["region_id"], toggle=False, clear=False)
     return (alt.layer(row_area, highlight, bars, ranks, names, values).add_params(selection)

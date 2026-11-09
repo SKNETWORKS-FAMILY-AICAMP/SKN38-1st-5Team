@@ -77,22 +77,22 @@ CSS = """
 .h2-hero p, .h2-hero h1, .h2-hero dl, .h2-hero dd { margin: 0; padding: 0; }
 .h2-hero .h2-brandline { display: flex; align-items: center; gap: 13px; margin-bottom: 17px; }
 .h2-hero .h2-wordmark { font-family: 'Jua', var(--st-heading-font, sans-serif); font-size: 25px; color: #EEF0FA; white-space: nowrap; }
-.h2-hero .h2-eyebrow { font-size: 12px; color: var(--h2-muted); white-space: nowrap; letter-spacing: .04em; }
+.h2-hero .h2-eyebrow { font-size: 14px; color: var(--h2-muted); white-space: nowrap; letter-spacing: .04em; }
 .h2-hero .h2-cars { display: block; width: 100px; margin-left: auto; transform: rotate(-4deg); }
 .h2-hero .h2-cars svg { width: 100%; height: auto; display: block; }
 .h2-hero h1 { color: #EEF0FA; font: 400 clamp(36px, 3.7vw, 54px)/1.19 'Jua', var(--st-heading-font, sans-serif); letter-spacing: -.035em; word-break: keep-all; }
 .h2-hero h1 em { font-style: normal; color: #FF9A87; }
-.h2-hero .h2-intro { margin-top: 18px; font-size: 15px; line-height: 1.8; color: #D2D8EF; letter-spacing: -.025em; }
+.h2-hero .h2-intro { margin-top: 18px; font-size: 17px; line-height: 1.8; color: #D2D8EF; letter-spacing: -.025em; }
 .h2-hero .h2-local { margin-top: 22px; }
-.h2-hero .h2-now { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--h2-muted); }
+.h2-hero .h2-now { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--h2-muted); }
 .h2-hero .h2-now strong { color: #FF9A87; font-size: 30px; margin-left: 3px; }
 .h2-hero .h2-status-dot { width: 5px; height: 5px; background: #FF7A66; border-radius: 50%; }
 .h2-hero .h2-criteria { display: grid; grid-template-columns: .8fr .8fr 1.4fr; gap: 16px; margin-top: 11px; }
 .h2-hero .h2-criteria > div { border-top: 1px solid #4B5578; padding-top: 10px; min-width: 0; }
-.h2-hero .h2-criteria dt { font-size: 11px; color: var(--h2-muted); margin-bottom: 5px; }
-.h2-hero .h2-criteria dd { font-size: 14px; font-weight: 600; color: #EEF0FA; word-break: keep-all; }
+.h2-hero .h2-criteria dt { font-size: 13px; color: var(--h2-muted); margin-bottom: 5px; }
+.h2-hero .h2-criteria dd { font-size: 16px; font-weight: 600; color: #EEF0FA; word-break: keep-all; }
 .h2-hero .h2-scene { position: relative; min-width: 0; width: 100%; height: 370px; }
-.h2-hero .h2-map-heading { position: absolute; left: 14px; right: 0; top: 3px; display: flex; justify-content: space-between; color: var(--h2-muted); font-size: 11px; letter-spacing: .03em; }
+.h2-hero .h2-map-heading { position: absolute; left: 14px; right: 0; top: 3px; display: flex; justify-content: space-between; color: var(--h2-muted); font-size: 13px; letter-spacing: .03em; }
 .h2-hero .h2-count { color: #EEF0FA; }
 .h2-hero .h2-city { display: block; width: 100%; height: calc(100% - 29px); overflow: hidden; }
 .h2-hero .h2-grid { fill: none; stroke: #8E98CF; stroke-width: .65; opacity: .13; }
@@ -108,15 +108,15 @@ CSS = """
 .h2-hero .h2-district:hover .h2-top, .h2-hero .h2-district:focus-visible .h2-top { stroke: #FFF; stroke-width: 2.5; }
 .h2-hero .h2-district:focus-visible { filter: drop-shadow(0 0 4px #EEF0FA); }
 .h2-hero .h2-readout { position: absolute; right: 0; top: 33px; text-align: right; pointer-events: none; }
-.h2-hero .h2-readout-name { color: #FFAE9F; font-size: 13px; font-weight: 600; }
-.h2-hero .h2-readout-count { display: block; color: #EEF0FA; font-size: 24px; line-height: 1.4; font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
-.h2-hero .h2-readout-hint { font-size: 11px; color: var(--h2-muted); }
-.h2-hero .h2-map-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: -8px; font-size: 11px; color: #CBD2ED; }
+.h2-hero .h2-readout-name { color: #FFAE9F; font-size: 15px; font-weight: 600; }
+.h2-hero .h2-readout-count { display: block; color: #EEF0FA; font-size: 28px; line-height: 1.4; font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.h2-hero .h2-readout-hint { font-size: 13px; color: var(--h2-muted); }
+.h2-hero .h2-map-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: -8px; font-size: 13px; color: #CBD2ED; }
 .h2-hero .h2-legend { display: flex; gap: 7px; align-items: center; white-space: nowrap; }
 .h2-hero .h2-legend i { display: inline-block; width: 8px; height: 8px; background: #8E98CF; border-radius: 2px; }
-.h2-hero .h2-month { color: #B9C1E4; font-size: 11px; }
+.h2-hero .h2-month { color: #B9C1E4; font-size: 13px; }
 .h2-hero .h2-map-instruction b { color: #FF9A87; font-size: 16px; margin-left: 4px; }
-.h2-hero .h2-source { color: #ABB5DA; font-size: 11px; margin-top: 7px; text-align: right; }
+.h2-hero .h2-source { color: #ABB5DA; font-size: 13px; margin-top: 7px; text-align: right; }
 .h2-hero .h2-empty { position: absolute; top: 42%; width: 100%; text-align: center; color: #EEF0FA; font-size: 14px; line-height: 1.8; }
 .h2-hero .h2-pin-halo { transform-origin: center; animation: h2-breathe 6s ease-in-out infinite; }
 .h2-hero .h2-local.h2-changed { animation: h2-response .42s ease-out; }
@@ -127,9 +127,9 @@ CSS = """
   .h2-hero .h2-cars { width: 77px; }
   .h2-hero .h2-eyebrow { font-size: 11px; }
   .h2-hero .h2-map-instruction { display: none; }
-  .h2-hero .h2-readout-count { font-size: 21px; }
+  .h2-hero .h2-readout-count { font-size: 24px; }
   .h2-hero .h2-criteria { gap: 9px; }
-  .h2-hero .h2-criteria dd { font-size: 12px; }
+  .h2-hero .h2-criteria dd { font-size: 14px; }
 }
 @media (max-width: 700px) {
   .h2-hero { display: flex; flex-direction: column; align-items: stretch; gap: 12px; min-height: 0; padding: 20px 0 28px; }
@@ -140,21 +140,21 @@ CSS = """
   .h2-hero h1 { font-size: 31px; line-height: 1.1; letter-spacing: -.03em; }
   .h2-hero h1 br { display: none; }
   .h2-hero h1 em { display: block; }
-  .h2-hero .h2-intro { font-size: 11px; line-height: 1.7; margin-top: 8px; }
+  .h2-hero .h2-intro { font-size: 13px; line-height: 1.7; margin-top: 8px; }
   .h2-hero .h2-local { margin-top: 9px; }
-  .h2-hero .h2-now { font-size: 11px; }
+  .h2-hero .h2-now { font-size: 12px; }
   .h2-hero .h2-now strong { font-size: 24px; }
   .h2-hero .h2-criteria { margin-top: 6px; gap: 10px; }
   .h2-hero .h2-criteria > div { padding-top: 5px; }
-  .h2-hero .h2-criteria dt { font-size: 11px; margin-bottom: 2px; }
-  .h2-hero .h2-criteria dd { font-size: 11px; }
+  .h2-hero .h2-criteria dt { font-size: 12px; margin-bottom: 2px; }
+  .h2-hero .h2-criteria dd { font-size: 13px; }
   .h2-hero .h2-scene { flex: none; height: 245px; margin-top: 3px; }
   .h2-hero .h2-city { height: calc(100% - 17px); }
   .h2-hero .h2-map-heading { display: none; }
   .h2-hero .h2-readout { top: 9px; }
-  .h2-hero .h2-readout-name { font-size: 11px; }
-  .h2-hero .h2-readout-count { font-size: 18px; }
-  .h2-hero .h2-readout-hint { font-size: 11px; }
+  .h2-hero .h2-readout-name { font-size: 12px; }
+  .h2-hero .h2-readout-count { font-size: 20px; }
+  .h2-hero .h2-readout-hint { font-size: 12px; }
   .h2-hero .h2-map-bottom { margin-top: -3px; font-size: 11px; gap: 2px; }
   .h2-hero .h2-legend { gap: 4px; }
   .h2-hero .h2-month { font-size: 11px; }

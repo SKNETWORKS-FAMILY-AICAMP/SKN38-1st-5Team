@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pandas as pd
 from streamlit.components.v2.bidi_component.main import _make_trigger_id
 from streamlit.dataframe_util import convert_arrow_bytes_to_pandas_df
+from streamlit.proto.Metric_pb2 import Metric as MetricProto
 from streamlit.testing.v1 import AppTest
 
 from tests import app_env
@@ -115,6 +116,8 @@ class OwnershipPageTest(unittest.TestCase):
                 self.assertEqual(len(rows), 4)
                 self.assertEqual(rows.vehicle_type_code.tolist(), expected.vehicle_type_code.tolist())
                 self.assertEqual(rows.vehicle_count.tolist(), expected.vehicle_count.tolist())
+                color = json.loads(self.chart("차종별 등록 대수").spec)["layer"][0]["encoding"]["color"]
+                self.assertIn(f"=== {int(expected.vehicle_count.max())}", color["condition"]["test"])
                 fuel = self.chart_data("전기차와 전기차 외")
                 total, electric = int(self.summary.iloc[0].vehicle_count), int(self.summary.iloc[0].electric_count)
                 self.assertEqual(fuel.fuel.tolist(), ["전기차", "전기차 외"])
@@ -177,6 +180,7 @@ class OwnershipPageTest(unittest.TestCase):
         self.assert_ready()
         self.assertEqual([m.value for m in self.app.metric], ["자료 없음"] * 4)
         self.assertEqual([m.delta for m in self.app.metric], ["서울 평균 비교 자료 없음"] * 4)
+        self.assertEqual({m.proto.direction for m in self.app.metric}, {MetricProto.MetricDirection.NONE})
         self.assertTrue(any("연료 구성은 자료 없음" in message.value for message in self.app.info))
         payload = json.loads(self.hero().json)
         self.assertEqual(len(payload["districts"]), 25)
