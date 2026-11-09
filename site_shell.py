@@ -16,7 +16,7 @@ CSS = """
 [data-testid="stMainBlockContainer"] { padding-top: 0; }
 /* caption에는 key가 없어 test id로 선택하고 기본 투명도를 해제한다. */
 .st-key-site_root [data-testid="stCaptionContainer"] {
-  color: #4A5270; font-size: 14px; line-height: 1.5; opacity: 1;
+  color: #4A5270; font-size: 16px; line-height: 1.5; opacity: 1;
 }
 .st-key-site_root { --site-navy: #27336B; --site-ink: #1B2340; }
 .st-key-site_root h1, .st-key-site_root h2, .st-key-site_root h3,
@@ -87,8 +87,8 @@ CSS = """
 .st-key-judgment_deck [data-testid="stMetricValue"] {
   color: #27336B; font-size: 38px; line-height: 1.25; font-variant-numeric: tabular-nums;
 }
-.st-key-judgment_deck a { font-size: 13px; min-height: 36px; padding: 5px 0; }
-.st-key-judgment_deck a p { font-size: 13px; }
+.st-key-judgment_deck a { font-size: 15px; min-height: 36px; padding: 5px 0; }
+.st-key-judgment_deck a p { font-size: 15px; }
 /* wrap=False가 만드는 가로 스크롤을 이 영역에서 해제한다. */
 .st-key-judgment_deck [class*="st-key-judgment_line_"] { overflow: visible; }
 .st-key-judgment_deck [class*="st-key-judgment_evidence_"] p {
@@ -128,7 +128,7 @@ CSS = """
   box-shadow: 0 0 0 100vmax #EEF0FA; clip-path: inset(0 -100vmax);
 }
 .st-key-site_page_header h1 { padding: 0; line-height: 1.3; font-size: 36px; }
-.st-key-site_page_header p { color: #4A5270; font-size: 16px; }
+.st-key-site_page_header p { color: #4A5270; font-size: 18px; }
 .st-key-map_panel { background: #fff; border: 2px solid #C8CDE3; border-radius: 24px; padding: 14px 16px; }
 .st-key-map_panel p { font-size: 16px; }
 .st-key-map_panel strong { color: #27336B; }
@@ -138,7 +138,7 @@ CSS = """
 .st-key-neighborhood_summary h2 { padding: 0 0 6px; margin: 0; line-height: 1.25; }
 .st-key-summary_signals { margin-top: 4px; }
 .st-key-summary_signals [class*="st-key-summary_level_"] { border-radius: 999px; padding: 4px 9px; }
-.st-key-summary_signals p { font-size: 14px; line-height: 1.5; }
+.st-key-summary_signals p { font-size: 16px; line-height: 1.5; }
 .st-key-b_details { margin-top: 10px; }
 .st-key-site_footer {
   position: relative; background: #1B2340; color: #fff; padding: 33px 0;
@@ -151,11 +151,11 @@ CSS = """
   clip-path: inset(0 -100vmax); pointer-events: none;
 }
 .st-key-footer_brand .brand-home { color: #fff; font-size: 30px; }
-.st-key-site_footer p { font-size: 14px; line-height: 1.7; color: #EEF0FA; margin: 8px 0 0; }
+.st-key-site_footer p { font-size: 16px; line-height: 1.7; color: #EEF0FA; margin: 8px 0 0; }
 .st-key-footer_menu { max-width: 680px; }
 .st-key-footer_menu a { color: #fff; min-height: 44px; padding: 6px 10px; border-radius: 999px; }
 .st-key-footer_menu a:hover { background: #27336B; }
-.st-key-footer_menu a p { color: #fff; margin: 0; font-size: 15px; }
+.st-key-footer_menu a p { color: #fff; margin: 0; font-size: 16px; }
 .footer-intro { max-width: 420px; }
 .st-key-site_root a:focus-visible, .st-key-site_root button:focus-visible {
   outline: 3px solid #27336B; outline-offset: 3px;
@@ -176,17 +176,17 @@ CSS = """
 .st-key-judgment_need:has(.st-key-tab_active_need) {
   border-color: #27336B; box-shadow: 0 0 0 1px #27336B, var(--site-shadow-hover);
 }
-.st-key-site_root [data-testid="stMetric"] {
-  background: #fff; border-color: var(--site-line); border-radius: 18px; box-shadow: var(--site-shadow);
-  transition: box-shadow .18s ease, transform .18s ease;
-}
-.st-key-site_root [data-testid="stMetric"]:hover { transform: translateY(-2px); box-shadow: var(--site-shadow-hover); }
-.st-key-site_root [data-testid="stMetricLabel"] p { color: #4A5270; font-weight: 600; }
+.st-key-site_root [data-testid="stMetric"] { border-color: var(--site-line); border-radius: 18px; }
+.st-key-site_root [data-testid="stMetricLabel"] p { color: #4A5270; font-weight: 600; font-size: 18px; }
+.st-key-site_root [data-testid="stMetricDelta"] p { font-size: 18px; }
+.st-key-site_root div:has(> [data-testid="stMetricDelta"]) { flex-wrap: wrap; }
+.st-key-site_root [data-testid="stMetric"] .stMarkdownEllipsis,
+.st-key-site_root [data-testid="stMetric"] .stMarkdownEllipsis p { white-space: normal; }
 .st-key-site_root [data-testid="stMetricValue"] {
   color: #27336B; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
 }
 .st-key-site_page_header h1::after {
-  content: ""; display: block; width: 44px; height: 5px; margin-top: 12px;
+  content: ""; display: block; width: 44px; height: 5px; margin: 12px 0 15px;
   border-radius: 3px; background: #FF7A66;
 }
 .st-key-site_root [data-testid="stAlertContainer"] {
@@ -210,8 +210,7 @@ CSS = """
 }
 @media (prefers-reduced-motion: reduce) {
   .st-key-site_root * { transition: none !important; }
-  .st-key-judgment_ownership:hover, .st-key-judgment_parking:hover, .st-key-judgment_need:hover,
-  .st-key-site_root [data-testid="stMetric"]:hover { transform: none; }
+  .st-key-judgment_ownership:hover, .st-key-judgment_parking:hover, .st-key-judgment_need:hover { transform: none; }
 }
 @media (max-width: 1100px) {
   /* 가로 배치의 flex 항목은 key 블록 바깥의 래퍼다. */

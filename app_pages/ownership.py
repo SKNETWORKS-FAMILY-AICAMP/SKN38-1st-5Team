@@ -65,7 +65,7 @@ def _vehicle_composition(frame: pd.DataFrame, scope: str, district_name: str) ->
     labels = base.mark_text(align="left", x=5, dx=0, dy=-23, color="#1B2340", fontSize=15).encode(
         x=alt.value(5), text=alt.Text("vehicle_count:Q", format=",d"),
     )
-    chart = (bars + labels).properties(height=310)
+    chart = (bars + labels).properties(height=310, padding={"left": 5, "top": 5, "bottom": 5, "right": 16})
     st.altair_chart(_polish(chart), width="stretch", key="ownership_vehicle_types",
                     alt=f"{district_name} {'전체 차량' if scope == 'all' else '전기차'}의 차종별 등록 대수")
 
@@ -107,13 +107,8 @@ district_name = word(row.get("district_name"), word(rank_row.get("district_name"
 render_hero(district_name, ranking=ranking)
 
 st.html("""<style>
-.st-key-ownership_content h3 { font-size: 30px; }
-.st-key-ownership_content [data-testid="stMarkdownContainer"] p { font-size: 18px; }
-.st-key-ownership_content [data-testid="stCaptionContainer"] p { font-size: 16px; }
-.st-key-ownership_content [data-testid="stMetricValue"] p { font-size: 36px; }
-.st-key-ownership_content div:has(> [data-testid="stMetricDelta"]) { flex-wrap: wrap; }
-.st-key-ownership_content [data-testid="stMetricDelta"]:has([data-testid="stMetricDeltaIcon-Up"]) { color: #D01F1F; }
-.st-key-ownership_content [data-testid="stMetricDelta"]:has([data-testid="stMetricDeltaIcon-Down"]) { color: #2563EB; }
+.st-key-ownership_content [data-testid="stMetricDelta"]:has([data-testid="stMetricDeltaIcon-Up"]) { color: #C81E1E; background-color: #FEE2E2; }
+.st-key-ownership_content [data-testid="stMetricDelta"]:has([data-testid="stMetricDeltaIcon-Down"]) { color: #1D4ED8; background-color: #DBEAFE; }
 </style>""")
 
 with st.container(gap="small", key="ownership_content"):
@@ -144,7 +139,7 @@ with st.container(gap="small", key="ownership_content"):
         _fuel_composition(row, district_name)
 
     st.subheader("서울 25구, 세대당 차량은 얼마나 될까요?", anchor=False)
-    st.caption("차량 보유는 한 세대당 등록된 차량 수로 비교해요. 값이 큰 순서이며, 동률은 같은 순위예요. 1위부터 8위는 많은 편, 9위부터 17위는 보통, 18위부터 25위는 적은 편이에요.")
+    st.caption("차량 보유는 한 세대당 등록된 차량 수로 비교해요. 값이 큰 순서이며, 동률은 같은 순위예요. 숫자는 소수 둘째 자리까지 보여 드리고 순위는 반올림 전 값으로 정해서, 보이는 숫자가 같아도 순위가 다를 수 있어요. 1위부터 8위는 많은 편, 9위부터 17위는 보통, 18위부터 25위는 적은 편이에요.")
     if ranking.empty:
         st.info("서울 25구 순위는 자료 없음이에요.")
     else:

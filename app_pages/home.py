@@ -13,6 +13,8 @@ if ranking.empty:
 region_id = int(st.session_state.district_id)
 row = district_row(ranking, region_id)
 judgment_tabs(row)
+st.caption("이사 후보 두 곳의 차량, 주차, 대중교통을 나란히 비교해 보세요.")
+st.page_link("app_pages/compare.py", label="이사 후보 두 동네 비교하기", icon=":material/compare_arrows:")
 topic = st.session_state.topic
 
 with st.container(horizontal=True, vertical_alignment="center", gap="medium"):

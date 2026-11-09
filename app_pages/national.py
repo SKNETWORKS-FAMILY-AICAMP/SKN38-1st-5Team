@@ -60,20 +60,19 @@ st.caption(
     f"자료 기준 {date_text(frame.iloc[0].stat_month, month=True)} · "
     "원본에 수록된 시도만 포함해요. 한 달 자료라 월별 증감은 알 수 없어요."
 )
-total_card, seoul_card, coverage_card = st.columns(3, gap="medium")
-with total_card:
+seoul_text = (
+    "선택에서 제외" if seoul_rows.empty and province is not None
+    and not str(province).startswith("서울") else count_text(seoul_total)
+)
+with st.grid(3, min_column_width=280, gap="medium"):
     st.metric("선택 조건 합계", count_text(total), border=True,
               help="현재 시도·차종·용도 조건의 등록 대수를 합한 값이에요.")
-with seoul_card:
-    seoul_text = (
-        "선택에서 제외" if seoul_rows.empty and province is not None
-        and not str(province).startswith("서울") else count_text(seoul_total)
-    )
     st.metric("서울 등록", seoul_text, border=True,
               help="현재 선택 조건에 포함된 서울의 등록 대수예요.")
-with coverage_card:
-    st.metric("수록 시도", f"{province_count:,}개", border=True,
-              help="현재 조건의 원본 자료에 실제로 수록된 시도 수예요.")
+    st.metric("자료에 있는 지역", f"{province_count:,}개", border=True,
+              help="현재 조건의 원본 자료에 실제로 수록된 지역 수예요.")
+if frame.province_name.eq("전남광주").any():
+    st.caption("지역 이름은 원본 자료를 따라요. '전남광주'는 한 지역으로 세어요.")
 
 totals = (
     frame.groupby("province_name", observed=True, sort=False)["vehicle_count"]
@@ -98,15 +97,15 @@ with chart_column:
             chart = (
                 alt.Chart(valid_totals).mark_bar(cornerRadiusEnd=6).encode(
                     x=alt.X("vehicle_count:Q", title="등록 대수",
-                            axis=alt.Axis(format=",.0f", tickCount=4, labelFontSize=14, titleFontSize=14)),
+                            axis=alt.Axis(format=",.0f", tickCount=4, labelFontSize=15, titleFontSize=15)),
                     y=alt.Y("province_name:N", title=None, sort="-x",
-                            axis=alt.Axis(values=province_labels, labelLimit=150, labelFontSize=14,
+                            axis=alt.Axis(values=province_labels, labelLimit=150, labelFontSize=15,
                                           labelOverlap=False, labelBound=False)),
                     color=alt.condition(alt.datum.is_seoul, alt.value("#FF7A66"), alt.value("#27336B")),
                     tooltip=[alt.Tooltip("province_name:N", title="시도"),
                              alt.Tooltip("vehicle_count:Q", title="등록 대수", format=",.0f")],
-                ).properties(height=plot_height).configure_view(stroke=None).configure_axis(
-                    labelColor="#1B2340", titleColor="#4A5270",
+                ).properties(height=plot_height, padding={"left": 5, "top": 5, "bottom": 5, "right": 16}).configure_view(stroke=None).configure_axis(
+                    labelFontSize=15, titleFontSize=15, labelColor="#1B2340", titleColor="#4A5270",
                     labelFont="Noto Sans KR", titleFont="Noto Sans KR",
                     gridColor="#C8CDE3", domainColor="#C8CDE3", tickColor="#C8CDE3",
                 )

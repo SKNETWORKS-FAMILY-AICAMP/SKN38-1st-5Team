@@ -40,7 +40,7 @@ def difference(row: pd.Series, other: pd.Series, topic: str) -> tuple[str, bool]
         return f"세대당 {amount}대 {'더 많아요' if more else '더 적어요'}", more
     if topic == "parking":
         return f"차 100대당 {amount}면 {'더 많아요' if more else '더 적어요'}", more
-    return f"승객 {amount}명 {'더 많아요' if more else '더 적어요'}", not more
+    return f"주민 1명당 하루 승객이 {amount}명 {'더 많아요' if more else '더 적어요'}", not more
 
 
 regions = load_options().get("regions")
@@ -156,17 +156,17 @@ if details.open:
                             "district_name:N", title=None, sort=district_order,
                             scale=alt.Scale(domain=district_order, range=["#27336B", "#8E98CF"]),
                             legend=alt.Legend(orient="bottom", direction="horizontal",
-                                              symbolType="circle", labelFontSize=14),
+                                              symbolType="circle", labelFontSize=15),
                         ),
                         tooltip=[alt.Tooltip("district_name:N", title="동네"),
                                  alt.Tooltip("vehicle_type_name:N", title="차종"),
                                  alt.Tooltip("vehicle_count:Q", title="등록 대수", format=",d")],
                     ).properties(height=260).configure_view(stroke=None).configure_axis(
-                        labelFontSize=14, titleFontSize=14, labelColor="#1B2340", titleColor="#4A5270",
+                        labelFontSize=15, titleFontSize=15, labelColor="#1B2340", titleColor="#4A5270",
                         labelFont="Noto Sans KR", titleFont="Noto Sans KR",
                         gridColor="#C8CDE3", domainColor="#C8CDE3", tickColor="#C8CDE3",
                     ).configure_legend(
-                        labelColor="#1B2340", labelFont="Noto Sans KR",
+                        labelFontSize=15, titleFontSize=15, labelColor="#1B2340", labelFont="Noto Sans KR",
                     )
                     st.altair_chart(chart, width="stretch", height=340,
                                     alt=f"두 동네의 {scope} 차종별 등록 대수 비교. 막대와 범례는 {' 다음 '.join(district_order)} 순서예요.")

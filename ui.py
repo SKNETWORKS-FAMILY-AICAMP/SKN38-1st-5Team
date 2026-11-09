@@ -305,7 +305,7 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
 
 def ranking_list(ranking: pd.DataFrame, topic: str) -> None:
     spec = TOPICS[topic]
-    st.caption(f"**서울 25구 순위** · {spec.order_label}")
+    st.caption(f"**서울 25구 순위** · {spec.order_label} · 순위는 반올림 전 값으로 정해요")
     key = f"ranking_{topic}_{st.session_state.get('rank_epoch', 0)}"
     shown = top_three(ranking, f"{topic}_value", f"ranking_{topic}")
     st.altair_chart(ranking_chart(shown, topic, st.session_state.district_id), key=key,

@@ -170,6 +170,19 @@ class AboutFaqTest(unittest.TestCase):
         for column in ("기준 기간", "수집일", "수록 범위·누락"):
             self.assertEqual(table[column].tolist(), ["자료 없음", "자료 없음"])
 
+    def test_collection_summary_counts_each_source_once_and_details_keep_methods(self):
+        snapshots = self.options["snapshots"].iloc[[0] * 5].copy().reset_index(drop=True)
+        snapshots["source_code"] = ["first", "first", "second", "third", "fourth"]
+        snapshots["collection_method"] = ["api", "crawl", "api", "crawl", "file"]
+        self.options_query.return_value = {"snapshots": snapshots}
+        self.open_about()
+        self.assertIn("API 조회 2종 · 웹 수집 1종 · 파일 수집 1종", self.page_text())
+        self.assertEqual(len(self.app.dataframe[0].value), 5)
+        methods = [item.value for item in self.app.expander(key="about_coverage").caption
+                   if item.value.startswith("수집 방법:")]
+        self.assertEqual(methods, ["수집 방법: API 조회", "수집 방법: 웹 수집", "수집 방법: API 조회",
+                                   "수집 방법: 웹 수집", "수집 방법: 파일 수집"])
+
     def test_missing_sources_do_not_hide_criteria(self):
         for snapshots in (None, pd.DataFrame()):
             with self.subTest(snapshots=type(snapshots).__name__):
@@ -178,6 +191,7 @@ class AboutFaqTest(unittest.TestCase):
                 self.app.segmented_control(key="about_section").set_value("출처·기준일").run()
                 self.assertFalse(self.app.dataframe)
                 self.assertIn("자료 없음", self.page_text())
+                self.assertNotIn("API 조회", self.page_text())
                 self.app.segmented_control(key="about_section").set_value("판정 기준").run()
                 self.assert_ready()
                 self.assertEqual(len(self.app.table[0].value), 3)

@@ -29,10 +29,10 @@ _GAUGE = st.components.v2.component(
       border: 1px solid #C8CDE3; border-radius: var(--st-base-radius, 16px);
       background: #EEF0FA; color: #1B2340; font-family: var(--st-font, sans-serif); }
     .copy { min-width: 0; }
-    .eyebrow { color: #4A5270; font-size: 13px; margin: 0 0 8px; }
+    .eyebrow { color: #4A5270; font-size: 16px; margin: 0 0 8px; }
     .title { font-family: var(--st-heading-font, inherit); font-size: 27px;
       font-weight: 400; line-height: 1.3; margin: 0 0 8px; overflow-wrap: anywhere; }
-    .detail { color: #4A5270; margin: 0; font-size: 14px; line-height: 1.6; }
+    .detail { color: #4A5270; margin: 0; font-size: 16px; line-height: 1.6; }
     .battery { width: 152px; height: 66px; flex: 0 0 auto; position: relative;
       border: 4px solid #27336B; border-radius: 13px; background: #FFFFFF; }
     .battery::after { content: ''; position: absolute; right: -13px; top: 20px;
@@ -100,7 +100,7 @@ def _category_count(frame: pd.DataFrame, kind: str, code: str):
 
 def _bar_chart_height(item_count: int) -> int:
     # fit 높이에는 축과 제목도 포함되므로 여백을 더한다.
-    return max(150, 29 * item_count + 80)
+    return max(170, 32 * item_count + 100)
 
 
 def _bars(frame: pd.DataFrame, key: str, label: str) -> None:
@@ -115,7 +115,7 @@ def _bars(frame: pd.DataFrame, key: str, label: str) -> None:
         tooltip=[alt.Tooltip("category_label:N", title=label),
                  alt.Tooltip("charger_count:Q", title="충전기 수", format=",d")],
     ).properties(height=_bar_chart_height(len(frame))).configure_view(stroke=None).configure_axis(
-        labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelFontSize=12,
+        labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelFontSize=15, titleFontSize=15,
         labelColor="#1B2340", titleColor="#4A5270", gridColor="#EEF0FA",
     )
     st.altair_chart(chart, key=key, width="stretch", alt=f"선택한 구의 {label}별 수록 충전기 수")

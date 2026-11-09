@@ -8,11 +8,11 @@ linkColor = "#27336B"
 borderColor = "#C8CDE3"
 font = "'Noto Sans KR':https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
 headingFont = "Jua:https://fonts.googleapis.com/css2?family=Jua&display=swap"
-baseFontSize = 16
+baseFontSize = 18
 baseFontWeight = 400
-headingFontSizes = ["42px", "30px", "26px", "22px", "18px", "16px"]
+headingFontSizes = ["42px", "32px", "30px", "22px", "18px", "16px"]
 headingFontWeights = 400
-metricValueFontSize = "1.75rem"
+metricValueFontSize = "2rem"
 metricValueFontWeight = 800
 baseRadius = "16px"
 buttonRadius = "full"

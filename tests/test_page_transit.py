@@ -13,7 +13,7 @@ from db import queries as q
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DAYS = {date(2026, 10, 30): "평일 · 10.30 (금)", date(2026, 10, 31): "토요일 · 10.31"}
+DAYS = {date(2026, 10, 30): "10.30(금)", date(2026, 10, 31): "10.31(토)"}
 
 
 class TransitPageTests(unittest.TestCase):
@@ -160,7 +160,7 @@ class TransitPageTests(unittest.TestCase):
             _, data = self.chart_data(mode)
             self.assertTrue(data.loc[data.day_label == DAYS[date(2026, 10, 31)], "known_passenger_sum"].isna().all())
             self.assertEqual(data.known_passenger_sum.notna().sum(), 24)
-        self.assertIn("토요일 · 10.31 · 자료 없음", self.page_text())
+        self.assertIn("10.31(토) · 자료 없음", self.page_text())
 
     def test_missing_hour_is_not_zero_and_breaks_the_line(self):
         frames = {day: frame.copy() for day, frame in self.trends.items()}
@@ -208,7 +208,7 @@ class TransitPageTests(unittest.TestCase):
         with self.patch_trends(frames):
             self.app.run()
         self.assert_ready()
-        self.assertIn("평일 · 10.30 (금) · **08~09시, 18~19시 (공동)** · 12,345명", self.page_text())
+        self.assertIn("10.30(금) · **08~09시, 18~19시 (공동)** · 12,345명", self.page_text())
 
     def test_observed_zero_is_different_from_missing(self):
         frames = {day: frame.copy() for day, frame in self.trends.items()}

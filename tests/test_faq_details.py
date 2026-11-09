@@ -153,6 +153,7 @@ class FaqDetailsTest(unittest.TestCase):
 
     def test_charger_map_and_details_follow_same_speed_filter(self):
         self.open_detail("주차·충전 시설")
+        self.app.toggle(key="detail_parking_show_all").set_value(True).run()
         # 마포구는 수록 주차장의 좌표가 전부 없어도 목록은 보여야 한다.
         parking = q.search_places("주차장 [", region_id=self.region_id, limit=100)
         parking = parking.loc[parking.kind == "parking_site"]
@@ -191,6 +192,7 @@ class FaqDetailsTest(unittest.TestCase):
             self.open_detail("시간대별 승객")
             self.assertEqual(trend.call_args.kwargs["stat_date"], date(2026, 10, 30))
         self.assertEqual(self.app.selectbox(key="detail_day").value, date(2026, 10, 30))
+        self.app.toggle(key="detail_passengers_show_all").set_value(True).run()
         for mode in ("total", "bus"):
             with self.subTest(mode=mode):
                 self.app.pills(key="detail_mode").set_value(mode).run()
@@ -198,6 +200,7 @@ class FaqDetailsTest(unittest.TestCase):
                 actual = self.passenger_chart_data()
                 expected = q.get_trend_data(self.region_id, date(2026, 10, 30), analysis_type="4")
                 expected = expected.loc[(expected.series_type == "passenger") & (expected.mode_code == mode)]
+                expected = expected.sort_values("known_passenger_sum", ascending=False, kind="stable")
                 self.assertEqual(actual.known_passenger_sum.tolist(), expected.known_passenger_sum.tolist())
                 self.assertEqual(actual.hour_of_day.tolist(), expected.hour_of_day.tolist())
         self.app.selectbox(key="district_id").select(self.gangseo_id).run()

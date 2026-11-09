@@ -70,7 +70,7 @@ class CompareNationalTest(unittest.TestCase):
         values = self.metric_values(app)
         self.assertEqual(values["선택 조건 합계"], "26,706,123대")
         self.assertEqual(values["서울 등록"], "3,150,351대")
-        self.assertEqual(values["수록 시도"], "16개")
+        self.assertEqual(values["자료에 있는 지역"], "16개")
         color = self.chart_spec(app)["encoding"]["color"]
         self.assertEqual(color["condition"]["test"], "datum.is_seoul")
         self.assertEqual(color["condition"]["value"], "#FF7A66")
@@ -240,7 +240,7 @@ class CompareNationalTest(unittest.TestCase):
              ["거의 같아요 · 0.01대 미만 차이", "거의 같아요 · 0.1면 미만 차이",
               "거의 같아요 · 0.01명 미만 차이"]),
             ((1.01, 0.027, 1.01),
-             ["세대당 0.01대 더 많아요", "차 100대당 0.1면 더 많아요", "승객 0.01명 더 많아요"]),
+             ["세대당 0.01대 더 많아요", "차 100대당 0.1면 더 많아요", "주민 1명당 하루 승객이 0.01명 더 많아요"]),
         )
         for values, expected in cases:
             with self.subTest(values=values):

@@ -16,7 +16,7 @@ BORDER = "#C8CDE3"
 def _polish_chart(chart: alt.Chart) -> alt.Chart:
     return chart.configure_view(stroke=None).configure_axis(
         labelFont="Noto Sans KR", titleFont="Noto Sans KR",
-        labelFontSize=14, titleFontSize=14, labelColor=INK, titleColor=MUTED,
+        labelFontSize=15, titleFontSize=15, labelColor=INK, titleColor=MUTED,
         gridColor=BORDER, domainColor=BORDER, tickColor=BORDER,
     )
 

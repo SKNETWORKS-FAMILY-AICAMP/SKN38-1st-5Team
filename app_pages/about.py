@@ -138,6 +138,10 @@ if section == "출처·기준일":
         st.info("출처 수집본은 자료 없음으로 표시해요. 판정 기준과 DB 구성은 위에서 볼 수 있어요.",
                 icon=":material/info:")
     else:
+        collection_names = {"api": "API 조회", "crawl": "웹 수집", "file": "파일 수집"}
+        collection_counts = snapshots.drop_duplicates("source_code")["collection_method"].value_counts()
+        st.caption(" · ".join(f"{label} {collection_counts.get(method, 0)}종"
+                              for method, label in collection_names.items()))
         records = []
         for _, row in snapshots.iterrows():
             source_code = word(row.get("source_code"))
@@ -158,6 +162,7 @@ if section == "출처·기준일":
         with st.expander("출처별 수록 범위와 누락 자세히", key="about_coverage"):
             for record, (_, snapshot) in zip(records, snapshots.iterrows()):
                 st.markdown(f"**{record['자료']} · 수집 {record['수집일']}**")
+                st.caption(f"수집 방법: {collection_names.get(word(snapshot.get('collection_method')), '자료 없음')}")
                 st.markdown(record["수록 범위·누락"])
                 coverage_note = word(snapshot.get("coverage_note")).replace("~", r"\~")
                 st.caption(f"수집 기록 원문: {coverage_note}")
@@ -180,6 +185,10 @@ elif section == "DB 구성":
     st.subheader(f"자료를 {len(DB_TABLES)}개 표로 연결했어요", anchor=False)
     st.markdown("지역을 기준으로 등록·주차·충전·시간별 자료를 연결해요. "
                 "충전소와 충전기, 기업과 FAQ를 나누고 각 자료의 출처를 함께 보관해요.")
+    st.markdown("**표를 나눈 이유 · 2NF**")
+    st.markdown("충전기는 충전소 번호와 기기 번호를 함께 써서 구분해요. "
+                "주소처럼 충전소 번호만으로 정해지는 정보는 충전소 표에 한 번만 보관해요. "
+                "복합키의 일부에만 달린 정보를 따로 나누는 것이 2NF예요.")
     st.dataframe(pd.DataFrame(DB_TABLES, columns=pd.Index(["묶음", "표 이름", "담은 내용"])),
                  hide_index=True, width="stretch", height="content", key="about_db_tables",
                  alt="현재 DB를 이루는 18개 표의 이름과 역할")

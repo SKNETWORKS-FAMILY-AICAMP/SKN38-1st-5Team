@@ -13,9 +13,10 @@ TRAFFIC_VALUES = ("avg_vehicles", "seoul_avg_vehicles")
 
 def _polish(chart):
     return chart.configure_view(stroke=None).configure_axis(
-        labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelColor="#4A5270",
+        labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelFontSize=15, titleFontSize=15,
+        labelColor="#4A5270",
         titleColor="#4A5270", gridColor="#EEF0FA", domain=False,
-    ).configure_legend(labelFont="Noto Sans KR", labelColor="#1B2340")
+    ).configure_legend(labelFont="Noto Sans KR", labelFontSize=15, titleFontSize=15, labelColor="#1B2340")
 
 
 def _day_profile(frame: pd.DataFrame, day_type: str) -> pd.DataFrame:
@@ -209,8 +210,8 @@ else:
         if _partial_coverage(profile):
             st.caption("관측 범위가 일정하지 않아 이 자료만으로 출발 시간을 추천하기는 어려워요.")
 
-st.subheader("그때 서울 날씨는 어땠을까요?", anchor=False)
-st.caption(r"2026.10.30\~31의 48시간 표본이에요. 서울 108 관측소의 공통 자료로, 구별 날씨나 현재 날씨·예보가 아니에요. 9월 교통량과는 기준 기간이 달라요.")
+st.subheader("서울 날씨 표본 (10월 30~31일)", anchor=False)
+st.caption(r"9월 교통량과는 기준 기간이 달라요. 2026.10.30\~31의 48시간 표본이에요. 서울 108 관측소의 공통 자료로, 구별 날씨나 현재 날씨·예보가 아니에요.")
 weather = _weather_series(load_frame(_weather_sample, options.get("weather_observed_at", [])))
 with st.grid(2, min_column_width=340, gap="medium"):
     for field, label in (("temperature_c", "기온"), ("rain_mm", "강수")):

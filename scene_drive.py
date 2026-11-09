@@ -134,7 +134,7 @@ CSS = """
   isolation:isolate; }
 .copy { align-self:center; min-width:0; padding:0 0 4px; }
 p, h1 { margin:0; }
-.brand { display:flex; align-items:center; gap:10px; color:var(--navy); font-size:12px;
+.brand { display:flex; align-items:center; gap:10px; color:var(--navy); font-size:13px;
   font-weight:600; letter-spacing:.01em; margin-bottom:17px; }
 .brand-mark { font-family:'Jua',var(--st-heading-font),sans-serif; font-size:22px;
   font-weight:400; padding-right:10px; border-right:1px solid #ADB5DA; line-height:1; }
@@ -144,10 +144,10 @@ h1 > span { display:block; white-space:nowrap; transform-origin:0 100%; }
 h1 em { font-style:normal; position:relative; z-index:0; }
 h1 em::after { content:''; position:absolute; left:0; right:0; bottom:2px; height:12px;
   border-radius:4px; background:var(--coral); opacity:.75; z-index:-1; transform:rotate(-2deg); }
-.intro { margin-top:15px; font-size:14px; line-height:1.8; word-break:keep-all; }
-.verdict { margin-top:20px; color:var(--muted); font-size:12px; line-height:1.8; }
-.verdict strong { color:var(--navy); display:block; font-size:16px; }
-.vehicle-note { font-size:12px; color:var(--muted); line-height:1.6; margin-top:6px;
+.intro { margin-top:15px; font-size:18px; line-height:1.8; word-break:keep-all; }
+.verdict { margin-top:20px; color:var(--muted); font-size:13px; line-height:1.8; }
+.verdict strong { color:var(--navy); display:block; font-size:18px; }
+.vehicle-note { font-size:13px; color:var(--muted); line-height:1.6; margin-top:6px;
   word-break:keep-all; max-width:160px; text-align:center; }
 .scene { min-width:0; min-height:342px; position:relative; overflow:hidden; }
 .destination { display:flex; align-items:center; gap:6px; position:absolute; left:13px; top:5px;
@@ -158,7 +158,7 @@ h1 em::after { content:''; position:absolute; left:0; right:0; bottom:2px; heigh
 .arrived { color:var(--muted); margin-left:3px; }
 .motion { position:absolute; top:6px; right:5px; display:flex; align-items:center; gap:5px;
   background:transparent; color:var(--muted); border:0; border-radius:6px; cursor:pointer;
-  padding:5px; font:inherit; font-size:10px; z-index:3; min-height:28px; }
+  padding:5px; font:inherit; font-size:13px; z-index:3; min-height:28px; }
 .motion-icon { font-weight:800; font-size:13px; }
 .motion:disabled { cursor:default; }
 .city { position:absolute; top:31px; left:0; width:100%; height:150px; opacity:.65; }
@@ -170,8 +170,9 @@ h1 em::after { content:''; position:absolute; left:0; right:0; bottom:2px; heigh
   -webkit-tap-highlight-color:transparent; }
 .arrival { display:flex; flex-direction:column; align-items:center; width:100%; }
 .speech { display:flex; align-items:center; justify-content:center; min-height:31px;
-  padding:5px 9px; font-size:12px; font-weight:700; line-height:18px; background:#fff;
-  color:var(--navy); border:1.5px solid #B6BDDE; border-radius:12px; white-space:nowrap;
+  padding:5px 9px; font-size:13px; font-weight:700; line-height:18px; background:#fff;
+  color:var(--navy); border:1.5px solid #B6BDDE; border-radius:12px; white-space:normal;
+  max-width:100%; text-align:center; word-break:keep-all;
   position:relative; margin-bottom:3px; transition:background 160ms,color 160ms; }
 .speech::after { content:''; width:7px; height:7px; border-bottom:1.5px solid #B6BDDE;
   border-right:1.5px solid #B6BDDE; position:absolute; bottom:-5px; left:calc(50% - 4px);
@@ -209,46 +210,46 @@ button:focus-visible { outline:3px solid var(--navy); outline-offset:-3px; }
 .hero[data-motion="off"] *, .hero[data-motion="off"] *::after { animation:none!important; transition:none!important; }
 @media (max-width:1100px) and (min-width:701px) {
   .hero { gap:14px; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); }
+  .scene { min-height:380px; }
   h1 { font-size:clamp(27px,3.5vw,39px); }
-  .brand { font-size:10px; gap:6px; }
-  .intro { font-size:12px; }
+  .brand { font-size:13px; gap:6px; }
+  .intro { font-size:18px; }
   .car-sprite { height:154px; }
   .garage { top:71px; }
-  .speech { font-size:11px; padding:5px 7px; }
+  .speech { font-size:13px; padding:5px 7px; }
   .car-title { font-size:17px; }
-  .intro { font-size:13px; }
   .motion-text { display:none; }
 }
 @media (max-width:700px) {
   .hero { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto;
     min-height:0; gap:14px; padding:18px 14px; border-radius:18px; }
-  .scene { min-height:248px; }
+  .scene { min-height:280px; }
   .copy { align-self:start; padding:0; }
-  .brand { margin-bottom:9px; font-size:10px; gap:8px; }
+  .brand { margin-bottom:9px; font-size:12px; gap:8px; }
   .brand-mark { font-size:18px; padding-right:8px; }
   h1 { font-size:32px; line-height:1.18; letter-spacing:-.03em; }
   h1 em::after { height:8px; bottom:1px; }
-  .intro { margin-top:10px; font-size:13px; line-height:1.7; }
+  .intro { margin-top:10px; font-size:18px; line-height:1.7; }
   .verdict { margin-top:10px; font-size:12px; }
-  .verdict strong { display:inline; margin-left:5px; font-size:14px; }
+  .verdict strong { display:inline; margin-left:5px; font-size:18px; }
   .destination { top:0; left:1px; font-size:12px; line-height:24px; gap:4px; }
   .destination svg { width:14px; height:17px; }
-  .motion { top:0; right:0; min-height:26px; font-size:9px; gap:4px; padding:2px; }
+  .motion { top:0; right:0; min-height:26px; font-size:12px; gap:4px; padding:2px; }
   .motion-icon { font-size:12px; }
   .city { top:24px; height:85px; opacity:.55; }
   .road { top:122px; height:53px; }
   .garage { top:32px; gap:2px; }
   .car { padding:0 0 3px; border-radius:10px; }
-  .speech { min-height:26px; padding:3px 6px; font-size:11px; line-height:18px; margin-bottom:1px; border-radius:9px; white-space:normal; text-align:center; }
+  .speech { min-height:26px; padding:3px 6px; font-size:12px; line-height:18px; margin-bottom:1px; border-radius:9px; white-space:normal; text-align:center; }
   .car-sprite { max-width:94px; height:105px; }
   .car-title { font-size:16px; margin-top:0; gap:2px; padding:1px 0; }
-  .vehicle-note { font-size:11px; line-height:1.5; margin-top:3px; }
+  .vehicle-note { font-size:12px; line-height:1.5; margin-top:3px; }
   .brake { top:10px; right:-3px; font-size:16px; }
   .dust { width:20px; height:10px; left:-4px; }
 }
 @media (max-width:360px) {
   h1 { font-size:29px; }
-  .speech { font-size:10px; padding:3px 4px; }
+  .speech { font-size:12px; padding:3px 4px; }
   .car-title { font-size:14px; }
   .motion-text { display:none; }
 }

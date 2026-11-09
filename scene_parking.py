@@ -87,20 +87,20 @@ CSS = """
 .brand { font-family: Jua, var(--st-heading-font), sans-serif; font-size: 23px; font-weight: 400; }
 h1 { padding: 0; margin: 15px 0 11px; color: var(--ink); font-family: Jua, var(--st-heading-font), sans-serif; font-size: clamp(34px, 3.8vw, 52px); line-height: 1.16; font-weight: 400; letter-spacing: -.025em; word-break: keep-all; }
 .coral { color: #DC5946; }
-.intro { margin: 0; font-size: 15px; font-weight: 500; line-height: 1.65; word-break: keep-all; }
+.intro { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.65; word-break: keep-all; }
 .district-line { display: flex; align-items: center; gap: 11px; margin-top: 20px; flex-wrap: wrap; }
 .district-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--navy); color: white; padding: 7px 11px; border-radius: 999px; font-size: 14px; font-weight: 700; line-height: 1.3; }
 .district-chip svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; }
-.verdict { font-size: 15px; color: #4A5270; }
+.verdict { font-size: 18px; color: #4A5270; }
 .verdict strong { margin-left: 5px; font-weight: 800; color: var(--navy); }
 .measure { margin: 8px 0 0; color: #4A5270; font-size: 13px; font-variant-numeric: tabular-nums; }
-.little-road { display: flex; align-items: center; gap: 5px; margin-top: 22px; font-size: 11px; color: #4A5270; }
+.little-road { display: flex; align-items: center; gap: 5px; margin-top: 22px; font-size: 13px; color: #4A5270; }
 .little-road i { width: 11px; height: 3px; background: var(--mid); border-radius: 5px; }
 .little-road span { margin-left: 7px; }
 .parking-scene { min-width: 0; width: 100%; margin: 0; }
 .lot { width: 100%; height: auto; display: block; overflow: hidden; }
 .lot text { font-family: 'Noto Sans KR', var(--st-font), sans-serif; }
-figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin: 5px 20px 0; font-size: 11px; line-height: 1.5; color: #4A5270; }
+figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin: 5px 20px 0; font-size: 13px; line-height: 1.5; color: #4A5270; }
 .tap-hint { font-weight: 700; color: var(--navy); }
 .hero-car { cursor: pointer; outline: none; transform-origin: 0 0; }
 .car-body { transform-box: fill-box; transform-origin: center; }
@@ -125,23 +125,23 @@ figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap
 @media (max-width: 1100px) and (min-width: 741px) {
   .parking-hero { gap: 8px; grid-template-columns: minmax(0, .95fr) minmax(0, 1.1fr); }
   h1 { font-size: 38px; }
-  .intro { font-size: 13px; }
-  figcaption { margin-inline: 9px; font-size: 11px; }
+  .intro { font-size: 18px; }
+  figcaption { margin-inline: 9px; font-size: 13px; }
 }
 @media (max-width: 740px) {
   .parking-hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; height: auto; min-height: 0; gap: 9px; align-items: start; }
   .hero-copy { padding: 0; }
-  .eyebrow { font-size: 11px; gap: 9px; line-height: 1; }
+  .eyebrow { font-size: 13px; gap: 9px; line-height: 1.3; }
   .brand { font-size: 19px; }
   h1 { font-size: 30px; line-height: 1.1; margin: 9px 0 7px; }
-  .intro { font-size: 12px; line-height: 1.5; }
+  .intro { font-size: 18px; line-height: 1.5; }
   .district-line { margin-top: 10px; gap: 9px; }
-  .district-chip { font-size: 12px; padding: 5px 9px; }
-  .verdict { font-size: 12px; }
-  .measure { font-size: 11px; margin-top: 5px; }
+  .district-chip { font-size: 13px; padding: 5px 9px; }
+  .verdict { font-size: 18px; }
+  .measure { font-size: 13px; margin-top: 5px; }
   .little-road { display: none; }
   .parking-scene { align-self: center; max-width: 350px; justify-self: center; }
-  figcaption { margin: 3px 7px 0; font-size: 11px; gap: 4px; }
+  figcaption { margin: 3px 7px 0; font-size: 13px; gap: 4px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

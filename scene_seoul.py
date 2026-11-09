@@ -83,9 +83,9 @@ HTML = """
 CSS = """
 :host { display: block; width: 100%; }
 * { box-sizing: border-box; }
-.hero { height: 656px; display: grid; grid-template-columns: minmax(340px, .72fr) minmax(0, 1.28fr);
+.hero { height: 700px; display: grid; grid-template-columns: minmax(340px, .72fr) minmax(0, 1.28fr);
   grid-template-rows: auto 1fr; column-gap: 28px; color: #1B2340;
-  font-family: 'Noto Sans KR', var(--st-font), sans-serif; }
+  font-family: 'Noto Sans KR', var(--st-font), sans-serif; font-size: 18px; }
 p, figure, h1 { margin: 0; }
 .intro { grid-column: 1; grid-row: 1; align-self: start; padding-top: 22px; }
 .eyebrow { display: flex; gap: 13px; align-items: center; font-size: 13px; font-weight: 500; color: #4A5270; }
@@ -93,7 +93,7 @@ p, figure, h1 { margin: 0; }
 h1 { margin: 18px 0 14px; font: 48px/1.18 'Jua', var(--st-heading-font), sans-serif;
   letter-spacing: -.025em; color: #27336B; word-break: keep-all; }
 .coral { color: #FF7A66; }
-.description { max-width: 420px; font-size: 15px; line-height: 1.7; word-break: keep-all; }
+.description { max-width: 420px; font-size: 16px; line-height: 1.7; word-break: keep-all; }
 .map-scene { grid-column: 2; grid-row: 1 / 3; position: relative; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .seoul { display: block; width: 100%; height: 600px; flex: 0 0 600px; overflow: visible; }
 .district { cursor: pointer; stroke: #FFFFFF; stroke-width: 1.5; stroke-linejoin: round;
@@ -106,31 +106,31 @@ h1 { margin: 18px 0 14px; font: 48px/1.18 'Jua', var(--st-heading-font), sans-se
 .label-line { stroke: #4A5270; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .car > g > svg { width: 112px; height: 120px; }
 .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 18px;
-  min-height: 24px; color: #1B2340; font-size: 12px; line-height: 20px; }
+  min-height: 24px; color: #1B2340; font-size: 13px; line-height: 20px; }
 .legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid #8E98CF; }
 figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 3px 8px; padding: 6px 8px 0;
-  color: #4A5270; font-size: 11px; }
+  color: #4A5270; font-size: 13px; }
 .map-guide::before { content: ''; display: inline-block; height: 6px; width: 6px;
   margin-right: 6px; border-radius: 50%; background: #FF7A66; vertical-align: 2px; }
 .hover-label { position: absolute; left: 12px; right: 12px; top: 6px; width: fit-content; max-width: calc(100% - 24px);
   background: #fff; color: #27336B; border: 1px solid #8E98CF; border-radius: 14px;
   padding: 9px 14px; font-size: 13px; line-height: 1.6; pointer-events: none; }
 .arrival { grid-column: 1; grid-row: 2; align-self: center; padding: 18px 0 6px; min-width: 0; }
-.summary-caption { font-size: 12px; color: #4A5270; margin-bottom: 5px; }
+.summary-caption { font-size: 13px; color: #4A5270; margin-bottom: 5px; }
 .arrival-title { font: 29px/1.3 'Jua', var(--st-heading-font), sans-serif; min-height: 38px; color: #27336B; }
 .typed .district-name { color: #C24C38; }
 .cursor { color: #FF7A66; margin-left: 2px; }
 .hero[data-phase="ready"] .cursor { visibility: hidden; }
-.sentence { color: #1B2340; font-size: 17px; line-height: 1.65; margin-top: 5px; word-break: keep-all; }
+.sentence { color: #1B2340; font-size: 18px; line-height: 1.65; margin-top: 5px; word-break: keep-all; }
 .verdicts { display: grid; gap: 7px; margin-top: 16px; }
 .verdict { appearance: none; border: 1px solid #C8CDE3; border-radius: 13px; background: #FFFFFFB8;
   display: flex; text-align: left; align-items: center; gap: 9px; padding: 8px 12px; min-width: 0; min-height: 68px;
   cursor: pointer; color: #1B2340; font-family: inherit; }
 .verdict > svg { flex: 0 0 30px; width: 30px; height: 36px; }
 .verdict-copy { min-width: 0; flex: 1; }
-.topic-label { display: block; color: #4A5270; font-size: 11px; line-height: 1.4; }
-.level { display: block; font-size: 15px; line-height: 1.6; }
+.topic-label { display: block; color: #4A5270; font-size: 13px; line-height: 1.4; }
+.level { display: block; font-size: 18px; line-height: 1.6; overflow-wrap: anywhere; }
 .signals { flex: 0 0 auto; display: inline-flex; gap: 7px; align-items: center; }
 .signal-dot { width: 14px; height: 14px; border-radius: 50%; background: #DDE1F0; }
 .signals[data-state="sufficient"] .signal-green { background: #16803C; box-shadow: 0 0 0 3px #DCFCE7; }
@@ -139,7 +139,7 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
 .verdict[aria-pressed="true"] { border-color: #27336B; background: #fff; }
 .verdict:hover { background: #fff; border-color: #8E98CF; }
 .verdict:focus-visible { outline: 3px solid #27336B; outline-offset: 2px; }
-.guide { color: #4A5270; font-size: 11px; line-height: 1.6; margin-top: 10px; }
+.guide { color: #4A5270; font-size: 13px; line-height: 1.6; margin-top: 10px; }
 .hero[data-phase="ready"] .halo { animation: breathe 4.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 [hidden] { display: none !important; }
@@ -147,7 +147,6 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
 @media (max-width: 1100px) and (min-width: 901px) {
   .hero { column-gap: 16px; grid-template-columns: minmax(310px, .8fr) minmax(0, 1.2fr); }
   h1 { font-size: 40px; }
-  .description { font-size: 14px; }
   .verdict { gap: 6px; padding: 8px; }
   .verdict > svg { width: 24px; flex-basis: 24px; }
   .signals { font-size: 18px; }
@@ -162,16 +161,14 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
   .legend { gap: 5px 12px; margin-top: 10px; }
 }
 @media (max-width: 480px) {
-  .eyebrow { gap: 9px; font-size: 11px; }
+  .eyebrow { gap: 9px; font-size: 12px; }
   .brand { font-size: 22px; }
   h1 { font-size: 36px; }
-  .description { font-size: 14px; }
   .arrival-title { font-size: 27px; }
-  .sentence { font-size: 16px; }
   .verdict { gap: 7px; padding: 8px; }
   .verdict > svg { width: 25px; flex-basis: 25px; }
   .signals { font-size: 19px; }
-  figcaption { font-size: 11px; padding: 6px 0 0; }
+  figcaption { font-size: 12px; padding: 6px 0 0; }
   .hover-label { left: 0; right: 0; top: 0; font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -318,7 +315,8 @@ export default function(component) {
     
     const rect = select('.seoul').getBoundingClientRect();
     const scale = Math.min(rect.width / 740, rect.height / 620) || 1;
-    const font = Math.max(16, 11.5 / scale);
+    const font = Math.max(16, (matchMedia('(max-width:700px)').matches ? 12 : 13) / scale);
+    select('.map-empty').setAttribute('font-size', font);
     const occupied = [];
     [...s.paths].sort((a, b) => a.y - b.y || a.x - b.x).forEach(d => {
       d.label.setAttribute('font-size', font);

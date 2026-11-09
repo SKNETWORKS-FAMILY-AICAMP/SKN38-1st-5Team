@@ -125,7 +125,7 @@ CSS = """
 @media (max-width: 1050px) and (min-width: 701px) {
   .h2-hero { grid-template-columns: minmax(300px, .95fr) minmax(0, 1.05fr); gap: 8px; min-height: 420px; }
   .h2-hero .h2-cars { width: 77px; }
-  .h2-hero .h2-eyebrow { font-size: 11px; }
+  .h2-hero .h2-eyebrow { font-size: 13px; }
   .h2-hero .h2-map-instruction { display: none; }
   .h2-hero .h2-readout-count { font-size: 24px; }
   .h2-hero .h2-criteria { gap: 9px; }
@@ -135,7 +135,7 @@ CSS = """
   .h2-hero { display: flex; flex-direction: column; align-items: stretch; gap: 12px; min-height: 0; padding: 20px 0 28px; }
   .h2-hero .h2-brandline { gap: 9px; margin-bottom: 7px; height: 25px; }
   .h2-hero .h2-wordmark { font-size: 21px; }
-  .h2-hero .h2-eyebrow { font-size: 11px; }
+  .h2-hero .h2-eyebrow { font-size: 12px; }
   .h2-hero .h2-cars { width: 74px; }
   .h2-hero h1 { font-size: 31px; line-height: 1.1; letter-spacing: -.03em; }
   .h2-hero h1 br { display: none; }
@@ -155,11 +155,11 @@ CSS = """
   .h2-hero .h2-readout-name { font-size: 12px; }
   .h2-hero .h2-readout-count { font-size: 20px; }
   .h2-hero .h2-readout-hint { font-size: 12px; }
-  .h2-hero .h2-map-bottom { margin-top: -3px; font-size: 11px; gap: 2px; }
+  .h2-hero .h2-map-bottom { margin-top: -3px; font-size: 12px; gap: 2px; }
   .h2-hero .h2-legend { gap: 4px; }
-  .h2-hero .h2-month { font-size: 11px; }
+  .h2-hero .h2-month { font-size: 12px; }
   .h2-hero .h2-map-instruction b { font-size: 12px; margin-left: 0; }
-  .h2-hero .h2-source { font-size: 11px; margin-top: 3px; }
+  .h2-hero .h2-source { font-size: 12px; margin-top: 3px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .h2-hero *, .h2-hero *::before, .h2-hero *::after { animation: none !important; transition: none !important; }

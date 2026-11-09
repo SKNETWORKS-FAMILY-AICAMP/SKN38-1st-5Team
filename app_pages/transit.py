@@ -11,7 +11,8 @@ from ui import (date_text, district_row, incomplete_transit, load_frame,
                 load_options, number, rank_text, word)
 
 
-TRANSIT_DAYS = {date(2026, 10, 30): "평일 · 10.30 (금)", date(2026, 10, 31): "토요일 · 10.31"}
+TRANSIT_DAYS = {day: f"{day:%m.%d}({'월화수목금토일'[day.weekday()]})"
+                for day in (date(2026, 10, 30), date(2026, 10, 31))}
 MODES = {"bus": "버스", "subway": "지하철"}
 PARTIAL_NOTICE = "이 구의 승객 수에는 일부 행정동 자료가 빠져 있어요. 실제 이용 규모보다 적게 집계될 수 있어요."
 BENEFITS = (
@@ -50,7 +51,7 @@ def _passenger_chart(frame: pd.DataFrame) -> alt.Chart:
                 scale=alt.Scale(zero=True), axis=alt.Axis(format=",d", tickCount=5)),
         color=alt.Color("day_label:N", title=None, sort=labels,
                         scale=alt.Scale(domain=labels, range=["#27336B", "#FF7A66"]),
-                        legend=alt.Legend(orient="top", labelLimit=180)),
+                        legend=alt.Legend(orient="top", labelLimit=180, columnPadding=4)),
         strokeDash=alt.StrokeDash("day_label:N", title=None, sort=labels,
                                   scale=alt.Scale(domain=labels, range=[[1, 0], [5, 3]])),
         detail=alt.Detail("segment:O"),
@@ -60,9 +61,10 @@ def _passenger_chart(frame: pd.DataFrame) -> alt.Chart:
                  alt.Tooltip("valid_dong_count:Q", title="관측 행정동", format="d"),
                  alt.Tooltip("expected_dong_count:Q", title="전체 행정동", format="d")],
     ).properties(height=255).configure_view(stroke=None).configure_axis(
-        labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelColor="#4A5270",
+        labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelFontSize=15, titleFontSize=15,
+        labelColor="#4A5270",
         titleColor="#4A5270", gridColor="#EEF0FA", domain=False,
-    ).configure_legend(labelFont="Noto Sans KR", labelColor="#1B2340")
+    ).configure_legend(labelFont="Noto Sans KR", labelFontSize=15, titleFontSize=15, labelColor="#1B2340")
 
 
 def _peak_text(frame: pd.DataFrame) -> str:
