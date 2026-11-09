@@ -1,0 +1,430 @@
+import json
+import math
+import re
+from types import SimpleNamespace
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import pandas as pd
+from streamlit.components.v2.bidi_component.main import _make_trigger_id
+from streamlit.dataframe_util import convert_arrow_bytes_to_pandas_df
+from streamlit.testing.v1 import AppTest
+
+from tests import app_env
+
+
+TOPIC_LEVELS = {
+    "ownership": ("많은 편", "보통", "적은 편"),
+    "parking": ("좋음", "보통", "빠듯함"),
+    "need": ("차가 필요한 편", "있으면 편함", "대중교통으로 충분"),
+}
+TOPIC_UNITS = ("세대당 차량", "차 100대당 주차면", "주민 1명당 하루 승객")
+TOPIC_ORDERS = {
+    "ownership": "세대당 차량 많은 순",
+    "parking": "차량 대비 수록 주차면 많은 순",
+    "need": "대중교통 이용 많은 순",
+}
+LEVEL_COLORS = ("#27336B", "#8E98CF", "#EEF0FA")
+
+
+def expected_values(row):
+    # 화면 도우미의 계산 오류를 함께 놓치지 않도록 기대값은 별도로 계산한다.
+    values = []
+    for topic, multiplier, digits, unit in (
+        ("ownership", 1, 2, "대"), ("parking", 100, 1, "면"), ("need", 1, 2, "명")
+    ):
+        raw = row.get(f"{topic}_value")
+        if raw is None or pd.isna(raw):
+            values.append("자료 없음")
+            continue
+        scaled = float(raw) * multiplier
+        if topic == "parking" and 0 < scaled < 0.1:
+            digits = 2
+        values.append(f"{scaled:,.{digits}f}{unit}")
+    return values
+
+
+class AppTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = AppTest.from_file(Path(__file__).resolve().parents[1] / "app.py", default_timeout=30).run()
+        from db import queries as q
+        self.ranking = q.get_district_ranking()
+        self.ids = dict(zip(self.ranking.district_name.astype(str), self.ranking.region_id.astype(int)))
+        self.assert_ready()
+
+    def assert_ready(self):
+        self.assertFalse(self.app.exception, [e.message for e in self.app.exception])
+        self.assertFalse(self.app.error, [e.value for e in self.app.error])
+
+    def map_proto(self):
+        return next(element.proto for element in self.app.get("bidi_component")
+                    if element.proto.component_name.endswith("h3_seoul_drawing"))
+
+    def map_data(self):
+        return json.loads(self.map_proto().json)
+
+    def ranking_table(self):
+        self.assertTrue(self.app.session_state["b_details"])
+        element = next(element for element in self.app.expander(key="b_details").get("vega_lite_chart")
+                       if any(param.get("name") == "rank" for param in json.loads(element.proto.spec).get("params", [])))
+        frame = convert_arrow_bytes_to_pandas_df(element.proto.datasets[0].data.data).rename(
+            columns={"rank_label": "순위", "name": "동네", "label": "값"})
+        return SimpleNamespace(proto=element.proto, value=frame)
+
+    def send_selection(self, widget_id, selection):
+        # AppTest에는 차트·데이터프레임 클릭 API가 없어 브라우저 위젯 이벤트를 직접 넣는다.
+        states = self.app._tree.get_widget_states()
+        event = states.widgets.add()
+        event.id = widget_id
+        event.string_value = json.dumps({"selection": selection})
+        self.app._run(widget_state=states)
+        self.assert_ready()
+
+    def send_map_event(self, name, value):
+        # CCv2 트리거는 별도 집계기를 사용하므로 브라우저와 같은 이벤트 묶음을 넣는다.
+        states = self.app._tree.get_widget_states()
+        event = states.widgets.add()
+        event.id = _make_trigger_id(self.map_proto().id, "events")
+        event.json_trigger_value = json.dumps([{"event": name, "value": value}])
+        self.app._run(widget_state=states)
+        self.assert_ready()
+
+    def assert_district(self, name):
+        region_id = self.ids[name]
+        self.assertEqual(self.app.selectbox(key="district_id").value, region_id)
+        self.assertEqual(self.app.session_state["selected_region_id"], region_id)
+        row = self.ranking.loc[self.ranking.region_id == region_id].iloc[0]
+        self.assertEqual([m.value for m in self.app.metric], expected_values(row))
+        self.assertEqual([m.label for m in self.app.metric], list(TOPIC_UNITS))
+        selected = self.map_data()["selected"]
+        self.assertEqual((selected["id"], selected["name"]), (region_id, name))
+        self.assertEqual([v["level"] for v in selected["verdicts"]],
+                         [str(row[f"{topic}_level"]) for topic in TOPIC_LEVELS])
+        self.assertEqual([v["value"] for v in selected["verdicts"]],
+                         [f"{label} {value}" for label, value in zip(TOPIC_UNITS, expected_values(row))])
+
+    def test_navigation_selection_and_contract_values(self):
+        at = self.app
+        row = self.ranking.loc[self.ranking.region_id == self.ids["마포구"]].iloc[0]
+        self.assert_district("마포구")
+        self.assertEqual(at.metric[1].value, f"{float(row.parking_value) * 100:.1f}면")
+        for criterion in ("세대당 차량 많은 순", "차량 대비 수록 주차면 많은 순", "대중교통 이용 많은 순"):
+            self.assertTrue(any(criterion in c.value and "서울 25구 중" in c.value for c in at.caption))
+        at.session_state["b_details"] = True
+        at.run()
+        self.assert_ready()
+        before = at.metric[0].value
+        at.selectbox(key="district_id").select(self.ids["강남구"]).run()
+        self.assert_ready()
+        self.assertNotEqual(before, at.metric[0].value)
+        for topic in ("parking", "need", "ownership"):
+            at.button(key=f"tab_{topic}").click().run()
+            self.assert_ready()
+            self.assertEqual(at.session_state["topic"], topic)
+            table = self.ranking_table()
+            self.assertEqual(len(table.value), 25)
+            expected = self.ranking.sort_values([f"{topic}_rank", "district_name"]).district_name.tolist()
+            self.assertEqual(table.value["동네"].str.replace(" · 선택", "", regex=False).tolist(), expected)
+        at.button(key="tab_need").click().run()
+
+        at.switch_page("app_pages/compare.py").run()
+        self.assert_ready()
+        self.assertGreaterEqual(len(at.metric), 6)
+        self.assertEqual(at.selectbox(key="district_id").value, self.ids["강남구"])
+        at.selectbox(key="compare_id").select(self.ids["마포구"]).run()
+        self.assert_ready()
+
+        at.switch_page("app_pages/national.py").run()
+        self.assert_ready()
+        self.assertGreater(len(at.dataframe[0].value), 0)
+        at.selectbox(key="national_province").select("서울").run()
+        self.assert_ready()
+        self.assertTrue((at.dataframe[0].value["시도"] == "서울").all())
+
+        at.switch_page("app_pages/faq.py").run()
+        self.assert_ready()
+        self.assertEqual(at.segmented_control(key="faq_kind").value, "차차차 FAQ")
+        at.segmented_control(key="faq_kind").set_value("기업 FAQ").run()
+        self.assert_ready()
+        self.assertGreater(len(at.expander), 0)
+        at.text_input(key="faq_keyword").set_value("일치하지않는검색어xyz987").run()
+        self.assert_ready()
+        self.assertTrue(at.info)
+        at.switch_page("app_pages/home.py").run()
+        self.assert_ready()
+        self.assertEqual(at.selectbox(key="district_id").value, self.ids["강남구"])
+        self.assertEqual(at.session_state["topic"], "need")
+        at.switch_page("app_pages/compare.py").run()
+        self.assertEqual(at.selectbox(key="compare_id").value, self.ids["마포구"])
+
+    def test_eleven_pages_and_metric_page_links(self):
+        at = self.app
+        expected = ["", "ownership", "parking", "charging", "transit", "roads",
+                    "compare", "national", "faq", "ask", "about"]
+        expected_menu = ["", "ownership", "parking", "transit", "charging", "roads",
+                         "compare", "national", "faq", "ask", "about"]
+        menu = at.get_by_key("site_menu").page_link
+        more = at.get_by_key("site_more_links").page_link
+        self.assertEqual(len(menu), 11)
+        self.assertEqual(len(more), 7)
+        self.assertEqual(len(menu) - len(more), 4)
+        self.assertEqual([link.proto.page for link in menu], expected_menu)
+        self.assertEqual([link.proto.page for link in more], expected_menu[4:])
+        labels = {link.proto.page: link.value for link in menu}
+        for path, label in (("charging", "전기차 충전"), ("roads", "도로와 날씨"), ("about", "자료 안내")):
+            self.assertEqual(labels[path], label)
+        for topic, target in (("ownership", "ownership"), ("parking", "parking"), ("need", "transit")):
+            links = at.get_by_key(f"judgment_{topic}").page_link
+            self.assertEqual(len(links), 1)
+            self.assertEqual(links[0].proto.page, target)
+        for page in ("ownership", "parking", "charging", "transit", "roads", "compare",
+                     "national", "faq", "ask", "about", "home"):
+            with self.subTest(page=page):
+                at.switch_page(f"app_pages/{page}.py").run()
+                self.assert_ready()
+                self.assertEqual([link.proto.page for link in at.get_by_key("site_menu").page_link], expected_menu)
+                self.assertEqual([link.proto.page for link in at.get_by_key("footer_menu").page_link], expected)
+                self.assertEqual(at.selectbox(key="district_id").value, self.ids["마포구"])
+
+    def test_details_and_partial_observation_notice(self):
+        at = self.app
+        at.selectbox(key="district_id").select(self.ids["강서구"]).run()
+        self.assert_ready()
+        self.assertTrue(any("일부 행정동 자료가 빠져" in c.value for c in at.caption))
+        self.assertFalse(at.get("vega_lite_chart"))
+        with self.assertRaises(KeyError):
+            at.get_by_key("home_ranking")
+        at.session_state["b_details"] = True
+        at.run()
+        self.assert_ready()
+        self.assertEqual(at.segmented_control(key="detail_topic").options,
+                         ["25구 순위", "차량 구성", "주차·충전 시설", "시간대별 승객"])
+        self.assertEqual(at.segmented_control(key="detail_topic").value, "25구 순위")
+        self.assertEqual(len(self.ranking_table().value), 25)
+        at.segmented_control(key="detail_topic").set_value("차량 구성").run()
+        self.assert_ready()
+        at.segmented_control(key="detail_topic").set_value("주차·충전 시설").run()
+        self.assert_ready()
+        at.segmented_control(key="detail_topic").set_value("시간대별 승객").run()
+        self.assert_ready()
+        self.assertGreaterEqual(len(at.expander(key="b_details").get("vega_lite_chart")), 1)
+
+    def test_missing_contract_columns_do_not_fabricate_values(self):
+        self.app.session_state["b_details"] = True
+        missing = self.ranking.drop(columns=["parking_value", "parking_rank", "parking_level"])
+        with patch("db.queries.get_district_ranking", return_value=missing):
+            self.app.button(key="tab_parking").click().run()
+        self.assert_ready()
+        self.assertEqual(self.app.metric[1].value, "자료 없음")
+        self.assertEqual(self.app.metric[1].label, "차 100대당 주차면")
+        self.assertTrue((self.ranking_table().value["값"] == "자료 없음").all())
+        data = self.map_data()
+        self.assertIn("주차 자료는 없고", data["selected"]["sentence"])
+        for district in data["district_data"]:
+            verdict = next(v for v in district["verdicts"] if v["topic"] == "parking")
+            self.assertEqual(verdict["level"], "자료 없음")
+            self.assertEqual(verdict["value"], "자료 없음")
+            self.assertEqual(verdict["rank"], "순위 자료 없음")
+            self.assertIsNone(verdict["signal_index"])
+            self.assertEqual(verdict["color"], "#E4E7E6")
+
+    def test_small_positive_parking_value_is_not_displayed_as_zero(self):
+        self.app.session_state["b_details"] = True
+        self.app.selectbox(key="district_id").select(self.ids["성동구"]).run()
+        self.app.button(key="tab_parking").click().run()
+        self.assert_ready()
+        self.assertEqual(self.app.metric[1].label, "차 100대당 주차면")
+        self.assertEqual(self.app.metric[1].value, "0.03면")
+        table = self.ranking_table().value
+        selected = table.loc[table["동네"].str.startswith("성동구")].iloc[0]
+        self.assertEqual(selected["값"], "0.03면")
+        district = next(d for d in self.map_data()["district_data"] if d["name"] == "성동구")
+        verdict = next(v for v in district["verdicts"] if v["topic"] == "parking")
+        self.assertEqual(verdict["value"], "차 100대당 주차면 0.03면")
+
+    def test_home_keeps_one_large_hero_and_no_duplicate_summary(self):
+        self.assertEqual(len(self.app.get("bidi_component")), 1)
+        with self.assertRaises(KeyError):
+            self.app.get_by_key("neighborhood_summary")
+        # AppTest는 브라우저 레이아웃을 계산하지 못하므로 CSS에 선언된 높이를 확인한다.
+        css = self.map_proto().css_content
+        hero = re.search(r"\.hero\s*\{[^}]*?\bheight:\s*(\d+)px", css)
+        map_svg = re.search(r"\.seoul\s*\{[^}]*?\bheight:\s*(\d+)px", css)
+        if hero is None or map_svg is None:
+            self.fail("The desktop hero and map must declare their height")
+        self.assertGreaterEqual(int(hero.group(1)), 640)
+        self.assertLessEqual(int(hero.group(1)), 720)
+        self.assertGreaterEqual(int(map_svg.group(1)), 560)
+
+    def test_map_geometry_survives_streamlit_transport(self):
+        from db import queries as q
+        boundaries = q.get_region_boundaries()
+        first_shapes = self.map_data()["boundaries"]
+        component_id = self.map_proto().id
+        for topic in ("ownership", "parking", "need"):
+            with self.subTest(topic=topic):
+                self.app.button(key=f"tab_{topic}").click().run()
+                self.assert_ready()
+                proto = self.map_proto()
+                self.assertEqual(proto.id, component_id)
+                self.assertEqual(proto.WhichOneof("data"), "json")
+                data = self.map_data()
+                self.assertEqual(data["topic"], topic)
+                self.assertEqual(data["boundaries"], first_shapes)
+                self.assertEqual(len(data["boundaries"]), 25)
+                self.assertEqual({d["id"] for d in data["boundaries"]}, set(self.ids.values()))
+                self.assertEqual({d["name"] for d in data["boundaries"]}, set(self.ids))
+                view_box = re.search(r'<svg[^>]*class="seoul"[^>]*viewBox="0 0 ([\d.]+) ([\d.]+)"', proto.html_content)
+                if view_box is None:
+                    self.fail("The Seoul map must declare its coordinate system")
+                width, height = map(float, view_box.groups())
+                for district in data["boundaries"]:
+                    boundary = boundaries.loc[boundaries.region_id == district["id"]].iloc[0]
+                    geometry = json.loads(boundary.geometry_json)
+                    polygons = [geometry["coordinates"]] if geometry["type"] == "Polygon" else geometry["coordinates"]
+                    ring_count = sum(len(polygon) for polygon in polygons)
+                    self.assertEqual(district["path"].count("M"), ring_count)
+                    self.assertEqual(district["path"].count("Z"), ring_count)
+                    coordinates = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", district["path"])]
+                    self.assertGreater(len(coordinates), 6)
+                    self.assertEqual(len(coordinates) % 2, 0)
+                    self.assertTrue(all(math.isfinite(v) for v in coordinates))
+                    self.assertTrue(all(0 <= x <= width for x in coordinates[::2]))
+                    self.assertTrue(all(0 <= y <= height for y in coordinates[1::2]))
+                    self.assertTrue(0 <= district["x"] <= width and 0 <= district["y"] <= height)
+                self.assertEqual(len(data["district_data"]), 25)
+                self.assertEqual({d["id"] for d in data["district_data"]}, set(self.ids.values()))
+                legend = {item["level"]: item["color"] for item in data["legend"]}
+                for level, color in zip(TOPIC_LEVELS[topic], LEVEL_COLORS):
+                    self.assertEqual(legend[level], color)
+                for district in data["district_data"]:
+                    expected = self.ranking.loc[self.ranking.region_id == district["id"]].iloc[0]
+                    self.assertEqual(district["name"], str(expected.district_name))
+                    self.assertEqual(len(district["verdicts"]), 3)
+                    for index, verdict in enumerate(district["verdicts"]):
+                        criterion = tuple(TOPIC_LEVELS)[index]
+                        level = str(expected[f"{criterion}_level"])
+                        signal_index = TOPIC_LEVELS[criterion].index(level)
+                        self.assertEqual(verdict["topic"], criterion)
+                        self.assertEqual(verdict["level"], level)
+                        self.assertEqual(verdict["signal_index"], signal_index)
+                        self.assertEqual(verdict["color"], LEVEL_COLORS[signal_index])
+                        self.assertEqual(verdict["value"], f"{TOPIC_UNITS[index]} {expected_values(expected)[index]}")
+                        self.assertEqual(verdict["rank"],
+                                         f"{TOPIC_ORDERS[criterion]} · 서울 25구 중 {int(expected[f'{criterion}_rank'])}위")
+                self.assertFalse(any(
+                    param.get("name") == "district"
+                    for chart in self.app.get("vega_lite_chart")
+                    for param in json.loads(chart.proto.spec).get("params", [])
+                ))
+
+    def test_map_selection_updates_district_and_all_judgments(self):
+        self.send_map_event("district", self.ids["강남구"])
+        self.assert_district("강남구")
+        self.app.switch_page("app_pages/compare.py").run()
+        self.assert_ready()
+        self.assertEqual(self.app.selectbox(key="district_id").value, self.ids["강남구"])
+
+    def test_map_can_reselect_same_district_after_external_selection(self):
+        at = self.app
+        at.session_state["b_details"] = True
+        at.run()
+        self.assert_ready()
+        map_id = self.map_proto().id
+        self.send_map_event("district", self.ids["강남구"])
+        self.assert_district("강남구")
+        epoch = at.session_state["map_epoch"]
+        self.assertEqual(self.map_proto().id, map_id)
+
+        at.selectbox(key="district_id").select(self.ids["마포구"]).run()
+        self.assert_ready()
+        self.assert_district("마포구")
+        self.assertGreater(at.session_state["map_epoch"], epoch)
+        self.assertEqual(self.map_proto().id, map_id, "The hero must survive dropdown reruns without replaying")
+        self.send_map_event("district", self.ids["강남구"])
+        self.assert_district("강남구")
+
+        epoch = at.session_state["map_epoch"]
+        table = self.ranking_table()
+        self.send_selection(table.proto.id, {"rank": [{"region_id": self.ids["서초구"]}]})
+        self.assertTrue(at.session_state["b_details"])
+        self.assert_district("서초구")
+        self.assertGreater(at.session_state["map_epoch"], epoch)
+        self.assertEqual(self.map_proto().id, map_id)
+        self.send_map_event("district", self.ids["강남구"])
+        self.assert_district("강남구")
+
+        self.assertNotEqual(self.ranking_table().proto.id, table.proto.id)
+        self.send_selection(self.ranking_table().proto.id, {"rank": [{"region_id": self.ids["서초구"]}]})
+        self.assertTrue(at.session_state["b_details"])
+        self.assert_district("서초구")
+        self.assertEqual(self.map_proto().id, map_id)
+
+    def test_hero_topics_update_cards_and_ranking_without_changing_identity(self):
+        self.app.session_state["b_details"] = True
+        self.app.run()
+        self.assert_ready()
+        map_id = self.map_proto().id
+        for topic in ("parking", "need", "ownership", "parking"):
+            with self.subTest(topic=topic):
+                self.send_map_event("topic", topic)
+                self.assertEqual(self.app.session_state["topic"], topic)
+                self.assertEqual(self.map_data()["topic"], topic)
+                self.assertEqual(self.map_proto().id, map_id)
+                table = self.ranking_table().value
+                self.assertEqual(len(table), 25)
+                expected = self.ranking.sort_values([f"{topic}_rank", "district_name"]).district_name.tolist()
+                self.assertEqual(table["동네"].tolist(), expected)
+                self.assert_district("마포구")
+
+    def test_missing_boundaries_keep_district_data_and_selection(self):
+        with patch("db.queries.get_region_boundaries", return_value=pd.DataFrame()):
+            self.app.run()
+            self.assert_ready()
+            self.assertEqual(self.map_data()["boundaries"], [])
+            self.assertEqual(len(self.map_data()["district_data"]), 25)
+            self.app.selectbox(key="district_id").select(self.ids["강남구"]).run()
+            self.assert_ready()
+            self.assert_district("강남구")
+
+    def test_invalid_hero_events_do_not_change_valid_selection(self):
+        map_id = self.map_proto().id
+        for value in (-1, "강남구", True):
+            self.send_map_event("district", value)
+            self.assert_district("마포구")
+        self.send_map_event("topic", "unavailable")
+        self.assertEqual(self.app.session_state["topic"], "ownership")
+        self.assertEqual(self.map_proto().id, map_id)
+
+
+class QueryFrameSafetyTest(unittest.TestCase):
+    def test_widened_counts_do_not_overflow_when_multiplied(self):
+        from db import queries as q
+        from ui import load_frame
+
+        counts = q.get_district_ranking()[["electric_count"]].dropna()
+        counts = counts.loc[counts.electric_count.between(656, 65535)].astype("uint16")
+        self.assertFalse(counts.empty, "Need a real small-int count that overflows when multiplied by 100")
+        counts.attrs["source"] = "contract query"
+        widened = load_frame(lambda: counts)
+        self.assertEqual(str(widened.electric_count.dtype), "int64")
+        self.assertEqual((widened.electric_count * 100).tolist(),
+                         [int(value) * 100 for value in counts.electric_count])
+        self.assertEqual(widened.attrs, counts.attrs)
+
+    def test_widening_keeps_missing_values_and_large_unsigned_integers(self):
+        from ui import load_frame
+
+        frame = pd.DataFrame({"count": pd.Series([65000, None], dtype="UInt16"),
+                              "large_count": pd.Series([2**63 + 7, None], dtype="UInt64")})
+        widened = load_frame(lambda: frame)
+        self.assertEqual(str(widened["count"].dtype), "Int64")
+        self.assertEqual((widened["count"] * 100).iloc[0], 6500000)
+        self.assertTrue(pd.isna(widened["count"].iloc[1]))
+        self.assertEqual(int(widened.large_count.iloc[0]), 2**63 + 7)
+        self.assertTrue(pd.isna(widened.large_count.iloc[1]))
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

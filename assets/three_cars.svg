@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="146" viewBox="0 0 360 146" role="img" aria-label="나란히 서 있는 초록색, 민트색, 노란색 자동차 세 대">
+  <g stroke="#1B2340" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(6 25)">
+      <rect x="16" y="76" width="17" height="27" rx="7" fill="#1B2340"/>
+      <rect x="77" y="76" width="17" height="27" rx="7" fill="#1B2340"/>
+      <path d="M9 47 18 15Q21 6 33 6h44q12 0 15 9l9 32v31q0 12-12 12H21Q9 90 9 78Z" fill="#27336B"/>
+      <path d="m24 42 6-22h51l6 22Z" fill="#EEF0FA"/>
+      <path d="M3 41v10m104-10v10"/>
+      <circle cx="40" cy="31" r="2.2" fill="#1B2340" stroke="none"/>
+      <circle cx="70" cy="31" r="2.2" fill="#1B2340" stroke="none"/>
+      <rect x="19" y="55" width="17" height="10" rx="5" fill="#FF7A66" stroke="none"/>
+      <rect x="75" y="55" width="17" height="10" rx="5" fill="#FF7A66" stroke="none"/>
+      <path d="M45 69q10 9 20 0" fill="none" stroke="#FFFFFF"/>
+    </g>
+    <g transform="translate(125 12)">
+      <rect x="16" y="88" width="17" height="27" rx="7" fill="#1B2340"/>
+      <rect x="77" y="88" width="17" height="27" rx="7" fill="#1B2340"/>
+      <path d="M9 51 20 17Q23 8 35 8h40q12 0 15 9l11 34v39q0 12-12 12H21Q9 102 9 90Z" fill="#EEF0FA"/>
+      <path d="m24 46 7-25h48l8 25Z" fill="#FFFFFF"/>
+      <path d="M3 49v10m104-10v10"/>
+      <circle cx="41" cy="34" r="2.2" fill="#1B2340" stroke="none"/>
+      <circle cx="69" cy="34" r="2.2" fill="#1B2340" stroke="none"/>
+      <rect x="20" y="61" width="15" height="10" rx="5" fill="#FF7A66" stroke="none"/>
+      <rect x="76" y="61" width="15" height="10" rx="5" fill="#FF7A66" stroke="none"/>
+      <path d="M45 77q10 9 20 0" fill="none"/>
+    </g>
+    <g transform="translate(244 26)">
+      <rect x="16" y="76" width="17" height="27" rx="7" fill="#1B2340"/>
+      <rect x="77" y="76" width="17" height="27" rx="7" fill="#1B2340"/>
+      <path d="M9 47 18 15Q21 6 33 6h44q12 0 15 9l9 32v31q0 12-12 12H21Q9 90 9 78Z" fill="#FF7A66"/>
+      <path d="m24 42 6-22h51l6 22Z" fill="#FFFFFF"/>
+      <path d="M3 41v10m104-10v10"/>
+      <path d="m36 32 4-3 4 3m22 0 4-3 4 3" fill="none" stroke-width="2.5"/>
+      <rect x="19" y="55" width="17" height="10" rx="5" fill="#FFFFFF" stroke="none"/>
+      <rect x="75" y="55" width="17" height="10" rx="5" fill="#FFFFFF" stroke="none"/>
+      <path d="M45 69q10 9 20 0" fill="none"/>
+    </g>
+  </g>
+</svg>

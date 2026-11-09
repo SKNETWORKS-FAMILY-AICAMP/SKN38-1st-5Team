@@ -1,0 +1,57 @@
+[theme]
+base = "light"
+primaryColor = "#27336B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#EEF0FA"
+textColor = "#1B2340"
+linkColor = "#27336B"
+borderColor = "#C8CDE3"
+font = "'Noto Sans KR':https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
+headingFont = "Jua:https://fonts.googleapis.com/css2?family=Jua&display=swap"
+baseFontSize = 16
+baseFontWeight = 400
+headingFontSizes = ["42px", "30px", "26px", "22px", "18px", "16px"]
+headingFontWeights = 400
+metricValueFontSize = "1.75rem"
+metricValueFontWeight = 800
+baseRadius = "16px"
+buttonRadius = "full"
+showWidgetBorder = true
+paddingTop = "0rem"
+paddingBottom = "0rem"
+chartCategoricalColors = ["#27336B", "#8E98CF", "#EEF0FA", "#1B2340", "#FF7A66", "#C8CDE3"]
+greenColor = "#27336B"
+greenTextColor = "#27336B"
+greenBackgroundColor = "#EEF0FA"
+yellowColor = "#FF7A66"
+yellowTextColor = "#7A2418"
+yellowBackgroundColor = "#FF7A66"
+orangeColor = "#FF7A66"
+orangeTextColor = "#7A2418"
+orangeBackgroundColor = "#FF7A66"
+grayTextColor = "#4A5270"
+grayColor = "#4A5270"
+grayBackgroundColor = "#EEF0FA"
+blueColor = "#27336B"
+blueTextColor = "#27336B"
+blueBackgroundColor = "#EEF0FA"
+violetColor = "#8E98CF"
+violetTextColor = "#27336B"
+violetBackgroundColor = "#EEF0FA"
+redColor = "#FF7A66"
+redTextColor = "#7A2418"
+redBackgroundColor = "#FF7A66"
+dataframeHeaderBackgroundColor = "#EEF0FA"
+dataframeHeaderTextColor = "#1B2340"
+dataframeBorderColor = "#C8CDE3"
+
+[client]
+showErrorDetails = "none"
+toolbarMode = "minimal"
+disableDataExport = true
+
+[server]
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false

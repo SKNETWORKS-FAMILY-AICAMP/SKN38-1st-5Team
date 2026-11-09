@@ -1,0 +1,13 @@
+{
+  "response": {
+    "header": {"resultCode": "00", "resultMsg": "NORMAL_SERVICE"},
+    "body": {
+      "dataType": "JSON", "pageNo": 1, "numOfRows": 3, "totalCount": 3,
+      "items": {"item": [
+        {"stnId": "108", "stnNm": "서울", "tm": "2026-10-30 00:00", "ta": "8.5", "taQcflag": "0", "rn": "", "rnQcflag": "", "dsnw": "", "ws": "1.2", "wsQcflag": "0"},
+        {"stnId": "108", "stnNm": "서울", "tm": "2026-10-30 01:00", "ta": "-1.7", "taQcflag": "0", "rn": "0.0", "rnQcflag": "0", "dsnw": "0.0", "ws": "0.0", "wsQcflag": "0"},
+        {"stnId": "108", "stnNm": "서울", "tm": "2026-10-30 02:00", "ta": "999", "taQcflg": "1", "rn": "-9", "rnQcflg": "9", "dsnw": "1.2", "ws": "", "wsQcflg": "9"}
+      ]}
+    }
+  }
+}

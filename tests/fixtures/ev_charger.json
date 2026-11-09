@@ -1,0 +1,8 @@
+{
+  "resultCode": "00", "resultMsg": "NORMAL SERVICE.", "numOfRows": 10, "pageNo": 1, "totalCount": 3,
+  "items": {"item": [
+    {"statId": "TEST0001", "statNm": "가상 종로 충전소", "chgerId": "01", "chgerType": "04", "addr": "서울특별시 종로구 가상로 1", "lat": "37.57", "lng": "126.98", "useTime": "24시간 이용가능", "busiNm": "가상 운영기관", "stat": "2", "statUpdDt": "20261106090000", "output": "100", "method": "단독", "zcode": "11", "zscode": "11110", "parkingFree": "N", "limitYn": "N", "limitDetail": "", "delYn": "N", "floorType": "F", "floorNum": "1"},
+    {"statId": "TEST0001", "statNm": "가상 종로 충전소", "chgerId": "02", "chgerType": "08", "addr": "서울특별시 종로구가상로 1", "lat": "37.57", "lng": "126.98", "useTime": "09:00~18:00", "busiNm": "가상 운영기관", "stat": "3", "statUpdDt": "20261106090500", "output": "7", "method": "단독", "zcode": "11", "zscode": "11110", "parkingFree": "", "limitYn": "Y", "limitDetail": "거주자만 이용", "delYn": "N", "floorType": "B", "floorNum": "2"},
+    {"statId": "TEST0002", "statNm": "가상 주소미상 충전소", "chgerId": "01", "chgerType": "09", "addr": "서울특별시 위치 미상", "lat": "0", "lng": "", "useTime": "", "busiNm": "가상 운영기관", "stat": "0", "statUpdDt": "", "output": "50/100", "method": "동시", "zcode": "11", "zscode": "", "parkingFree": "", "limitYn": "", "limitDetail": "", "delYn": "Y", "delDetail": "가상 철거", "floorType": "", "floorNum": ""}
+  ]}
+}

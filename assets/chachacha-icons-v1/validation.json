@@ -1,0 +1,678 @@
+{
+  "svg_count": 27,
+  "png_count": 39,
+  "ico_count": 2,
+  "png_checks": [
+    {
+      "file": "mint/app-icon-1024.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/app-icon-192.png",
+      "size": [
+        192,
+        192
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/app-icon-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/app-icon-maskable-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/apple-touch-icon.png",
+      "size": [
+        180,
+        180
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/favicon-128.png",
+      "size": [
+        128,
+        128
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/favicon-16.png",
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/favicon-32.png",
+      "size": [
+        32,
+        32
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/favicon-48.png",
+      "size": [
+        48,
+        48
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/favicon-64.png",
+      "size": [
+        64,
+        64
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/symbol-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/ui/car-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/ui/charging-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/ui/compare-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/ui/help-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/ui/location-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/ui/map-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/ui/parking-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "mint/ui/transit-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/app-icon-1024.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/app-icon-192.png",
+      "size": [
+        192,
+        192
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/app-icon-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/app-icon-maskable-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/apple-touch-icon.png",
+      "size": [
+        180,
+        180
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/favicon-128.png",
+      "size": [
+        128,
+        128
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/favicon-16.png",
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/favicon-32.png",
+      "size": [
+        32,
+        32
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/favicon-48.png",
+      "size": [
+        48,
+        48
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/favicon-64.png",
+      "size": [
+        64,
+        64
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/symbol-512.png",
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/ui/car-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/ui/charging-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/ui/compare-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/ui/help-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/ui/location-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/ui/map-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/ui/parking-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "navy/ui/transit-96.png",
+      "size": [
+        96,
+        96
+      ],
+      "mode": "RGBA"
+    },
+    {
+      "file": "preview.png",
+      "size": [
+        1280,
+        900
+      ],
+      "mode": "RGBA"
+    }
+  ],
+  "files": [
+    {
+      "file": "README.txt",
+      "bytes": 3373,
+      "sha256": "1317488da306fd6c3b191c76ba93da847fa8d418aa927f72f96ca5d8986a9cd8"
+    },
+    {
+      "file": "mint/app-icon-1024.png",
+      "bytes": 40324,
+      "sha256": "40c8a4910f7eab52b9cf4c59f5e6f695ddbbba84b54c074437286a2903f56bd2"
+    },
+    {
+      "file": "mint/app-icon-192.png",
+      "bytes": 5445,
+      "sha256": "01efd7122c1b38c5029a0a4e28440ca2710cc40059a8119505bf81e3c7b62804"
+    },
+    {
+      "file": "mint/app-icon-512.png",
+      "bytes": 17205,
+      "sha256": "9a2f3343d590d78f265aba297c911573ba8af0128721188f884540cd303b6d3f"
+    },
+    {
+      "file": "mint/app-icon-maskable-512.png",
+      "bytes": 12012,
+      "sha256": "0767996b39e71f3acecf9846cbdeb4104c5a73b47811936a6fbb18eefad6d65d"
+    },
+    {
+      "file": "mint/app-icon.svg",
+      "bytes": 1118,
+      "sha256": "7054257c48af89f40f2bad48229ac2ad8a282921bf31da85fd9db8d4f48cd78a"
+    },
+    {
+      "file": "mint/apple-touch-icon.png",
+      "bytes": 3785,
+      "sha256": "ee2f65b2aab0e0d90a9876b21a577a6a05813bb93487f957202c671261adc742"
+    },
+    {
+      "file": "mint/apple.svg",
+      "bytes": 1117,
+      "sha256": "60343e67ac0ba4c058da9eb8418101166800ed2eddb393215098304d4652300c"
+    },
+    {
+      "file": "mint/favicon-128.png",
+      "bytes": 3121,
+      "sha256": "8862dab5b2989c626f03babbd4fe514599b22db6c8319d3f52a0d4df337c3a9b"
+    },
+    {
+      "file": "mint/favicon-16.png",
+      "bytes": 475,
+      "sha256": "2c41047de27331942482a6ad942d14cf4de1d815db7a0d5fad92b2d5c29eb162"
+    },
+    {
+      "file": "mint/favicon-32.png",
+      "bytes": 865,
+      "sha256": "061f57c7f1c44e096eb0d14ba23ea7c93eb29688925bf832f3a7f302fe8ae9e4"
+    },
+    {
+      "file": "mint/favicon-48.png",
+      "bytes": 1266,
+      "sha256": "b4b66f2305a1bfce91adbb55b6055d7f1d9cde7d7a963cb08425538be38ceb0d"
+    },
+    {
+      "file": "mint/favicon-64.png",
+      "bytes": 1482,
+      "sha256": "1719ce39a6532dad88a623c230fdd161c48467db391e51848ddd48a7ba9d234b"
+    },
+    {
+      "file": "mint/favicon.ico",
+      "bytes": 4158,
+      "sha256": "121ddbe88cf13985b569064815843cd47487fd230b8d7551ce94d4d34791fd4f"
+    },
+    {
+      "file": "mint/favicon.svg",
+      "bytes": 811,
+      "sha256": "52716a63e97e0807fa8fc64424a5cc593155f222185fe13b642965b133866557"
+    },
+    {
+      "file": "mint/maskable.svg",
+      "bytes": 1163,
+      "sha256": "7b3418057592af70a977fa40e9a88837888aa24776dc505bf7859c086621a8fa"
+    },
+    {
+      "file": "mint/symbol-512.png",
+      "bytes": 11685,
+      "sha256": "396acad0c3d28337117834b3a0228e3dd8504a86c5146963d665077a7a80beca"
+    },
+    {
+      "file": "mint/symbol.svg",
+      "bytes": 809,
+      "sha256": "b02a7ac3cb8ca868055356b903d535a2cca7ef9046e953327e0867e5acf722bc"
+    },
+    {
+      "file": "mint/ui/car-96.png",
+      "bytes": 1024,
+      "sha256": "00d4762ae5c0005fe090fdce31e207726606116a58befcbcb9de64317c8a1234"
+    },
+    {
+      "file": "mint/ui/car.svg",
+      "bytes": 452,
+      "sha256": "cd1ccf0ae91b7392b6848cf5c7acc83f374021b4808b816bee56d4145ad6f5c8"
+    },
+    {
+      "file": "mint/ui/charging-96.png",
+      "bytes": 1580,
+      "sha256": "4891c15a5161247c82f52f61b33a9bd178f56c3a6dc133bf4946b05ed4e8c5c0"
+    },
+    {
+      "file": "mint/ui/charging.svg",
+      "bytes": 427,
+      "sha256": "940583f5b9fbd443399e7ca8ca1aa4c358701c1d6f713a583043e91360d4e1bd"
+    },
+    {
+      "file": "mint/ui/compare-96.png",
+      "bytes": 729,
+      "sha256": "9bb96d33e82145bdc5f3ac8aaa1bfe201c614ac8c924e49eab74d08f03337d41"
+    },
+    {
+      "file": "mint/ui/compare.svg",
+      "bytes": 416,
+      "sha256": "ee740f0834c7ef08b2de1acdbd0610d4383faaa18b7be441a49fb13935a15ec7"
+    },
+    {
+      "file": "mint/ui/help-96.png",
+      "bytes": 2473,
+      "sha256": "193be9ae80a9020bbc410ca8a4952148649c7c1669d0c3c1a1471fbce5f08a4a"
+    },
+    {
+      "file": "mint/ui/help.svg",
+      "bytes": 444,
+      "sha256": "f6e7205c63b8b57254ea2a970df83cc2311f1e0831a19d18961c4458dd177b43"
+    },
+    {
+      "file": "mint/ui/location-96.png",
+      "bytes": 2486,
+      "sha256": "164ad11b226a9d145c31d561dfa744ef257842941715d22f874bed066a20835a"
+    },
+    {
+      "file": "mint/ui/location.svg",
+      "bytes": 366,
+      "sha256": "e658ad6309e7e771b3eb3c5b186ff9a4ac8d4f26a102a2c9dba5f0e9dacf94a7"
+    },
+    {
+      "file": "mint/ui/map-96.png",
+      "bytes": 1264,
+      "sha256": "c2cee3e07bd3af58b1cac6b001323f844d2772307ecdba46d7ab996c7c48a73d"
+    },
+    {
+      "file": "mint/ui/map.svg",
+      "bytes": 378,
+      "sha256": "ecdad3f5165d4312070598483b3753a71b7338ec0c365db6db0d5c93a877cc0b"
+    },
+    {
+      "file": "mint/ui/parking-96.png",
+      "bytes": 1815,
+      "sha256": "366f196270fed49afca1e2088559214eb9ae21c590705375138267563f1bb5ed"
+    },
+    {
+      "file": "mint/ui/parking.svg",
+      "bytes": 347,
+      "sha256": "e7818381ae08f08d73ed5f8d35ae759f2ac0b142d2f9bdc62a13d75ab7df0000"
+    },
+    {
+      "file": "mint/ui/transit-96.png",
+      "bytes": 1563,
+      "sha256": "5e39671e3798ab68d8bcc5625de7b7e089d2ac48573879b77114faa4111d71e1"
+    },
+    {
+      "file": "mint/ui/transit.svg",
+      "bytes": 477,
+      "sha256": "07f0792d575341a63e04500f3e356af4986b95ff7c328f8a85924b5db13c6b2a"
+    },
+    {
+      "file": "navy/app-icon-1024.png",
+      "bytes": 39677,
+      "sha256": "6a0af004f7bbd8b8d02e2521dc83292e27a57179703a1d082835f9b06ce78013"
+    },
+    {
+      "file": "navy/app-icon-192.png",
+      "bytes": 5375,
+      "sha256": "1e8bd7130e91c6266f61572593687a6917655f55fefbccd79c87bd97dbb54ba6"
+    },
+    {
+      "file": "navy/app-icon-512.png",
+      "bytes": 16996,
+      "sha256": "6be720260e6b81f0c9f9f1ac8e5628176a6365d98314c5f9b97a280ebcf61cd7"
+    },
+    {
+      "file": "navy/app-icon-maskable-512.png",
+      "bytes": 11775,
+      "sha256": "f8c865790021bbac339b64bc794178edc09b59887609b59e7c6af27e91bdb4de"
+    },
+    {
+      "file": "navy/app-icon.svg",
+      "bytes": 1118,
+      "sha256": "22c86e55f774960211c1e0b98c7b42824285154cd96e6de1e0c56c7cb2ea2817"
+    },
+    {
+      "file": "navy/apple-touch-icon.png",
+      "bytes": 3684,
+      "sha256": "5563b5429cc2fe517ddbc1fde49e20e3c418a542c9b15b2c67093b69d723522d"
+    },
+    {
+      "file": "navy/apple.svg",
+      "bytes": 1117,
+      "sha256": "2190e7aa60d3e0c096df37ca0d0706c77c8ccdc93bda13d57db247b3104257f5"
+    },
+    {
+      "file": "navy/favicon-128.png",
+      "bytes": 3073,
+      "sha256": "ea769e239180aa1a7dd627889e4aa45e51be1aaab96a0c0284cbd661b61ab5a6"
+    },
+    {
+      "file": "navy/favicon-16.png",
+      "bytes": 472,
+      "sha256": "fcc73e7bff0dff052f9ebd8137c2d5e8d7b3fb93b3ef75b4deac3e393331e3cf"
+    },
+    {
+      "file": "navy/favicon-32.png",
+      "bytes": 840,
+      "sha256": "fbf861079c1dca2fc8afb48d06fcb04f2f19d5d9256a065cabf2908fc03537b0"
+    },
+    {
+      "file": "navy/favicon-48.png",
+      "bytes": 1247,
+      "sha256": "a45f4f4a4a1a2dcbb7f2b083e1189875abd68945f8b066e5ac1a25b20b869837"
+    },
+    {
+      "file": "navy/favicon-64.png",
+      "bytes": 1479,
+      "sha256": "f17698295afa7b31e74db696c9decd47849a8c849abb647fef248cebe7b9f973"
+    },
+    {
+      "file": "navy/favicon.ico",
+      "bytes": 4108,
+      "sha256": "ae14be44436f731528ab83514b3d79cf175c8a68d466834460f1a63b0b2f671b"
+    },
+    {
+      "file": "navy/favicon.svg",
+      "bytes": 811,
+      "sha256": "6c5696a330a9710f31129dabd87a4a733866aae494aac2478556806474169722"
+    },
+    {
+      "file": "navy/maskable.svg",
+      "bytes": 1163,
+      "sha256": "05be2339cdf3f91eb715ce4bfb145449e9a8e156b461a6d39ee3b0f7a5295c2a"
+    },
+    {
+      "file": "navy/symbol-512.png",
+      "bytes": 11404,
+      "sha256": "76dbb4e74b1ca8f11ad2699a08d50ad6cf3a3de69eb946e4e07c31a17602c343"
+    },
+    {
+      "file": "navy/symbol.svg",
+      "bytes": 809,
+      "sha256": "002ec860ff12ef710b05b222e8a81d13c83191038bbe16076e16a3a9f763a767"
+    },
+    {
+      "file": "navy/ui/car-96.png",
+      "bytes": 1028,
+      "sha256": "91f2e705dad0c9811b4ca5cf78c2b5873a61f7d54c672e7512b6583ba3d78fe9"
+    },
+    {
+      "file": "navy/ui/car.svg",
+      "bytes": 452,
+      "sha256": "98cd1f1315c0682c92188e15c4524964125efb4983d9f44d804ee9003cc380d8"
+    },
+    {
+      "file": "navy/ui/charging-96.png",
+      "bytes": 1572,
+      "sha256": "0215e37dad87931a5f7e9922ccd5f5cf3c124e566a451cd3bf7e12b15a0c7645"
+    },
+    {
+      "file": "navy/ui/charging.svg",
+      "bytes": 427,
+      "sha256": "1b98e2717f7d9e5f8b8780524233e1f51c2f461a9f11a6549abd192ed587dedc"
+    },
+    {
+      "file": "navy/ui/compare-96.png",
+      "bytes": 712,
+      "sha256": "f0d125eebf12de4ba94bc54d8501881e123322df5f1032405828d070be39a633"
+    },
+    {
+      "file": "navy/ui/compare.svg",
+      "bytes": 416,
+      "sha256": "ae52fe7c4b0c519a4456a87eeea3928ec7830e18bc2d63158bc52b1683538070"
+    },
+    {
+      "file": "navy/ui/help-96.png",
+      "bytes": 2406,
+      "sha256": "6d3a4b11a3216838aa6d9624b93a7034b3883a403dbcae9b7b924a57ec23132f"
+    },
+    {
+      "file": "navy/ui/help.svg",
+      "bytes": 444,
+      "sha256": "4d4e135526ec1bcce6098c4632e2ee4301216c3e6a36cb5fb6b0731aacf003ba"
+    },
+    {
+      "file": "navy/ui/location-96.png",
+      "bytes": 2431,
+      "sha256": "c2a2d1e2e5dcfc3261cbfb5cf84532ab3ba13c44f5b598ecc96431b46c699f14"
+    },
+    {
+      "file": "navy/ui/location.svg",
+      "bytes": 366,
+      "sha256": "68f28d11f7a5c62c441dc507eb4b9ea705b21c996f61632808a718c97b9f1f60"
+    },
+    {
+      "file": "navy/ui/map-96.png",
+      "bytes": 1253,
+      "sha256": "10051107a55195c5a7047e48bf76c55ce1ed70c6b4cfe94e8e54a74d94a0861f"
+    },
+    {
+      "file": "navy/ui/map.svg",
+      "bytes": 378,
+      "sha256": "d398b132bcca3c59a09398d3be9f1f7909d81d666d6ec4b777c7b858d5fc697c"
+    },
+    {
+      "file": "navy/ui/parking-96.png",
+      "bytes": 1764,
+      "sha256": "8a807d131524fb72b6272402d1fb45cfe4ca1d453e88e7fc1ff506dc6a5789be"
+    },
+    {
+      "file": "navy/ui/parking.svg",
+      "bytes": 347,
+      "sha256": "7beb3915ad0efaf9b308dd66b9d1e796509c3c2af0fe73ba66fa5b832048246f"
+    },
+    {
+      "file": "navy/ui/transit-96.png",
+      "bytes": 1572,
+      "sha256": "3548f95a2f8adb4f37025b91fe76595ea2847255cde0e10e5976cd469c78e972"
+    },
+    {
+      "file": "navy/ui/transit.svg",
+      "bytes": 477,
+      "sha256": "6a74312ec3715b45694ceab18a7955e2371d5972a6adc063941ab38456712529"
+    },
+    {
+      "file": "preview.html",
+      "bytes": 6934,
+      "sha256": "7f656ab6ab3ed6432bd7721831eff0e9be377e3330a6d38e9a77130d02640892"
+    },
+    {
+      "file": "preview.png",
+      "bytes": 94084,
+      "sha256": "53e843aa111dc9d1ffa405ddd63eba85e8bf3e221dcd3a759c055626e9a69a31"
+    },
+    {
+      "file": "preview.svg",
+      "bytes": 22802,
+      "sha256": "8c5736ff67df61de2e856c4c4de6977535c927ade505d9cfade716a00e434977"
+    }
+  ],
+  "runtime": {
+    "python_syntax": "passed",
+    "streamlit_apptest_exceptions": 0,
+    "streamlit_apptest_errors": 1,
+    "notes": "AppTest emitted the existing data-loading failure notice and no-data fallback; the underlying cause was not diagnosed. Live server and browser could not start under sandbox permissions. Preview rendered directly from SVG with librsvg.",
+    "typecheck": "Not run: no installed or cached type checker."
+  }
+}

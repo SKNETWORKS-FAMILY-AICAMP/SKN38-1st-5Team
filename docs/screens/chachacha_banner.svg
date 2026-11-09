@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-label="차차차: 차량 보유 현황, 주차하기 좋은 동네, 차가 꼭 필요한 동네">
+  <rect width="1200" height="340" fill="#F6F2EA"/>
+  <g font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif" text-anchor="middle">
+    <text x="300" y="150" font-size="124" font-weight="800" fill="#8E3A1C">차</text>
+    <text x="600" y="150" font-size="124" font-weight="800" fill="#B8502C">차</text>
+    <text x="900" y="150" font-size="124" font-weight="800" fill="#D98A6A">차</text>
+    <text x="300" y="205" font-size="24" font-weight="700" fill="#222222">차량 보유 현황</text>
+    <text x="600" y="205" font-size="24" font-weight="700" fill="#222222">주차하기 좋은 동네</text>
+    <text x="900" y="205" font-size="24" font-weight="700" fill="#222222">차가 꼭 필요한 동네</text>
+    <text x="300" y="236" font-size="17" fill="#8A857D">이 동네 사람들은 차를 얼마나 갖고 있나요?</text>
+    <text x="600" y="236" font-size="17" fill="#8A857D">차 세우기 좋은 동네인가요?</text>
+    <text x="900" y="236" font-size="17" fill="#8A857D">이 동네에서 차가 꼭 필요할까요?</text>
+    <text x="600" y="300" font-size="22" fill="#222222">서울 25개 구, 이 동네에서 차와 함께 살기 괜찮을까요?</text>
+  </g>
+</svg>
