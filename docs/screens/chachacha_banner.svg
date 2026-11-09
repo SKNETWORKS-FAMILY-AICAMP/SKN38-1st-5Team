@@ -1,15 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-label="차차차: 차량 보유 현황, 주차하기 좋은 동네, 차가 꼭 필요한 동네">
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200"
+     height="340"
+     viewBox="0 0 1200 340"
+     role="img"
+     aria-label="우리동네 차차차: 차 보유는 얼마나? 주차는 편할까? 차 없이도 괜찮을까?">
+
+  <!-- 배경 -->
   <rect width="1200" height="340" fill="#F6F2EA"/>
-  <g font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif" text-anchor="middle">
-    <text x="300" y="150" font-size="124" font-weight="800" fill="#8E3A1C">차</text>
-    <text x="600" y="150" font-size="124" font-weight="800" fill="#B8502C">차</text>
-    <text x="900" y="150" font-size="124" font-weight="800" fill="#D98A6A">차</text>
-    <text x="300" y="205" font-size="24" font-weight="700" fill="#222222">차량 보유 현황</text>
-    <text x="600" y="205" font-size="24" font-weight="700" fill="#222222">주차하기 좋은 동네</text>
-    <text x="900" y="205" font-size="24" font-weight="700" fill="#222222">차가 꼭 필요한 동네</text>
-    <text x="300" y="236" font-size="17" fill="#8A857D">이 동네 사람들은 차를 얼마나 갖고 있나요?</text>
-    <text x="600" y="236" font-size="17" fill="#8A857D">차 세우기 좋은 동네인가요?</text>
-    <text x="900" y="236" font-size="17" fill="#8A857D">이 동네에서 차가 꼭 필요할까요?</text>
-    <text x="600" y="300" font-size="22" fill="#222222">서울 25개 구, 이 동네에서 차와 함께 살기 괜찮을까요?</text>
+
+  <g font-family="Noto Sans CJK KR, Noto Sans KR, sans-serif"
+     text-anchor="middle">
+
+    <!-- 상단 묶음: 최초 배치에서 32픽셀 위로 이동 -->
+    <g transform="translate(0,-32)">
+
+      <!-- 우리동네 -->
+      <text x="205" y="122.5"
+            text-anchor="end"
+            font-size="42"
+            font-weight="700"
+            letter-spacing="1"
+            fill="#8E3A1C">우리동네</text>
+
+      <!-- 차 · 차 · 차 -->
+      <text x="280" y="151"
+            font-size="116"
+            font-weight="800"
+            fill="#8E3A1C">차</text>
+
+      <text x="600" y="151"
+            font-size="116"
+            font-weight="800"
+            fill="#B8502C">차</text>
+
+      <text x="920" y="151"
+            font-size="116"
+            font-weight="800"
+            fill="#D98A6A">차</text>
+
+      <!-- 세 열 질문형 제목 -->
+      <g font-size="22" font-weight="700" fill="#222222">
+        <text x="280" y="203">차 보유는 얼마나?</text>
+        <text x="600" y="203">주차는 편할까?</text>
+        <text x="920" y="203">차 없이도 괜찮을까?</text>
+      </g>
+
+      <!-- 세 열 서브카피 -->
+      <g font-size="16" fill="#8A857D">
+        <text x="280" y="233">우리 동네 자동차 현황 확인</text>
+        <text x="600" y="233">주차 여건 비교로 편리한 선택</text>
+        <text x="920" y="233">내 생활에 맞는 이동 선택</text>
+      </g>
+
+    </g>
+
+    <!-- 구분선 -->
+    <path d="M 470 230 H 730"
+          stroke="#DDD3C5"
+          stroke-width="1"/>
+
+    <!-- 하단 두 줄 -->
+    <text x="600" y="294"
+          font-size="44"
+          font-weight="700"
+          fill="#222222">차 보유부터 주차, 이동까지 한눈에!</text>
+
+    <text x="600" y="332"
+          font-size="28"
+          fill="#8A857D">서울 25개 자치구 자동차·주차·이동 여건 살펴보기</text>
+
   </g>
 </svg>
