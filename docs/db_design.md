@@ -107,13 +107,13 @@ PK는 행을 식별하는 기본키, FK는 다른 표를 참조하는 외래키�
 
 [경계 DDL](../db/sql/schema_boundary.sql)은 `region_id, source_snapshot_id, boundary_year, geometry_json, centroid_latitude, centroid_longitude, min_latitude, max_latitude, min_longitude, max_longitude, ring_count`를 정의한다. 모든 열은 NOT NULL이다. 중심·경계 상자의 위경도는 DECIMAL(10,7), 도형은 JSON이다.
 
-`get_region_boundaries()`는 최신 유효 경계 수집본의 25구를 구 이름순으로 반환한다. `geometry_json`은 Polygon 또는 MultiPolygon geometry이며 GeoJSON 좌표 순서는 **[경도, 위도]**다. **2013년 경계, 지도 표시 전용**으로 통계 면적이나 판정 계산에는 사용하지 않는다.
+`get_region_boundaries()`는 최신 유효 경계 수집본의 25구를 구 이름순으로 반환한다. `geometry_json`은 Polygon 또는 MultiPolygon geometry이며 GeoJSON 좌표 순서는 [**경도, 위도**]다. **2013년 경계, 지도 표시 전용**으로 통계 면적이나 판정 계산에는 사용하지 않는다.
 
 ## 4. 세 개의 판정 기준
 
 `get_district_ranking()`, `get_summary_metrics(region_id)`, `get_compare_metrics(region_id_a, region_id_b)`가 같은 기준의 값·순위·라벨을 반환한다. 서울 25구 전체의 순위를 SQL `RANK()`로 계산한 뒤 선택한 구를 고른다. 따라서 두 구만 비교해도 전체 순위가 바뀌지 않는다.
 
-| 질문 | 원지표와 단위 | 반환 컬럼 | 큰 값부터 1~8위 / 9~17위 / 18~25위 |
+| 질문 | 원지표와 단위 | 반환 컬럼 | 큰 값부터 1–8위 / 9–17위 / 18–25위 |
 | --- | --- | --- | --- |
 | 차량 보유 현황 | 같은 기준월 등록 대수 ÷ 세대수, 대/세대 | `ownership_value, ownership_rank, ownership_level` | 많은 편 / 보통 / 적은 편 |
 | 주차하기 좋은 동네 | 비충돌 수록 주차면 ÷ 전체 등록 대수, 면/대 | `parking_value, parking_rank, parking_level` | 좋음 / 보통 / 빠듯함 |
@@ -146,7 +146,7 @@ PK는 행을 식별하는 기본키, FK는 다른 표를 참조하는 외래키�
 | 주차 판정 | `unique_space_count`의 알려진 부분합은 표시할 수 있지만 비충돌 행의 면수 결측이 있으면 `parking_per_vehicle`를 확정하지 않는다. |
 | 지도·검색 | 주차는 저장된 좌표 유효성 조건과 서울 범위를 만족하고 번호가 비충돌이어야 지도에 넣는다. 충전소 대표 좌표는 같은 속도 조건의 기기 한 대에서 한 쌍으로 고른다. 검색은 지도 제외 행도 보존한다. |
 | 구 미연결 | 추정 구 번호로 메우지 않는다. 구별 집계·지도에는 연결된 구만 포함한다. |
-| 시간자료 | 교통은 9월, 승객·날씨는 10월 30~31일이다. 같은 날 관측처럼 합치지 않는다. `total`과 하위 수단을 중복 합산하지 않으며 NULL 강수·적설을 0으로 바꾸지 않는다. |
+| 시간자료 | 교통은 9월, 승객·날씨는 10월 30–31일이다. 같은 날 관측처럼 합치지 않는다. `total`과 하위 수단을 중복 합산하지 않으며 NULL 강수·적설을 0으로 바꾸지 않는다. |
 | 서울 평균 | SQL `AVG(...) OVER ()`로 결측을 뺀 구별 값의 산술평균을 낸다. 비율의 서울 평균은 서울 총합끼리 나눈 비율과 다르다. 평균 참여 구 수도 함께 반환한다. |
 | 입력 안전 | SQLAlchemy `text()`·바인딩을 쓰고 구 목록은 expanding bind로 전달한다. 검색의 `%`, `_`, `!`는 문자 그대로 찾는다. 값으로 SQL 문자열을 조립하지 않는다. |
 
