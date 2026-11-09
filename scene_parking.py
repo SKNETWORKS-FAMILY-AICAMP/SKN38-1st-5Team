@@ -3,6 +3,8 @@ from xml.etree import ElementTree as ET
 
 import streamlit as st
 
+from car_expression import add_expression, FACE_JS
+
 
 def _car_symbols() -> str:
     svg = ET.fromstring(
@@ -13,6 +15,7 @@ def _car_symbols() -> str:
     symbols = []
     for index, car in enumerate(svg[0]):
         car.attrib.pop("transform", None)
+        add_expression(car, index)
         symbols.append(
             f'<symbol id="h4-car-{index}" viewBox="0 0 112 122">'
             '<g stroke="#1B2340" stroke-width="3.5" stroke-linecap="round" '
@@ -89,10 +92,13 @@ h1 { padding: 0; margin: 15px 0 11px; color: var(--ink); font-family: Jua, var(-
 .coral { color: #DC5946; }
 .intro { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.65; word-break: keep-all; }
 .district-line { display: flex; align-items: center; gap: 11px; margin-top: 20px; flex-wrap: wrap; }
-.district-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--navy); color: white; padding: 7px 11px; border-radius: 999px; font-size: 14px; font-weight: 700; line-height: 1.3; }
+.district-chip { display: inline-flex; align-items: center; gap: 5px; background: #FFF2D6; color: #8A4B08; padding: 8px 13px; border-radius: 999px; font-size: 24px; font-weight: 700; line-height: 1.3; }
 .district-chip svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .verdict { font-size: 18px; color: #4A5270; }
-.verdict strong { margin-left: 5px; font-weight: 800; color: var(--navy); }
+.verdict strong { margin-left: 5px; font-size: clamp(24px, 2.4vw, 30px); line-height: 1.4; font-weight: 800; color: var(--navy); }
+.verdict strong[data-state="caution"] { color: #DC2626; }
+.verdict strong[data-state="sufficient"] { color: #15803D; }
+.verdict strong[data-state="normal"] { color: #CA8A04; }
 .measure { margin: 8px 0 0; color: #4A5270; font-size: 13px; font-variant-numeric: tabular-nums; }
 .little-road { display: flex; align-items: center; gap: 5px; margin-top: 22px; font-size: 13px; color: #4A5270; }
 .little-road i { width: 11px; height: 3px; background: var(--mid); border-radius: 5px; }
@@ -136,7 +142,7 @@ figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap
   h1 { font-size: 30px; line-height: 1.1; margin: 9px 0 7px; }
   .intro { font-size: 18px; line-height: 1.5; }
   .district-line { margin-top: 10px; gap: 9px; }
-  .district-chip { font-size: 13px; padding: 5px 9px; }
+  .district-chip { font-size: 20px; padding: 6px 10px; }
   .verdict { font-size: 18px; }
   .measure { font-size: 13px; margin-top: 5px; }
   .little-road { display: none; }
@@ -159,6 +165,7 @@ const topics = ['ownership', 'parking', 'need'];
 const labels = ['차량 보유', '주차', '차 필요'];
 const heroSlots = [0, 2, 4];
 const otherSlots = [7, 10, 1, 9, 5, 6, 3, 11, 8];
+__FACE_JS__
 const occupiedByLevel = { '좋음': 2, '보통': 5, '빠듯함': 8 };
 
 function svgElement(tag, attributes, parent) {
@@ -320,7 +327,10 @@ export default function(component) {
   const changed = !firstMount && (district !== state.district || data.parkingLevel !== state.level);
   if (changed) settle(state);
   text(root, 'district', data.districtName);
-  text(root, 'parking-level', data.parkingLevel);
+  const statuses = {'좋음': ['여유로움', 'sufficient'], '보통': ['보통', 'normal'], '빠듯함': ['빠듯함', 'caution']};
+  const [statusLabel, statusState] = statuses[data.parkingLevel] || [data.parkingLevel, 'unknown'];
+  text(root, 'parking-level', statusLabel);
+  root.querySelector('[data-text="parking-level"]').dataset.state = statusState;
   text(root, 'parking-value', data.parkingValue);
   const scenes = {'좋음': '넉넉한 자리, 가벼운 마음', '보통': '우리 동네 주차 여건은 보통', '빠듯함': '주차 자리, 미리 확인하세요'};
   text(root, 'scene-label', scenes[data.parkingLevel] || '주차 자료를 기다리고 있어요');
@@ -330,6 +340,8 @@ export default function(component) {
     const level = data.levels[topics[index]] || '자료 없음';
     car.setAttribute('aria-label', `${labels[index]}: ${level}. 누르면 자동차가 인사해요.`);
     car.dataset.active = String(topics[index] === data.activeTopic);
+    const mood = level === '자료 없음' ? 'smile' : ({'좋음':'happy', '빠듯함':'crying', '보통':'smile', '많은 편':'crying', '적은 편':'happy', '차가 필요한 편':'crying', '있으면 편함':'smile', '대중교통으로 충분':'happy'}[level] || 'smile');
+    setCarFace(root.querySelector(`#h4-car-${index}`), mood);
   });
   updateOccupancy(state, data, changed);
   if (firstMount) {
@@ -352,6 +364,8 @@ export default function(component) {
 }
 """
 
+
+JS = JS.replace("__FACE_JS__", FACE_JS)
 
 _PARKING_HERO = st.components.v2.component(
     "chachacha_h4_parking_hero", html=HTML, css=CSS, js=JS, isolate_styles=True

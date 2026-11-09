@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import streamlit as st
 
+from car_expression import add_expression, FACE_JS
 from db import queries as q
 from ui import (COLORS, TOPICS, date_text, district_row, load_frame, neighborhood_sentence,
                 number, rank_text, remember_region, set_topic, topic_value, word)
@@ -20,6 +21,7 @@ def _car_svg(index: int) -> str:
     source = ET.parse(Path(__file__).parent / "assets" / "three_cars.svg")
     car = source.getroot()[0][index]
     car.attrib.pop("transform", None)
+    add_expression(car, index)
     return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 120" '
             'aria-hidden="true"><g stroke="#1B2340" stroke-width="3.5" '
             'stroke-linecap="round" stroke-linejoin="round">'
@@ -272,6 +274,7 @@ export default function(component) {
     const topic = button.dataset.topic;
     const item = selected.verdicts.find(v => v.topic === topic);
     button.querySelector('.level').textContent = item.level;
+    setCarFace(button, {sufficient:'happy',normal:'smile',caution:'crying'}[item.signal_state] || 'smile');
     button.querySelector('.signals').dataset.state = item.signal_state;
     button.querySelector('.level').style.color = {sufficient:'#16803C', normal:'#A16207', caution:'#DC2626'}[item.signal_state] || '#1B2340';
     button.setAttribute('aria-pressed', String(data.topic === topic));
@@ -279,6 +282,9 @@ export default function(component) {
     button.title = `${item.value} · ${item.rank}`;
     button.onclick = () => { if (s.data.topic !== topic) s.emit('topic', topic); };
   });
+  const scores = selected.verdicts.map(v => v.signal_state === 'unknown' ? null : (v.signal_state === 'normal' ? 0 : (v.signal_state === 'sufficient' ? 1 : -1)) * (v.topic === 'need' ? -1 : 1));
+  const score = scores.reduce((sum, value) => sum + (value || 0), 0);
+  setCarFace(select('.travel .car'), scores.includes(null) ? 'smile' : score > 0 ? 'happy' : score < 0 ? 'crying' : 'smile');
   s.title = selected.name === '자료 없음' ? '동네 자료 없음' : `${selected.name}는요`;
   const legendKey = JSON.stringify(data.legend);
   if (legendKey !== s.legendKey) {
@@ -464,6 +470,8 @@ export default function(component) {
   };
 }
 """
+
+JS = FACE_JS + JS
 
 _HERO = st.components.v2.component("h3_seoul_drawing", html=HTML, css=CSS, js=JS)
 

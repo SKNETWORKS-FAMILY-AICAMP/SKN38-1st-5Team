@@ -146,7 +146,10 @@ h1 em::after { content:''; position:absolute; left:0; right:0; bottom:2px; heigh
   border-radius:4px; background:var(--coral); opacity:.75; z-index:-1; transform:rotate(-2deg); }
 .intro { margin-top:15px; font-size:18px; line-height:1.8; word-break:keep-all; }
 .verdict { margin-top:20px; color:var(--muted); font-size:13px; line-height:1.8; }
-.verdict strong { color:var(--navy); display:block; font-size:18px; }
+.verdict strong { color:var(--navy); display:block; font-size:26px; font-weight:800; }
+.need-level[data-state="caution"] { color:#DC2626; }
+.need-level[data-state="normal"] { color:#CA8A04; }
+.need-level[data-state="sufficient"] { color:#15803D; }
 .vehicle-note { font-size:13px; color:var(--muted); line-height:1.6; margin-top:6px;
   word-break:keep-all; max-width:160px; text-align:center; }
 .scene { min-width:0; min-height:342px; position:relative; overflow:hidden; }
@@ -231,7 +234,7 @@ button:focus-visible { outline:3px solid var(--navy); outline-offset:-3px; }
   h1 em::after { height:8px; bottom:1px; }
   .intro { margin-top:10px; font-size:18px; line-height:1.7; }
   .verdict { margin-top:10px; font-size:12px; }
-  .verdict strong { display:inline; margin-left:5px; font-size:18px; }
+  .verdict strong { display:inline; margin-left:5px; font-size:24px; }
   .destination { top:0; left:1px; font-size:12px; line-height:24px; gap:4px; }
   .destination svg { width:14px; height:17px; }
   .motion { top:0; right:0; min-height:26px; font-size:12px; gap:4px; padding:2px; }
@@ -392,6 +395,7 @@ export default function(component) {
   root.querySelector('.arrived').textContent = data.district_id === null ? '' : '에 도착했어요';
   if (changedDistrict) settle(state);
   root.querySelector('.need-level').textContent = data.need_level;
+  root.querySelector('.need-level').dataset.state = {'차가 필요한 편':'caution','있으면 편함':'normal','대중교통으로 충분':'sufficient'}[data.need_level] || 'unknown';
   root.querySelectorAll('.car').forEach(car => {
     drawFace(car, car.dataset.mode === 'car' ? data.need_mood : 'happy');
     car.onclick = () => {

@@ -120,7 +120,7 @@ st.caption(
     "관리번호가 겹치는 항목은 면수 합계와 지도에서 제외하며, 면수 자료가 빠지면 자료 없음으로 표시해요."
 )
 
-st.subheader(f"{district} 주차장 찾기", anchor=False)
+st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
 with st.container(horizontal=True, vertical_alignment="bottom", gap="medium"):
     facility = st.segmented_control(
         "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,

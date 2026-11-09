@@ -99,12 +99,14 @@ if row.empty:
 with st.container(key="transit_hero"):
     render_hero(ranking, region_id, district_name)
 
-st.subheader(f"{district_name}, 차 없이 다니기 어떨까요?", anchor=False)
+st.subheader(f":orange[**{district_name}**], 차 없이 다니기 어떨까요?", anchor=False)
 with st.container(border=True, gap="small", key="transit_judgment"):
     value = row.get("need_value")
     valid_need = value is not None and pd.notna(value) and isfinite(float(value))
     judgment, evidence, rank = st.columns([1.6, 1, 1], gap="medium")
     judgment.metric("차 필요 판정", word(row.get("need_level")) if valid_need else "자료 없음")
+    status_color = {"차가 필요한 편": "#DC2626", "있으면 편함": "#CA8A04", "대중교통으로 충분": "#15803D"}.get(word(row.get("need_level")) if valid_need else "", "#4A5270")
+    st.html(f'<style>.st-key-transit_judgment [data-testid="stColumn"]:first-child [data-testid="stMetricValue"] {{color:{status_color} !important;font-weight:800;}} .st-key-transit_judgment [data-testid="stCaptionContainer"] p:first-child {{font-size:18px;}}</style>')
     evidence.metric("주민 1명당 하루 승객", number(value, 2, "명") if valid_need else "자료 없음")
     rank.metric("서울 25구 중 이용 순위", number(row.get("need_rank"), suffix="위") if valid_need else "자료 없음")
     st.caption(rank_text(row, "need") if valid_need else "순위 자료 없음")
@@ -139,8 +141,10 @@ for column, (mode, label) in zip(st.columns(2, gap="medium"), MODES.items()):
         else:
             st.info(f"{label} 시간대별 승객은 자료 없음")
         st.markdown("**가장 붐비는 시간**")
-        for day, frame in series.items():
-            st.markdown(f"{TRANSIT_DAYS[day]} · {_peak_text(frame)}")
+        with st.container(key=f"transit_peak_{mode}"):
+            for day, frame in series.items():
+                st.markdown(f"{TRANSIT_DAYS[day]} · {_peak_text(frame)}")
+        st.html(f'<style>.st-key-transit_peak_{mode} strong {{font-size:26px;color:#B45309;font-weight:800;background:#FFF2D6;padding:2px 7px;border-radius:6px;line-height:1.6;}}</style>')
 
 st.caption("버스와 지하철은 각 수단의 수록 승객 수예요. 전체 승객과 중복해서 더하지 않아요. 가장 붐비는 시간은 승객 수가 가장 많았던 때이며, 차량 안 혼잡도나 평소 이용량을 뜻하지 않아요.")
 

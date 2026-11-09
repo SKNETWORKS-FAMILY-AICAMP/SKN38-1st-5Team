@@ -112,7 +112,7 @@ st.html("""<style>
 </style>""")
 
 with st.container(gap="small", key="ownership_content"):
-    st.subheader(f"{district_name}의 차량 보유 현황", anchor=False)
+    st.subheader(f":orange[**{district_name}**]의 차량 보유 현황", anchor=False)
     level = word(row.get("ownership_level"))
     st.markdown(f"**차량 보유 {level}** · {rank_text(row, 'ownership')}")
     st.caption(f"등록 기준 {date_text(row.get('stat_month'), month=True)} · 같은 달의 등록 차량과 세대수로 비교해요.")

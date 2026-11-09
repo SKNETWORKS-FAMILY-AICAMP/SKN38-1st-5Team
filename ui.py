@@ -285,15 +285,15 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
               scale=alt.Scale(domain=[0, top], range=[RANK_BAR_LEFT, alt.expr("width - 62")]))
     row_area = base.mark_rect(x=0, x2="width", fillOpacity=0.001, cursor="pointer")
     highlight = base.transform_filter("datum.selected").mark_rect(
-        x=0, x2="width", color="#FF7A66", cornerRadius=6)
+        x=0, x2="width", color="#FFF2CC", cornerRadius=6)
     bars = base.mark_bar(height=11, cornerRadiusEnd=5, stroke="#C8CDE3", strokeWidth=0.6, cursor="pointer").encode(
         x=x, x2=alt.datum(0),
         color=alt.condition("datum.highest", alt.value("#E76F51"), alt.value("#8E98CF")))
     weight = alt.expr("datum.selected ? 700 : 400")
-    label_color = alt.condition("datum.selected", alt.value("#7A2418"), alt.value("#1B2340"))
+    label_color = alt.condition("datum.selected", alt.value("#684C00"), alt.value("#1B2340"))
     ranks = base.mark_text(align="right", x=20, fontSize=15, cursor="pointer").encode(
         text="rank_label:N",
-        color=alt.condition("datum.selected", alt.value("#7A2418"), alt.value("#4A5270")))
+        color=alt.condition("datum.selected", alt.value("#684C00"), alt.value("#4A5270")))
     names = base.mark_text(align="left", x=26, fontSize=15, fontWeight=weight,
                            cursor="pointer").encode(text="name:N", color=label_color)
     values = base.mark_text(align="left", dx=4, fontSize=15, fontWeight=weight,
