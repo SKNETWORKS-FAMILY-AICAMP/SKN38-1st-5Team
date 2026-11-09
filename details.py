@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from db import queries as q
-from ui import date_text, display_table, load_frame, load_options, number
+from ui import date_text, display_table, load_frame, load_options, number, top_three
 
 
 NAVY = "#27336B"
@@ -46,10 +46,12 @@ def registration_details(region_id: int) -> None:
         return
     chart_data = frame.loc[frame.vehicle_count.notna()].copy()
     if not chart_data.empty:
+        chart_data = top_three(chart_data, "vehicle_count", "detail_vehicle")
         chart_data["vehicle_count"] = chart_data.vehicle_count.astype("int64")
         chart = alt.Chart(chart_data).mark_bar(
             color=NAVY, cornerRadiusEnd=6, size=26,
         ).encode(
+            color=alt.condition(alt.datum.vehicle_count == float(chart_data.vehicle_count.max()), alt.value("#E76F51"), alt.value(MID_NAVY)),
             x=alt.X("vehicle_count:Q", title="등록 대수", axis=alt.Axis(format=",d", tickCount=5)),
             y=alt.Y("vehicle_type_name:N", title=None, sort=None),
             tooltip=[alt.Tooltip("vehicle_type_name:N", title="차종"),
@@ -59,7 +61,7 @@ def registration_details(region_id: int) -> None:
             st.markdown("**차종별 등록 현황**")
             st.altair_chart(_polish_chart(chart), width="stretch",
                             alt="선택한 구의 차종별 등록 차량 수")
-    with st.container(border=True, gap="small", key="detail_registration_table"):
+    with st.expander("상세보기 · 차종별 전체 등록 대수"):
         st.markdown("**차종별 등록 대수**")
         display_table(
             frame, {"vehicle_type_name": "차종", "vehicle_count": "등록 대수"},
@@ -105,6 +107,15 @@ def facility_details(region_id: int) -> None:
             parking["map_note"] = parking.map_eligible.map(
                 lambda value: "자료 없음" if pd.isna(value) else "지도 표시" if value else "지도 제외"
             )
+        parking = top_three(parking, "space_count", "detail_parking") if not parking.empty else parking
+        if not parking.empty:
+            chart = alt.Chart(parking).mark_bar(cornerRadiusEnd=5).encode(
+                x=alt.X("space_count:Q", title="주차면 수"),
+                y=alt.Y("display_name:N", sort="-x", title=None),
+                color=alt.condition(alt.datum.space_count == float(parking.space_count.max()), alt.value("#E76F51"), alt.value(MID_NAVY)),
+                tooltip=["display_name:N", "space_count:Q"],
+            ).properties(height=max(140, len(parking) * 30))
+            st.altair_chart(_polish_chart(chart), width="stretch", alt="수록 주차장별 주차면 수 · 상위 3개 또는 전체")
         with st.container(border=True, gap="small", key="detail_parking_table"):
             st.markdown("**주차장 목록**")
             st.caption("목록은 최대 100건이며 좌표가 없는 주차장도 포함해요. 관리번호가 겹치는 항목은 지도에서 제외해요.")
@@ -134,14 +145,25 @@ def facility_details(region_id: int) -> None:
         st.markdown("**충전소 지도**")
         _facility_map(points, "충전소")
         st.caption("지도 점 하나는 같은 운영자가 묶어 관리하는 충전소예요. 좌표가 없는 충전기도 아래 목록에는 나와요.")
-    frame = load_frame(q.get_charger_detail, region_id, speed=speed, limit=200)
+    frame = load_frame(q.get_charger_detail, region_id, speed=speed, limit=None)
     if not frame.empty:
         frame = frame.copy()
         frame["speed_name"] = frame.speed_code.astype(object).map(speed_names)
+    if not frame.empty:
+        stations = frame.groupby(["station_id", "station_name"], as_index=False).size().rename(columns={"size": "charger_count"})
+        shown = top_three(stations, "charger_count", "detail_charging_stations")
+        chart = alt.Chart(shown).mark_bar(cornerRadiusEnd=5).encode(
+            x=alt.X("charger_count:Q", title="충전기 수"),
+            y=alt.Y("station_name:N", sort="-x", title=None),
+            color=alt.condition(alt.datum.charger_count == float(stations.charger_count.max()), alt.value("#E76F51"), alt.value(MID_NAVY)),
+            tooltip=[alt.Tooltip("station_name:N", title="충전소"), alt.Tooltip("charger_count:Q", title="충전기 수")],
+        ).properties(height=max(140, len(shown) * 30))
+        st.altair_chart(_polish_chart(chart), width="stretch", alt="충전소별 수록 충전기 수 · 상위 3개 또는 전체")
+        frame = frame.loc[frame.station_id.isin(shown.station_id)]
     with st.container(border=True, gap="small", key="detail_charger_table"):
         st.markdown("**방문 전 확인할 이용 안내**")
         st.caption(
-            "충전기 목록은 최대 200기예요. 이용제한·운영시간은 수집 당시 안내이며, "
+            "선택한 충전소의 충전기 목록이에요. 이용제한·운영시간은 수집 당시 안내이며, "
             "실시간 사용 가능 여부가 아니에요. 제한 안내가 없어도 자유 이용을 뜻하지 않아요."
         )
         display_table(
@@ -211,11 +233,12 @@ def transit_details(region_id: int, row: pd.Series) -> None:
             counts = counts.astype("int64")
             if (counts.valid_dong_count < counts.expected_dong_count).any():
                 st.caption("이 구의 승객 수에는 일부 행정동 자료가 빠져 있어요. 실제 이용 규모보다 적게 집계될 수 있어요.")
-        chart = alt.Chart(frame).mark_line(
-            color=NAVY, strokeWidth=3,
-            point=alt.OverlayMarkDef(filled=True, fill=MID_NAVY, size=50),
+        shown = top_three(frame, "known_passenger_sum", "detail_passengers")
+        chart = alt.Chart(shown).mark_bar(
+            color=NAVY, cornerRadiusEnd=4,
         ).encode(
-            x=alt.X("hour_of_day:Q", title="시간", axis=alt.Axis(values=[0, 6, 12, 18, 23])),
+            color=alt.condition(alt.datum.known_passenger_sum == float(shown.known_passenger_sum.max()), alt.value("#E76F51"), alt.value(MID_NAVY)),
+            x=alt.X("hour_of_day:O", title="시간", sort="ascending"),
             y=alt.Y("known_passenger_sum:Q", title="수록 승객 수(명)", axis=alt.Axis(format=",d", tickCount=5)),
             tooltip=[alt.Tooltip("hour_of_day:Q", title="시간"),
                      alt.Tooltip("known_passenger_sum:Q", title="수록 승객 수", format=",d"),

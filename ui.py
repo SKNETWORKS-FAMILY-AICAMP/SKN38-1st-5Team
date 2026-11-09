@@ -252,6 +252,15 @@ def district_map(boundaries: pd.DataFrame, ranking: pd.DataFrame,
             .configure_view(stroke=None))
 
 
+def top_three(frame: pd.DataFrame, value: str, key: str) -> pd.DataFrame:
+    """Show three largest observations, preserving the full result on demand."""
+    full = st.toggle("상세보기 · 전체 자료", key=f"{key}_show_all")
+    ordered = frame.reindex(columns=[*frame.columns, *([] if value in frame else [value])]).sort_values(value, ascending=False, kind="stable", na_position="last")
+    if not full:
+        st.caption("상위 3개 · 가장 큰 값은 주황색으로 표시해요.")
+    return ordered if full else ordered.head(3)
+
+
 def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.LayerChart:
     spec = TOPICS[topic]
     ordered = ranking.copy()
@@ -268,6 +277,7 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
         "value": float(row[value_col]) if pd.notna(row[value_col]) else 0.0,
         "level": word(row.get(f"{topic}_level")),
         "selected": int(row.region_id) == selected,
+        "highest": pd.notna(row[value_col]) and row[value_col] == ordered[value_col].max(),
     } for _, row in ordered.iterrows()]
     top = max((record["value"] for record in records), default=0) or 1
     base = alt.Chart(alt.InlineData(values=records)).encode(y=alt.Y("name:N", sort=None, axis=None))
@@ -278,8 +288,7 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
         x=0, x2="width", color="#FF7A66", cornerRadius=6)
     bars = base.mark_bar(height=11, cornerRadiusEnd=5, stroke="#C8CDE3", strokeWidth=0.6, cursor="pointer").encode(
         x=x, x2=alt.datum(0),
-        color=alt.Color("level:N", legend=None,
-                        scale=alt.Scale(domain=[*spec.levels, MISSING], range=COLORS)))
+        color=alt.condition("datum.highest", alt.value("#E76F51"), alt.value("#8E98CF")))
     weight = alt.expr("datum.selected ? 700 : 400")
     label_color = alt.condition("datum.selected", alt.value("#7A2418"), alt.value("#1B2340"))
     ranks = base.mark_text(align="right", x=18, fontSize=13, cursor="pointer").encode(
@@ -291,16 +300,17 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
                             cursor="pointer").encode(x=x, text="label:N", color=label_color)
     selection = alt.selection_point(name="rank", fields=["region_id"], toggle=False, clear=False)
     return (alt.layer(row_area, highlight, bars, ranks, names, values).add_params(selection)
-            .properties(height=RANK_HEIGHT).configure_view(stroke=None))
+            .properties(height=max(120, len(records) * 30)).configure_view(stroke=None))
 
 
 def ranking_list(ranking: pd.DataFrame, topic: str) -> None:
     spec = TOPICS[topic]
     st.caption(f"**서울 25구 순위** · {spec.order_label}")
     key = f"ranking_{topic}_{st.session_state.get('rank_epoch', 0)}"
-    st.altair_chart(ranking_chart(ranking, topic, st.session_state.district_id), key=key,
+    shown = top_three(ranking, f"{topic}_value", f"ranking_{topic}")
+    st.altair_chart(ranking_chart(shown, topic, st.session_state.district_id), key=key,
                     on_select=partial(select_rank_region, key), selection_mode="rank",
-                    width="stretch", height=RANK_HEIGHT,
+                    width="stretch", height=max(120, len(shown) * 30),
                     alt=f"서울 25구 {spec.order_label} 막대 순위. 행을 누르면 해당 구의 세 판정을 표시해요.")
 
 

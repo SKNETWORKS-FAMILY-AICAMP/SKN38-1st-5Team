@@ -1,3 +1,5 @@
+import base64
+from html import escape
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
@@ -28,8 +30,9 @@ CSS = """
 }
 /* key 블록의 부모가 세로 flex이므로 basis를 고정하지 않는다. */
 .st-key-site_brand { flex: 0 0 auto; }
-.st-key-site_brand h2, .st-key-footer_brand h2 {
-  padding: 0; margin: 0; color: #27336B; font-size: 34px; line-height: 1.15;
+.st-key-site_brand .brand-home, .st-key-footer_brand .brand-home {
+  display: inline-flex; align-items: center; gap: 8px; padding: 0; margin: 0;
+  color: #27336B; font: 400 34px/1.15 Jua, sans-serif; text-decoration: none; white-space: nowrap;
 }
 .st-key-site_menu { gap: 4px; overflow: visible; }
 .st-key-site_menu a {
@@ -147,7 +150,7 @@ CSS = """
   background: #FF7A66; box-shadow: 0 0 0 100vmax #FF7A66;
   clip-path: inset(0 -100vmax); pointer-events: none;
 }
-.st-key-footer_brand h2 { color: #fff; font-size: 30px; }
+.st-key-footer_brand .brand-home { color: #fff; font-size: 30px; }
 .st-key-site_footer p { font-size: 14px; line-height: 1.7; color: #EEF0FA; margin: 8px 0 0; }
 .st-key-footer_menu { max-width: 680px; }
 .st-key-footer_menu a { color: #fff; min-height: 44px; padding: 6px 10px; border-radius: 999px; }
@@ -225,7 +228,7 @@ CSS = """
 @media (max-width: 700px) {
   .st-key-site_navbar { padding: 12px 0; gap: 10px; }
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_brand) { flex: 1 1 130px; order: 0; }
-  .st-key-site_brand h2 { font-size: 29px; }
+  .st-key-site_brand .brand-home { font-size: 29px; }
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_picker) { flex: 0 0 148px; order: 1; }
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_menu) { flex: 1 0 100%; order: 2; }
   .st-key-site_menu { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(44px, auto); gap: 2px; overflow: visible; }
@@ -259,9 +262,15 @@ def styles() -> None:
 
 
 def brand() -> None:
-    with st.container(horizontal=True, vertical_alignment="center", gap="xsmall", wrap=False):
-        st.image(str(ASSETS / "logo.svg"), width=42, alt="")
-        st.header("차차차", anchor=False)
+    base_path = str(st.get_option("server.baseUrlPath") or "").strip("/")
+    home_url = f"/{base_path}/" if base_path else "/"
+    logo = base64.b64encode((ASSETS / "logo.svg").read_bytes()).decode("ascii")
+    st.html(
+        f'<a class="brand-home" href="{escape(home_url, quote=True)}" target="_self" '
+        'aria-label="차차차 메인 화면으로 이동">'
+        f'<img src="data:image/svg+xml;base64,{logo}" width="42" height="42" alt="" aria-hidden="true">'
+        '<span>차차차</span></a>'
+    )
 
 
 def navbar(pages: Sequence[st.Page], current: st.Page,

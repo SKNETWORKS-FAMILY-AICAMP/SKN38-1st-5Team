@@ -47,7 +47,10 @@ def expected_values(row):
 
 class AppTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = AppTest.from_file(Path(__file__).resolve().parents[1] / "app.py", default_timeout=30).run()
+        self.app = AppTest.from_file(Path(__file__).resolve().parents[1] / "app.py", default_timeout=30)
+        for topic in ("ownership", "parking", "need"):
+            self.app.session_state[f"ranking_{topic}_show_all"] = True
+        self.app.run()
         from db import queries as q
         self.ranking = q.get_district_ranking()
         self.ids = dict(zip(self.ranking.district_name.astype(str), self.ranking.region_id.astype(int)))

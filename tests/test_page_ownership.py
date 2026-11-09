@@ -18,6 +18,8 @@ class OwnershipPageTest(unittest.TestCase):
     def setUp(self):
         self.app = AppTest.from_file(ROOT / "app.py", default_timeout=30).run()
         self.app.switch_page("app_pages/ownership.py").run()
+        self.app.toggle(key="ownership_ranking_show_all").set_value(True).run()
+        self.app.toggle(key="ownership_vehicle_show_all").set_value(True).run()
         self.assert_ready()
         from db import queries as q
         self.ranking = q.get_district_ranking()
@@ -109,7 +111,7 @@ class OwnershipPageTest(unittest.TestCase):
                 self.app.segmented_control(key="ownership_scope").set_value(scope).run()
                 self.assert_ready()
                 rows = self.chart_data("차종별 등록 대수")
-                expected = source.loc[source.fuel_scope_code == scope]
+                expected = source.loc[source.fuel_scope_code == scope].sort_values("vehicle_count", ascending=False, kind="stable")
                 self.assertEqual(len(rows), 4)
                 self.assertEqual(rows.vehicle_type_code.tolist(), expected.vehicle_type_code.tolist())
                 self.assertEqual(rows.vehicle_count.tolist(), expected.vehicle_count.tolist())

@@ -75,7 +75,8 @@ HTML = """
     f'<button type="button" class="verdict" data-topic="{topic}" aria-pressed="false">'
     f'{_CARS[index]}<span class="verdict-copy"><span class="topic-label">{label}</span>'
     '<strong class="level">자료 없음</strong></span>'
-    '<span class="signals" aria-hidden="true">○○○</span></button>'
+    '<span class="signals" aria-hidden="true"><span class="signal-dot signal-red"></span>'
+    '<span class="signal-dot signal-yellow"></span><span class="signal-dot signal-green"></span></span></button>'
     for index, (topic, label) in enumerate(TOPIC_LABELS.items())
 ))
 
@@ -118,6 +119,7 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
 .arrival { grid-column: 1; grid-row: 2; align-self: center; padding: 18px 0 6px; min-width: 0; }
 .summary-caption { font-size: 12px; color: #4A5270; margin-bottom: 5px; }
 .arrival-title { font: 29px/1.3 'Jua', var(--st-heading-font), sans-serif; min-height: 38px; color: #27336B; }
+.typed .district-name { color: #C24C38; }
 .cursor { color: #FF7A66; margin-left: 2px; }
 .hero[data-phase="ready"] .cursor { visibility: hidden; }
 .sentence { color: #1B2340; font-size: 17px; line-height: 1.65; margin-top: 5px; word-break: keep-all; }
@@ -129,7 +131,11 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
 .verdict-copy { min-width: 0; flex: 1; }
 .topic-label { display: block; color: #4A5270; font-size: 11px; line-height: 1.4; }
 .level { display: block; font-size: 15px; line-height: 1.6; }
-.signals { flex: 0 0 auto; color: #27336B; font-size: 21px; letter-spacing: 2px; white-space: nowrap; }
+.signals { flex: 0 0 auto; display: inline-flex; gap: 7px; align-items: center; }
+.signal-dot { width: 14px; height: 14px; border-radius: 50%; background: #DDE1F0; }
+.signals[data-state="sufficient"] .signal-green { background: #16803C; box-shadow: 0 0 0 3px #DCFCE7; }
+.signals[data-state="normal"] .signal-yellow { background: #EAB308; box-shadow: 0 0 0 3px #FEF9C3; }
+.signals[data-state="caution"] .signal-red { background: #DC2626; box-shadow: 0 0 0 3px #FEE2E2; }
 .verdict[aria-pressed="true"] { border-color: #27336B; background: #fff; }
 .verdict:hover { background: #fff; border-color: #8E98CF; }
 .verdict:focus-visible { outline: 3px solid #27336B; outline-offset: 2px; }
@@ -269,7 +275,8 @@ export default function(component) {
     const topic = button.dataset.topic;
     const item = selected.verdicts.find(v => v.topic === topic);
     button.querySelector('.level').textContent = item.level;
-    button.querySelector('.signals').textContent = [0, 1, 2].map(i => i === item.signal_index ? '●' : '○').join('');
+    button.querySelector('.signals').dataset.state = item.signal_state;
+    button.querySelector('.level').style.color = {sufficient:'#16803C', normal:'#A16207', caution:'#DC2626'}[item.signal_state] || '#1B2340';
     button.setAttribute('aria-pressed', String(data.topic === topic));
     button.setAttribute('aria-label', `${item.label}: ${item.level}. ${item.value}. ${item.rank}. 이 기준으로 지도 보기`);
     button.title = `${item.value} · ${item.rank}`;
@@ -374,9 +381,16 @@ export default function(component) {
     ['.road-edge', '.road', '.road-center', '.destination', '.car', '.sentence', '.district-labels', '.label-lines'].forEach(sel => {
       select(sel).style.opacity = '1';
     });
-    select('.typed').textContent = s.title;
+    renderTitle(s.title);
     carAt(s.target);
     announce();
+  }
+  function renderTitle(text) {
+    const name = selected.name === '자료 없음' ? '' : selected.name;
+    const strong = document.createElement('span');
+    strong.className = 'district-name';
+    strong.textContent = text.slice(0, name.length);
+    select('.typed').replaceChildren(strong, document.createTextNode(text.slice(name.length)));
   }
   function opening() {
     root.dataset.phase = 'opening';
@@ -396,7 +410,7 @@ export default function(component) {
       move((ms - 970) / 650);
       select('.district-labels').style.opacity = select('.label-lines').style.opacity = String(clamp((ms - 960) / 220));
       const letters = Math.floor(clamp((ms - 1660) / 400) * s.title.length);
-      select('.typed').textContent = s.title.slice(0, letters);
+      renderTitle(s.title.slice(0, letters));
       select('.sentence').style.opacity = String(clamp((ms - 1950) / 160));
       root.querySelectorAll('.verdict').forEach((el, i) => {
         const p = clamp((ms - 1920 - i * 120) / 220);
@@ -518,7 +532,13 @@ def _verdicts(row: pd.Series) -> list[dict]:
         index = spec.levels.index(level) if level in spec.levels else None
         result.append({"topic": topic, "label": spec.title, "level": level,
                        "value": topic_value(row, topic), "rank": rank_text(row, topic),
-                       "signal_index": index, "color": COLORS[index if index is not None else 3]})
+                       "signal_index": index,
+                       "signal_state": {
+                           "ownership": {"많은 편": "caution", "보통": "normal", "적은 편": "sufficient"},
+                           "parking": {"좋음": "sufficient", "보통": "normal", "빠듯함": "caution"},
+                           "need": {"차가 필요한 편": "caution", "있으면 편함": "normal", "대중교통으로 충분": "sufficient"},
+                       }[topic].get(level, "unknown"),
+                       "color": COLORS[index if index is not None else 3]})
     return result
 
 

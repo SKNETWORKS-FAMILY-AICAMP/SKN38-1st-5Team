@@ -85,7 +85,7 @@ CSS = """
 .h2-hero .h2-intro { margin-top: 18px; font-size: 15px; line-height: 1.8; color: #D2D8EF; letter-spacing: -.025em; }
 .h2-hero .h2-local { margin-top: 22px; }
 .h2-hero .h2-now { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--h2-muted); }
-.h2-hero .h2-now strong { color: #FF9A87; font-size: 14px; margin-left: 3px; }
+.h2-hero .h2-now strong { color: #FF9A87; font-size: 30px; margin-left: 3px; }
 .h2-hero .h2-status-dot { width: 5px; height: 5px; background: #FF7A66; border-radius: 50%; }
 .h2-hero .h2-criteria { display: grid; grid-template-columns: .8fr .8fr 1.4fr; gap: 16px; margin-top: 11px; }
 .h2-hero .h2-criteria > div { border-top: 1px solid #4B5578; padding-top: 10px; min-width: 0; }
@@ -143,7 +143,7 @@ CSS = """
   .h2-hero .h2-intro { font-size: 11px; line-height: 1.7; margin-top: 8px; }
   .h2-hero .h2-local { margin-top: 9px; }
   .h2-hero .h2-now { font-size: 11px; }
-  .h2-hero .h2-now strong { font-size: 12px; }
+  .h2-hero .h2-now strong { font-size: 24px; }
   .h2-hero .h2-criteria { margin-top: 6px; gap: 10px; }
   .h2-hero .h2-criteria > div { padding-top: 5px; }
   .h2-hero .h2-criteria dt { font-size: 11px; margin-bottom: 2px; }
@@ -250,7 +250,12 @@ function reconcile(state, id, react = false) {
   state.root.querySelector('.h2-selected-name').textContent = d?.name ?? state.data.selected_name;
   state.root.querySelector('.h2-pin-name').textContent = d?.name ?? '';
   for (const topic of ['ownership','parking','need']) {
-    state.root.querySelector(`[data-level="${topic}"]`).textContent = d?.levels[topic] ?? '자료 없음';
+    const el = state.root.querySelector(`[data-level="${topic}"]`);
+    const level = d?.levels[topic] ?? '자료 없음';
+    const states = {ownership: {'많은 편':'주의','보통':'보통','적은 편':'충분'}, parking: {'좋음':'충분','보통':'보통','빠듯함':'주의'}, need: {'차가 필요한 편':'주의','있으면 편함':'보통','대중교통으로 충분':'충분'}};
+    const status = states[topic][level];
+    el.textContent = status && status !== level ? `${status} · ${level}` : level;
+    el.style.color = {'주의':'#FF8A80','보통':'#FACC15','충분':'#86EFAC'}[status] || '#EEF0FA';
   }
   state.nodes.forEach(n => {
     const selected = n.data.id === id;

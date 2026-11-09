@@ -7,7 +7,7 @@ import streamlit as st
 from db import queries as q
 from scene_city3d import render_hero
 from ui import (RANK_HEIGHT, date_text, district_row, load_frame,
-                number, rank_text, ranking_chart, select_rank_region, word)
+                number, rank_text, ranking_chart, select_rank_region, top_three, word)
 
 
 def _comparison(row: pd.Series, field: str, digits: int, unit: str) -> str:
@@ -18,10 +18,14 @@ def _comparison(row: pd.Series, field: str, digits: int, unit: str) -> str:
 
 
 def _metric(row: pd.Series, field: str, label: str, digits: int, unit: str) -> None:
-    with st.container(border=True, height="stretch", gap="xsmall"):
+    with st.container(border=True, height="stretch", gap="xsmall", key=f"ownership_metric_{field}"):
         st.metric(label, number(row.get(field), digits, unit),
                   delta=_comparison(row, field, digits, "%p" if field == "electric_share_pct" else unit),
-                  delta_color="off", delta_description="서울 평균 대비")
+                  delta_color="inverse", delta_description="서울 평균 대비")
+        change = row.get(f"{field}_vs_seoul")
+        if change is not None and pd.notna(change) and change != 0:
+            color, background = ("#DC2626", "#FEE2E2") if change > 0 else ("#2563EB", "#DBEAFE")
+            st.html(f'<style>.st-key-ownership_metric_{field} [data-testid="stMetricDelta"] {{color:{color} !important;background-color:{background} !important;}} .st-key-ownership_metric_{field} [data-testid="stMetricDelta"] svg {{fill:currentColor !important;}}</style>')
         average = number(row.get(f"{field}_seoul_avg"), digits, unit)
         count = row.get(f"{field}_seoul_count")
         included = f" · {int(count)}개 구 기준" if count is not None and pd.notna(count) else ""
@@ -49,6 +53,7 @@ def _vehicle_composition(frame: pd.DataFrame, scope: str, district_name: str) ->
     if rows.empty:
         st.info("선택한 범위의 차종 구성은 자료 없음이에요.")
         return
+    rows = top_three(rows, "vehicle_count", "ownership_vehicle")
     base = alt.Chart(rows).encode(
         y=alt.Y("vehicle_type_name:N", title=None, sort=None),
         x=alt.X("vehicle_count:Q", title="등록 대수", axis=alt.Axis(format=",d", tickCount=4),
@@ -56,7 +61,7 @@ def _vehicle_composition(frame: pd.DataFrame, scope: str, district_name: str) ->
         tooltip=[alt.Tooltip("vehicle_type_name:N", title="차종"),
                  alt.Tooltip("vehicle_count:Q", title="등록 대수", format=",d")],
     )
-    bars = base.mark_bar(color="#27336B" if scope == "all" else "#FF7A66", size=26, cornerRadiusEnd=5)
+    bars = base.mark_bar(size=26, cornerRadiusEnd=5).encode(color=alt.condition(alt.datum.vehicle_count == float(rows.vehicle_count.max()), alt.value("#E76F51"), alt.value("#8E98CF")))
     labels = base.mark_text(align="left", x=5, dx=0, dy=-21, color="#1B2340", fontSize=12).encode(
         x=alt.value(5), text=alt.Text("vehicle_count:Q", format=",d"),
     )
@@ -134,7 +139,8 @@ with st.container(gap="small", key="ownership_content"):
         st.info("서울 25구 순위는 자료 없음이에요.")
     else:
         key = f"ownership_ranking_{st.session_state.get('rank_epoch', 0)}"
-        st.altair_chart(ranking_chart(ranking, "ownership", region_id), key=key,
+        shown = top_three(ranking, "ownership_value", "ownership_ranking")
+        st.altair_chart(ranking_chart(shown, "ownership", region_id), key=key,
                         on_select=partial(select_rank_region, key), selection_mode="rank",
-                        width="stretch", height=RANK_HEIGHT,
+                        width="stretch", height=max(120, len(shown) * 30),
                         alt="서울 25구의 세대당 차량 보유 순위. 행을 누르면 해당 구를 선택해요.")
