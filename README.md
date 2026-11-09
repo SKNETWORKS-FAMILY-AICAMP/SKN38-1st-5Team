@@ -120,6 +120,8 @@ copy .streamlit\secrets.toml.example .streamlit\secrets.toml
 
 macOS는 `.venv\Scripts\python` 대신 `.venv/bin/python`, `copy` 대신 `cp`를 사용합니다. 실제 접속값(`secrets.toml`)은 레포에 올리지 않습니다.
 
+로컬 MySQL 설정에는 `ssl_ca` 항목을 넣지 않습니다. 이전 예시를 복사했다면 `ssl_ca = ""` 줄을 삭제하세요. `MYSQL_SSL_CA` 환경변수도 명시하면 로컬 TLS가 활성화됩니다. 원격 DB는 이 항목 없이도 TLS·서버 인증서·호스트명을 검증하며, 사설 CA가 필요한 경우에만 실제 CA 인증서 경로를 설정합니다.
+
 ## 앞으로의 계획
 
 - **차차차 종합 점수 화면 반영**: `scoring.py` 보조 모델 검증 후 결정

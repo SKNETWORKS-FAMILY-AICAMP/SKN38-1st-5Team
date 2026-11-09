@@ -4,6 +4,7 @@ import os
 import ssl
 from pathlib import Path
 import tempfile
+import tomllib
 import unittest
 from unittest.mock import MagicMock, Mock, patch
 
@@ -27,6 +28,24 @@ class RemoteConnectionTest(unittest.TestCase):
         with patch.dict(os.environ, environment or {}, clear=True), patch.object(streamlit, 'secrets', {'mysql': secret}), patch('db.connection.create_engine') as create, patch('db.connection.event.listen') as listen:
             get_engine()
             return create.call_args.kwargs['connect_args'], listen.call_count
+
+    def test_example_config_works_without_local_tls(self):
+        example = Path(__file__).resolve().parents[1] / '.streamlit' / 'secrets.toml.example'
+        config = tomllib.loads(example.read_text(encoding='utf-8'))['mysql']
+        self.assertNotIn('ssl_ca', config)
+        for host in ('localhost', '127.0.0.1', '::1'):
+            with self.subTest(host=host):
+                args, listeners = self.connection_args({**config, 'host': host})
+                self.assertNotIn('ssl', args)
+                self.assertEqual(listeners, 0)
+
+    def test_example_config_preserves_remote_certificate_verification(self):
+        example = Path(__file__).resolve().parents[1] / '.streamlit' / 'secrets.toml.example'
+        config = tomllib.loads(example.read_text(encoding='utf-8'))['mysql']
+        args, listeners = self.connection_args({**config, 'host': 'database.example.invalid'})
+        self.assertTrue(args['ssl'].check_hostname)
+        self.assertEqual(args['ssl'].verify_mode, ssl.CERT_REQUIRED)
+        self.assertEqual(listeners, 1)
 
     def test_remote_always_enables_tls_without_ca(self):
         args, listeners = self.connection_args({'host': 'database.example.invalid'})
