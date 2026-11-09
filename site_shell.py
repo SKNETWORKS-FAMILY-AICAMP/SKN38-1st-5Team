@@ -158,6 +158,58 @@ CSS = """
   outline: 3px solid #27336B; outline-offset: 3px;
 }
 .st-key-site_footer a:focus-visible { outline-color: #FF7A66; }
+/* ── 디자인 다듬기: 카드 그림자, 얇은 테두리, 일관된 모서리 ── */
+.st-key-site_root { --site-line: #DDE1F0; --site-shadow: 0 6px 20px rgba(39, 51, 107, .07);
+  --site-shadow-hover: 0 12px 28px rgba(39, 51, 107, .12); }
+.st-key-judgment_ownership, .st-key-judgment_parking, .st-key-judgment_need, .st-key-map_panel {
+  border-width: 1px; border-color: var(--site-line); box-shadow: var(--site-shadow);
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.st-key-judgment_ownership:hover, .st-key-judgment_parking:hover, .st-key-judgment_need:hover {
+  transform: translateY(-2px); box-shadow: var(--site-shadow-hover);
+}
+.st-key-judgment_ownership:has(.st-key-tab_active_ownership),
+.st-key-judgment_parking:has(.st-key-tab_active_parking),
+.st-key-judgment_need:has(.st-key-tab_active_need) {
+  border-color: #27336B; box-shadow: 0 0 0 1px #27336B, var(--site-shadow-hover);
+}
+.st-key-site_root [data-testid="stMetric"] {
+  background: #fff; border-color: var(--site-line); border-radius: 18px; box-shadow: var(--site-shadow);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.st-key-site_root [data-testid="stMetric"]:hover { transform: translateY(-2px); box-shadow: var(--site-shadow-hover); }
+.st-key-site_root [data-testid="stMetricLabel"] p { color: #4A5270; font-weight: 600; }
+.st-key-site_root [data-testid="stMetricValue"] {
+  color: #27336B; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.st-key-site_page_header h1::after {
+  content: ""; display: block; width: 44px; height: 5px; margin-top: 12px;
+  border-radius: 3px; background: #FF7A66;
+}
+.st-key-site_root [data-testid="stAlertContainer"] {
+  border-radius: 16px; background: #F5F6FB; color: #1B2340; border: 1px solid var(--site-line);
+}
+.st-key-site_root [data-testid="stAlertContainer"] [data-testid="stIconMaterial"] { color: #27336B; }
+.st-key-site_root [data-testid="stExpander"] details {
+  border-radius: 18px; border-color: var(--site-line); background: #fff; box-shadow: var(--site-shadow);
+}
+.st-key-site_root [data-testid="stExpander"] summary:hover { background: #F5F6FB; color: #27336B; }
+.st-key-site_root [data-testid="stDataFrame"] {
+  border: 1px solid var(--site-line); border-radius: 14px; overflow: hidden;
+}
+.st-key-site_root [data-testid="stVegaLiteChart"], .st-key-site_root [data-testid="stDeckGlJsonChart"] {
+  border-radius: 16px; overflow: hidden;
+}
+.st-key-site_root [data-testid="stPageLink-NavLink"] { transition: background-color .15s ease, color .15s ease; }
+.st-key-judgment_deck a:hover p { color: #27336B; text-decoration: underline; text-underline-offset: 4px; }
+.st-key-site_root [data-testid="stTextInputRootElement"], .st-key-site_root [data-baseweb="select"] > div {
+  border-radius: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-key-site_root * { transition: none !important; }
+  .st-key-judgment_ownership:hover, .st-key-judgment_parking:hover, .st-key-judgment_need:hover,
+  .st-key-site_root [data-testid="stMetric"]:hover { transform: none; }
+}
 @media (max-width: 1100px) {
   /* 가로 배치의 flex 항목은 key 블록 바깥의 래퍼다. */
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_brand) { flex: 1 1 145px; order: 0; }
@@ -258,13 +310,13 @@ def hero(district_name: str) -> None:
 
 def page_header(path: str) -> None:
     headings = {
-        "charging": ("우리 동네, 충전하기 괜찮을까요?", "전기차 대비 충전기 수와 충전소 위치를 살펴봐요. 실시간 빈자리 정보는 아니에요."),
-        "roads": ("어느 시간에 길이 붐빌까요?", "평일과 주말의 수록 교통량을 비교하고, 날씨 표본도 함께 살펴봐요."),
-        "about": ("차차차는 어떤 자료를 볼까요?", "자료 출처와 기준 시점, 세 가지 판정의 규칙과 한계를 확인해요."),
+        "charging": ("우리 동네 충전 여건은 어떨까요?", "전기차 대비 충전기 수와 충전소 위치를 살펴볼 수 있어요. 실시간 빈자리 정보는 아니에요."),
+        "roads": ("어느 시간에 길이 붐빌까요?", "평일과 주말의 수록 교통량을 비교하고, 날씨 표본도 함께 살펴볼 수 있어요."),
+        "about": ("차차차가 사용하는 자료", "자료 출처와 기준 시점, 세 가지 판정의 규칙과 한계를 확인할 수 있어요."),
         "compare": ("어느 동네가 더 잘 맞을까요?", "두 동네의 차량 보유, 주차 여건, 차 필요성을 나란히 비교해요."),
-        "national": ("전국에는 차가 얼마나 있을까요?", "시도와 차종, 용도를 골라 자동차 등록 현황을 살펴봐요."),
-        "faq": ("차차차, 궁금한 게 있나요?", "차차차 이용 안내를 살펴봐요. 기업이 안내한 자동차 질문도 함께 볼 수 있어요."),
-        "ask": ("차차차에게 물어봐요", "우리 동네 자동차 생활, 차차차 자료에서 답을 찾아봐요."),
+        "national": ("전국에는 차가 얼마나 있을까요?", "시도와 차종, 용도를 선택해 자동차 등록 현황을 조회할 수 있어요."),
+        "faq": ("자주 묻는 질문", "차차차 이용 안내와 기업이 안내한 자동차 질문을 확인할 수 있어요."),
+        "ask": ("차차차에게 물어보세요", "우리 동네 자동차 생활, 차차차 자료에서 답을 찾아 드려요."),
     }
     title, description = headings[path]
     with st.container(gap="xsmall", key="site_page_header"):
@@ -278,7 +330,7 @@ def footer(pages: Sequence[st.Page]) -> None:
             with st.container(width="stretch"):
                 with st.container(key="footer_brand"):
                     brand()
-                st.html('<p class="footer-intro">다음 동네도, 차차차와 둘러봐요.<br>서울 25구의 차량 보유, 주차 여건, 차 필요성을 함께 살펴봐요.</p>')
+                st.html('<p class="footer-intro">차차차 · 서울에서 차와 살기<br>서울 25구의 차량 보유, 주차 여건, 차 필요성을 한눈에 비교할 수 있어요.</p>')
             with st.container(horizontal=True, gap="xsmall", wrap=True, width="stretch", key="footer_menu"):
                 for page in pages:
                     st.page_link(page, label=page.title, icon="", width="content")

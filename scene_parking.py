@@ -66,7 +66,7 @@ HTML = """
       <g class="missing-cover" aria-hidden="true"><rect x="166" y="142" width="330" height="58" rx="18" fill="#EEF0FA"/><text x="331" y="178" text-anchor="middle" fill="#27336B" font-size="18" font-weight="700">주차 자료가 아직 없어요</text></g>
       <g class="scene-sign" aria-hidden="true"><rect x="207" y="301" width="245" height="32" rx="16" fill="#FFFFFF" stroke="#C8CDE3"/><circle cx="225" cy="317" r="4" fill="#FF7A66"/><text x="337" y="322" text-anchor="middle" fill="#27336B" font-size="13" font-weight="700" data-text="scene-label">동네 주차 여건을 살펴봐요</text></g>
     </svg>
-    <figcaption><span class="tap-hint">차를 콕 누르면, 빵!</span><span>빈자리는 판정을 표현한 그림이에요.</span></figcaption>
+    <figcaption><span class="tap-hint">차를 누르면 경적이 울려요</span><span>빈자리는 판정을 표현한 그림이에요.</span></figcaption>
   </figure>
   <span class="sr-only" data-text="announcement" role="status" aria-live="polite"></span>
 </section>
@@ -126,7 +126,7 @@ figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap
   .parking-hero { gap: 8px; grid-template-columns: minmax(0, .95fr) minmax(0, 1.1fr); }
   h1 { font-size: 38px; }
   .intro { font-size: 13px; }
-  figcaption { margin-inline: 9px; font-size: 10px; }
+  figcaption { margin-inline: 9px; font-size: 11px; }
 }
 @media (max-width: 740px) {
   .parking-hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; height: auto; min-height: 0; gap: 9px; align-items: start; }
@@ -141,7 +141,7 @@ figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap
   .measure { font-size: 11px; margin-top: 5px; }
   .little-road { display: none; }
   .parking-scene { align-self: center; max-width: 350px; justify-self: center; }
-  figcaption { margin: 3px 7px 0; font-size: 9px; gap: 4px; }
+  figcaption { margin: 3px 7px 0; font-size: 11px; gap: 4px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -322,7 +322,7 @@ export default function(component) {
   text(root, 'district', data.districtName);
   text(root, 'parking-level', data.parkingLevel);
   text(root, 'parking-value', data.parkingValue);
-  const scenes = {'좋음': '넉넉한 자리, 가벼운 마음', '보통': '우리 동네 주차 여건은 보통', '빠듯함': '주차 자리, 미리 살펴봐요'};
+  const scenes = {'좋음': '넉넉한 자리, 가벼운 마음', '보통': '우리 동네 주차 여건은 보통', '빠듯함': '주차 자리, 미리 확인하세요'};
   text(root, 'scene-label', scenes[data.parkingLevel] || '주차 자료를 기다리고 있어요');
   root.dataset.districtId = district;
   root.dataset.parkingLevel = data.parkingLevel;
