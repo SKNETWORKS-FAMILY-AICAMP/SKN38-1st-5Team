@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -21,6 +22,14 @@ class ParkingPageTest(unittest.TestCase):
         cls.ids = dict(zip(cls.ranking.district_name.astype(str), cls.ranking.region_id.astype(int)))
 
     def setUp(self):
+        # Keep DB coverage regressions deterministic and test the offline fallback.
+        # Streamlit runs pages outside their module name; patch the imported provider instead.
+        self.source_patch = patch("parking_explorer.seoul_parking", return_value=None)
+        self.source_patch.start()
+        self.addCleanup(self.source_patch.stop)
+        station_patch = patch("parking_explorer.station_search", return_value=[])
+        station_patch.start()
+        self.addCleanup(station_patch.stop)
         self.app = AppTest.from_file(APP, default_timeout=30).run()
         self.app.switch_page(PAGE).run()
         self.assert_ready()
@@ -49,24 +58,22 @@ class ParkingPageTest(unittest.TestCase):
         return components[0]
 
     def assert_map_matches(self, expected):
-        maps = self.app.get("deck_gl_json_chart")
+        maps = self.app.get("iframe")
         if expected.empty:
             self.assertEqual(len(maps), 0)
             return
         self.assertEqual(len(maps), 1)
-        spec = json.loads(maps[0].proto.json)
-        self.assertEqual(spec.get("mapProvider"), "carto")
-        self.assertIsNone(spec.get("mapStyle"))
-        points = spec["layers"][0]["data"]
+        html = maps[0].proto.srcdoc
+        payload = json.loads(re.search(r"const data=(.*?);\nconst esc", html, re.S).group(1))
+        points = payload["places"]
         self.assertCountEqual(
             [(item["latitude"], item["longitude"]) for item in points],
             [(float(item.latitude), float(item.longitude)) for _, item in expected.iterrows()],
         )
         self.assertTrue(all(37.4 <= item["latitude"] <= 37.75 for item in points))
         self.assertTrue(all(126.75 <= item["longitude"] <= 127.2 for item in points))
-        self.assertTrue(maps[0].proto.alt)
-        self.assertIn("address_label", json.loads(maps[0].proto.tooltip)["text"])
-        self.assertNotIn("apiKey", spec)
+        self.assertIn("marker.bindPopup", html)
+        self.assertIn("marker.bindTooltip", html)
 
     def test_mapo_keeps_all_31_without_coordinates_and_real_capacity(self):
         self.assertEqual(self.app.segmented_control(key="parking_facility").value, "주차장")

@@ -1,0 +1,52 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<style>__LEAFLET_CSS__</style>
+<style>
+*{box-sizing:border-box}body{margin:0;color:#1B2340;font:14px -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}
+#map{height:410px;border-radius:14px;background:#EEF0FA}.leaflet-container{font:inherit}
+.pin-wrap{background:transparent;border:0}.pin{position:relative;display:grid;place-items:center;width:28px;height:28px;border:2px solid white;border-radius:50%;background:var(--pin);color:white;font-weight:800;box-shadow:0 2px 8px #1b234055}
+.pin.near{border-color:#FF7A66;box-shadow:0 0 0 4px #ff7a6650}.pin.near.pulse:after{content:"";position:absolute;inset:-9px;border:3px solid #FF7A66;border-radius:50%;animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+@media(prefers-reduced-motion:reduce){.pin.near.pulse:after{animation:none}}
+.station-pin{padding:5px 9px;background:#1B2340;color:white;border:2px solid white;border-radius:9px;white-space:nowrap;font-size:12px;font-weight:700}
+#detail{height:148px;overflow:auto;margin-top:10px;padding:15px 18px;border:1px solid #C8CDE3;border-radius:14px;background:#F7F8FC;line-height:1.7}
+#detail strong{font-size:17px}.tag{display:inline-block;margin-right:6px;color:#27336B;font-size:12px;font-weight:700}.popup{line-height:1.7;max-width:320px}.popup strong{font-size:16px}.muted{color:#59617b;font-size:12px}.leaflet-tooltip{white-space:normal;min-width:210px;max-width:310px;line-height:1.6}
+#motion{position:absolute;z-index:1000;top:12px;right:12px;padding:7px 10px;border:1px solid #C8CDE3;border-radius:9px;background:white;color:#27336B;cursor:pointer}
+</style></head><body>
+<div id="map" role="region" aria-label="주차장·충전소 위치 지도"></div>
+<button id="motion" type="button">깜빡임 끄기</button>
+<section id="detail" aria-live="polite"><strong>어디에 주차할까요?</strong><br>핀을 클릭하면 장소, 이용시간과 요금이 여기에 표시돼요.<br><span class="muted">운영시간·요금은 제공기관의 안내이며 현장 조건과 다를 수 있어요. 실시간 빈자리 정보가 아니에요.</span></section>
+<script>__LEAFLET_JS__</script><script>
+const data=__DATA__;
+const esc=v=>String(v??'정보 미제공').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const map=L.map('map',{scrollWheelZoom:false}).setView([37.55,126.98],12);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',maxZoom:19}).addTo(map);
+L.control.scale({imperial:false}).addTo(map);
+const center=data.station?L.latLng(data.station.latitude,data.station.longitude):null;
+let motion=data.animate;
+const markers=[];
+const detail=(p,d)=>`<div class="popup"><span class="tag">${esc(p.kind)} · ${esc(p.operation)}</span>${d!==null?`<span class="tag">${esc(data.station.name)}에서 직선 ${Math.round(d).toLocaleString()}m</span>`:''}<br><strong>${esc(p.name)}</strong><br>${esc(p.address)}<br><b>이용시간</b> ${esc(p.hours)}<br><b>요금</b> ${esc(p.price)}<br><b>이용 안내</b> ${esc(p.note)}<br><b>규모</b> ${esc(p.capacity)} · ${esc(p.operator)}<br><span class="muted">자료 갱신: ${esc(p.updated)} · 방문 전 현장 확인</span><br><a target="_blank" rel="noopener noreferrer" href="https://map.naver.com/p/search/${encodeURIComponent(p.name+' '+p.address)}">지도에서 장소 찾아보기 ↗</a></div>`;
+for(const p of data.places){
+ const pos=L.latLng(p.latitude,p.longitude),distance=center?center.distanceTo(pos):null,near=distance!==null&&distance<=data.radius;
+ const color=p.kind==='충전소'?'#5665AB':p.operation==='공영'?'#27336B':p.operation==='민영'?'#D95744':'#727CAD';
+ const icon=L.divIcon({className:'pin-wrap',iconSize:[28,28],iconAnchor:[14,14],html:`<span class="pin ${near?'near ':''}${near&&motion?'pulse':''}" style="--pin:${color}">${p.kind==='충전소'?'⚡':'P'}</span>`});
+ const marker=L.marker(pos,{icon,title:p.name,alt:p.name,keyboard:true,riseOnHover:true,zIndexOffset:near?500:0}).addTo(map);
+ marker.bindTooltip(`<b>${esc(p.name)}</b><br>${esc(p.price)}<br>${esc(p.hours)}${distance!==null?`<br>${esc(data.station.name)} · 직선 ${Math.round(distance)}m`:''}`,{direction:'top',offset:[0,-14]});
+ marker.bindPopup(detail(p,distance),{maxWidth:340,maxHeight:300,autoPan:true});
+ marker.on('click',()=>{document.getElementById('detail').innerHTML=detail(p,distance)});
+ markers.push(marker);
+}
+if(center){
+ L.circle(center,{radius:data.radius,color:'#FF7A66',weight:2,fillColor:'#FF7A66',fillOpacity:.07,dashArray:'5 6'}).addTo(map);
+ L.marker(center,{icon:L.divIcon({className:'pin-wrap',iconSize:[160,30],iconAnchor:[80,15],html:`<span class="station-pin">🚇 ${esc(data.station.name)}</span>`}),zIndexOffset:1000,title:data.station.name}).addTo(map);
+}
+const button=document.getElementById('motion');button.hidden=!center;
+function updateMotion(){button.textContent=motion?'깜빡임 끄기':'깜빡임 켜기';button.setAttribute('aria-pressed',String(motion));document.querySelectorAll('.pin.near').forEach(el=>el.classList.toggle('pulse',motion));}
+button.addEventListener('click',()=>{motion=!motion;updateMotion()});updateMotion();
+function fitViewport(){
+ map.invalidateSize({pan:false});
+ if(center){map.fitBounds(center.toBounds(data.radius*2.6),{padding:[24,24],maxZoom:16,animate:false});}
+ else if(markers.length){map.fitBounds(L.featureGroup(markers).getBounds(),{padding:[35,35],maxZoom:16,animate:false});}
+}
+new ResizeObserver(()=>requestAnimationFrame(fitViewport)).observe(document.getElementById('map'));
+requestAnimationFrame(fitViewport);
+</script></body></html>

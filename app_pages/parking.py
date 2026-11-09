@@ -1,9 +1,9 @@
 import pandas as pd
-import pydeck as pdk
 import streamlit as st
 
 from db import queries as q
 from scene_parking import parking_hero
+from parking_explorer import charger_records, explorer, fallback_parking, seoul_parking
 from ui import date_text, display_table, district_row, load_frame, load_options, number, topic_value, word
 
 
@@ -73,53 +73,6 @@ def _coverage(points: pd.DataFrame, kind: str, district: str) -> dict:
     return record
 
 
-def _place_map(points: pd.DataFrame, kind: str) -> None:
-    if points.empty:
-        st.info("원본 자료에 이 동네 주차장의 위치(좌표) 정보가 없어 지도에 표시할 수 없어요. 아래 목록에서 주소로 확인해 주세요.")
-        return
-    # 주소로 위치를 추정하지 않고 get_place_points의 유효 좌표만 쓴다.
-    data = points[["latitude", "longitude", "address"]].copy()
-    data["address_label"] = data.pop("address").map(word)
-    if kind == "parking_site":
-        data["detail_label"] = [
-            f"{word(row.parking_operation)} · {word(row.parking_type)} · {number(row.space_count, suffix='면')}"
-            for _, row in points.iterrows()
-        ]
-        colors = {"공영": [39, 51, 107], "민영": [255, 122, 102]}
-        data["color"] = [colors.get(value, [142, 152, 207])
-                         for value in points.parking_operation.astype(object).fillna("")]
-        st.caption("공영은 남색, 민영은 코랄, 구분 자료 없음은 연보라예요. 점에 마우스를 올리면 주소와 면수가 나와요.")
-    else:
-        data["detail_label"] = [
-            f"{word(row.place_name)} · 충전기 {number(row.charger_count, suffix='기')}"
-            for _, row in points.iterrows()
-        ]
-        data["color"] = [[39, 51, 107] for _ in range(len(data))]
-        st.caption("지도 점 하나는 같은 운영자가 관리하는 충전소예요. 점에 마우스를 올리면 주소가 나와요.")
-    coordinates = data[["longitude", "latitude"]].drop_duplicates()
-    if len(coordinates) == 1:
-        point = coordinates.iloc[0]
-        view = pdk.ViewState(latitude=float(point.latitude), longitude=float(point.longitude), zoom=15)
-    else:
-        view = pdk.data_utils.compute_view(coordinates.to_numpy().tolist())
-        view.zoom = min(view.zoom, 15)
-    st.pydeck_chart(
-        pdk.Deck(
-            map_style=None,
-            initial_view_state=view,
-            layers=[pdk.Layer(
-                "ScatterplotLayer", id="parking-page-places", data=data,
-                get_position="[longitude, latitude]", get_fill_color="color",
-                get_radius=35, radius_min_pixels=5, radius_max_pixels=12,
-                pickable=True, stroked=True, get_line_color=[255, 255, 255],
-                line_width_min_pixels=1,
-            )],
-            tooltip={"text": "{address_label}\n{detail_label}"},
-        ),
-        key="parking_places_map", height=380, width="stretch",
-        alt="검색 조건에 맞고 위치를 확인할 수 있는 주차장 또는 충전소 지도",
-    )
-
 
 def _source_caption(options: dict, source_code: str, label: str) -> None:
     snapshots = options.get("snapshots", pd.DataFrame())
@@ -174,9 +127,9 @@ with st.container(horizontal=True, vertical_alignment="bottom", gap="medium"):
         key="parking_facility", persist_state="session",
     )
     keyword = st.text_input(
-        "주소 검색", placeholder="도로명이나 동 이름을 입력해 주세요", max_chars=500,
+        "이름·주소 검색", placeholder="주차장·충전소 이름이나 주소", max_chars=500,
         key="parking_keyword", width="stretch", persist_state="session",
-        help="주차장은 주소로, 충전소는 이름이나 주소로 찾아요. 검색 기호도 글자 그대로 찾아요.",
+        help="지도는 시설 이름이나 주소로, 아래 수록 주차장 목록은 주소로 찾아요. 검색 기호도 글자 그대로 찾아요.",
     ).strip()
     if facility == "주차장":
         operation = st.segmented_control(
@@ -192,9 +145,19 @@ if facility == "주차장":
         st.warning("주차 목록 일부만 조회됐어요. 주소 검색은 최대 100건이므로 도로명이나 번지로 범위를 좁혀 주세요.")
     parking = _parking_filter(catalog, keyword, operation)
     visible_points = _parking_filter(points, keyword, operation)
-    st.caption(f"현재 조건의 목록 {len(parking):,}건 · 지도 {len(visible_points):,}건")
+    st.caption(f"현재 조건의 수록 목록 {len(parking):,}건 · 좌표가 있는 수록 시설 {len(visible_points):,}건")
     with st.container(border=True, gap="small", key="parking_map_panel"):
-        _place_map(visible_points, "parking_site")
+        public_records = seoul_parking(district)
+        if public_records is None:
+            st.warning("서울시 상세 안내를 가져오지 못해 수록 주차장 위치를 보여 드려요. 요금·운영시간은 현장 확인이 필요해요.")
+            map_records = fallback_parking(visible_points)
+        else:
+            map_records = [p for p in public_records
+                           if (not keyword or keyword.casefold() in (p["name"] + " " + p["address"]).casefold())
+                           and (operation == "전체" or p["operation"] == operation)]
+            st.caption(f"서울시 위치·이용 안내 {len(map_records):,}곳 · 아래 수록 주차장 통계·목록과 제공 범위가 달라요.")
+        explorer(map_records, district, "주차장")
+        st.caption("지도 상세 출처: 서울시 주차정보안내시스템 · 제공기관의 운영시간·요금이며 방문 전 확인해 주세요. 부설·기타는 공영·민영 필터에서 제외해요.")
     st.markdown("**주소로 보는 주차장 목록**")
     st.caption("주차장 이름 자료가 없어 주소로 보여 드려요. 좌표가 없거나 관리번호가 겹쳐 지도에서 빠진 항목도 남겨 두었어요.")
     if not parking.empty:
@@ -215,7 +178,8 @@ else:
     chargers = chargers.loc[_contains(chargers, keyword, ("address", "station_name"))].copy()
     st.caption(f"현재 조건의 충전기 목록 {len(chargers):,}기 · 지도에 표시한 충전소 {len(visible_points):,}곳")
     with st.container(border=True, gap="small", key="parking_map_panel"):
-        _place_map(visible_points, "charging_station")
+        explorer(charger_records(visible_points, chargers), district, "충전소")
+        st.caption("주차 무료 여부와 충전요금은 별개예요. 충전 단가는 운영사·회원 여부·출력에 따라 달라 현장 안내를 확인해 주세요.")
     st.markdown("**충전기별 이용 안내**")
     st.caption(
         "환경공단 자료만 사용해요. 좌표 없는 충전소의 기기도 목록에 남겨 두었어요. "
