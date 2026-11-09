@@ -97,7 +97,7 @@ HTML = """
   <div class="copy">
     <p class="brand"><span class="brand-mark" aria-hidden="true">차차차</span><span>서울 자동차 생활 안내서</span></p>
     <h1 id="transit-title"><span>차 없이도</span><span><em>잘 달려요.</em></span></h1>
-    <p class="intro">차량 보유, 주차, 차 필요성을 살피는 차차차.<br>우리 동네 버스와 지하철의 하루를 만나봐요.</p>
+    <p class="intro">차량 보유, 주차, 차 필요성을 살피는 차차차.<br>우리 동네 버스와 지하철의 하루를 살펴볼 수 있어요.</p>
     <p class="verdict">우리 동네 차 필요성 <strong class="need-level">자료 없음</strong></p>
   </div>
   <div class="scene">
@@ -127,7 +127,7 @@ CSS = """
 :host { display:block; min-width:0; }
 * { box-sizing:border-box; }
 .hero { --navy:#27336B; --ink:#1B2340; --muted:#4A5270; --lavender:#8E98CF;
-  --pale:#EEF0FA; --coral:#FF7A66; width:100%; height:390px; position:relative;
+  --pale:#EEF0FA; --coral:#FF7A66; width:100%; min-height:390px; position:relative;
   padding:24px 28px; border-radius:24px;
   display:grid; grid-template-columns:minmax(0, .92fr) minmax(0, 1.08fr); gap:24px;
   color:var(--ink); background:var(--pale); font-family:'Noto Sans KR',var(--st-font),sans-serif;
@@ -147,9 +147,9 @@ h1 em::after { content:''; position:absolute; left:0; right:0; bottom:2px; heigh
 .intro { margin-top:15px; font-size:14px; line-height:1.8; word-break:keep-all; }
 .verdict { margin-top:20px; color:var(--muted); font-size:12px; line-height:1.8; }
 .verdict strong { color:var(--navy); display:block; font-size:16px; }
-.vehicle-note { font-size:11px; color:var(--muted); line-height:1.65; margin-top:6px;
-  word-break:keep-all; max-width:146px; }
-.scene { min-width:0; position:relative; overflow:hidden; }
+.vehicle-note { font-size:12px; color:var(--muted); line-height:1.6; margin-top:6px;
+  word-break:keep-all; max-width:160px; text-align:center; }
+.scene { min-width:0; min-height:342px; position:relative; overflow:hidden; }
 .destination { display:flex; align-items:center; gap:6px; position:absolute; left:13px; top:5px;
   font-size:13px; line-height:26px; z-index:2; transform-origin:left center; }
 .destination svg { width:18px; height:22px; fill:var(--coral); stroke:var(--navy); stroke-width:1.7; }
@@ -162,7 +162,7 @@ h1 em::after { content:''; position:absolute; left:0; right:0; bottom:2px; heigh
 .motion-icon { font-weight:800; font-size:13px; }
 .motion:disabled { cursor:default; }
 .city { position:absolute; top:31px; left:0; width:100%; height:150px; opacity:.65; }
-.road { position:absolute; left:-4%; width:108%; height:79px; top:204px; }
+.road { position:absolute; left:0; width:100%; height:79px; top:204px; border-radius:18px; overflow:hidden; }
 .garage { position:absolute; left:0; right:0; top:55px; display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; align-items:start; }
 .car { display:block; width:100%; padding:0 4px 5px; min-width:0; border:0;
@@ -214,22 +214,24 @@ button:focus-visible { outline:3px solid var(--navy); outline-offset:-3px; }
   .intro { font-size:12px; }
   .car-sprite { height:154px; }
   .garage { top:71px; }
-  .speech { font-size:10px; padding:5px; }
+  .speech { font-size:11px; padding:5px 7px; }
   .car-title { font-size:17px; }
+  .intro { font-size:13px; }
   .motion-text { display:none; }
 }
 @media (max-width:700px) {
-  .hero { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:192px 222px;
-    height:446px; gap:0; padding:16px 12px; border-radius:18px; }
+  .hero { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto;
+    min-height:0; gap:14px; padding:18px 14px; border-radius:18px; }
+  .scene { min-height:248px; }
   .copy { align-self:start; padding:0; }
   .brand { margin-bottom:9px; font-size:10px; gap:8px; }
   .brand-mark { font-size:18px; padding-right:8px; }
   h1 { font-size:32px; line-height:1.18; letter-spacing:-.03em; }
   h1 em::after { height:8px; bottom:1px; }
-  .intro { margin-top:9px; font-size:11px; line-height:1.7; }
-  .verdict { margin-top:9px; font-size:10px; }
-  .verdict strong { display:inline; margin-left:5px; font-size:12px; }
-  .destination { top:0; left:1px; font-size:11px; line-height:24px; gap:4px; }
+  .intro { margin-top:10px; font-size:13px; line-height:1.7; }
+  .verdict { margin-top:10px; font-size:12px; }
+  .verdict strong { display:inline; margin-left:5px; font-size:14px; }
+  .destination { top:0; left:1px; font-size:12px; line-height:24px; gap:4px; }
   .destination svg { width:14px; height:17px; }
   .motion { top:0; right:0; min-height:26px; font-size:9px; gap:4px; padding:2px; }
   .motion-icon { font-size:12px; }
@@ -237,16 +239,16 @@ button:focus-visible { outline:3px solid var(--navy); outline-offset:-3px; }
   .road { top:122px; height:53px; }
   .garage { top:32px; gap:2px; }
   .car { padding:0 0 3px; border-radius:10px; }
-  .speech { min-height:25px; padding:3px 4px; font-size:9px; line-height:17px; margin-bottom:1px; border-radius:9px; }
+  .speech { min-height:26px; padding:3px 6px; font-size:11px; line-height:18px; margin-bottom:1px; border-radius:9px; white-space:normal; text-align:center; }
   .car-sprite { max-width:94px; height:105px; }
   .car-title { font-size:16px; margin-top:0; gap:2px; padding:1px 0; }
-  .vehicle-note { font-size:9px; line-height:1.5; margin-top:3px; }
+  .vehicle-note { font-size:11px; line-height:1.5; margin-top:3px; }
   .brake { top:10px; right:-3px; font-size:16px; }
   .dust { width:20px; height:10px; left:-4px; }
 }
 @media (max-width:360px) {
   h1 { font-size:29px; }
-  .speech { font-size:9px; padding:3px; }
+  .speech { font-size:10px; padding:3px 4px; }
   .car-title { font-size:14px; }
   .motion-text { display:none; }
 }

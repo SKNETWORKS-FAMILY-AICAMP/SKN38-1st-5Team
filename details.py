@@ -22,7 +22,7 @@ def _polish_chart(chart: alt.Chart) -> alt.Chart:
 
 
 def registration_details(region_id: int) -> None:
-    st.subheader("우리 동네에는 어떤 차가 살까요?", anchor=False)
+    st.subheader("우리 동네 차량 구성", anchor=False)
     scope = st.segmented_control(
         "등록 자료 범위", ["all", "electric"],
         format_func=lambda value: "전체 차량" if value == "all" else "전기차",
@@ -56,11 +56,11 @@ def registration_details(region_id: int) -> None:
                      alt.Tooltip("vehicle_count:Q", title="등록 대수", format=",d")],
         ).properties(height=200)
         with st.container(border=True, gap="small", key="detail_registration_chart"):
-            st.markdown("**차종별로 한눈에 봐요**")
+            st.markdown("**차종별 등록 현황**")
             st.altair_chart(_polish_chart(chart), width="stretch",
                             alt="선택한 구의 차종별 등록 차량 수")
     with st.container(border=True, gap="small", key="detail_registration_table"):
-        st.markdown("**숫자로 찬찬히 살펴봐요**")
+        st.markdown("**차종별 등록 대수**")
         display_table(
             frame, {"vehicle_type_name": "차종", "vehicle_count": "등록 대수"},
             "선택한 구의 차종별 등록 대수와 자료 없는 항목",
@@ -76,7 +76,7 @@ def _facility_map(points: pd.DataFrame, kind: str) -> None:
             f"관리번호 겹침 {number(coverage.get('identifier_conflict_count'), suffix='건')} 제외"
         )
     if points.empty:
-        st.info("지도에 표시할 위치 자료가 없어요. 좌표가 없는 시설은 지도에서 빠져요.")
+        st.info("원본 자료에 위치(좌표) 정보가 없어 지도에 표시할 수 없어요. 아래 목록에서 주소로 확인해 주세요.")
         return
     # 지도에는 좌표 범위와 관리번호 중복을 걸러낸 조회 결과만 사용한다.
     st.map(
@@ -86,7 +86,7 @@ def _facility_map(points: pd.DataFrame, kind: str) -> None:
 
 
 def facility_details(region_id: int) -> None:
-    st.subheader("차를 세우고, 충전할 곳을 찾아봐요", anchor=False)
+    st.subheader("주차장과 충전소 위치", anchor=False)
     kind = st.segmented_control(
         "시설 종류", ["주차장", "충전기"], default="주차장", key="detail_facility",
     ) or "주차장"
@@ -96,7 +96,7 @@ def facility_details(region_id: int) -> None:
             "이름 대신 관리번호를 쓰며, 아파트 주차장과 실제 빈자리는 포함하지 않아요."
         )
         with st.container(border=True, gap="small", key="detail_parking_map"):
-            st.markdown("**지도에서 주차장을 찾아봐요**")
+            st.markdown("**주차장 지도**")
             _facility_map(points, "주차장")
         # 빈 검색어로 충전소가 100건을 채우지 않도록 주차장 대체 이름으로 검색한다.
         parking = load_frame(q.search_places, "주차장 [", region_id=region_id, limit=100)
@@ -106,7 +106,7 @@ def facility_details(region_id: int) -> None:
                 lambda value: "자료 없음" if pd.isna(value) else "지도 표시" if value else "지도 제외"
             )
         with st.container(border=True, gap="small", key="detail_parking_table"):
-            st.markdown("**주차장 목록도 챙겨봐요**")
+            st.markdown("**주차장 목록**")
             st.caption("목록은 최대 100건이며 좌표가 없는 주차장도 포함해요. 관리번호가 겹치는 항목은 지도에서 제외해요.")
             display_table(
                 parking, {"display_name": "주차장", "address": "주소", "space_count": "주차면", "map_note": "지도"},
@@ -131,7 +131,7 @@ def facility_details(region_id: int) -> None:
     )
     points = load_frame(q.get_place_points, region_id, kinds=("charger",), speed=speed)
     with st.container(border=True, gap="small", key="detail_charger_map"):
-        st.markdown("**지도에서 충전소를 찾아봐요**")
+        st.markdown("**충전소 지도**")
         _facility_map(points, "충전소")
         st.caption("지도 점 하나는 같은 운영자가 묶어 관리하는 충전소예요. 좌표가 없는 충전기도 아래 목록에는 나와요.")
     frame = load_frame(q.get_charger_detail, region_id, speed=speed, limit=200)
@@ -139,7 +139,7 @@ def facility_details(region_id: int) -> None:
         frame = frame.copy()
         frame["speed_name"] = frame.speed_code.astype(object).map(speed_names)
     with st.container(border=True, gap="small", key="detail_charger_table"):
-        st.markdown("**가기 전에 이용 안내를 챙겨봐요**")
+        st.markdown("**방문 전 확인할 이용 안내**")
         st.caption(
             "충전기 목록은 최대 200기예요. 이용제한·운영시간은 수집 당시 안내이며, "
             "실시간 사용 가능 여부가 아니에요. 제한 안내가 없어도 자유 이용을 뜻하지 않아요."
@@ -154,7 +154,7 @@ def facility_details(region_id: int) -> None:
 
 
 def _weather_details() -> None:
-    st.subheader("서울 날씨도 함께 살펴봐요", anchor=False)
+    st.subheader("서울 날씨", anchor=False)
     weather = load_frame(q.get_weather)
     if weather.empty:
         st.info("날씨는 자료가 없어요.")
@@ -223,7 +223,7 @@ def transit_details(region_id: int, row: pd.Series) -> None:
                      alt.Tooltip("expected_dong_count:Q", title="기대 동 수")],
         ).properties(height=240)
         with st.container(border=True, gap="small", key="detail_transit_chart"):
-            st.markdown("**하루의 이동을 따라가 봐요**")
+            st.markdown("**시간대별 이동**")
             st.altair_chart(_polish_chart(chart), width="stretch",
                             alt="선택한 구와 날짜의 시간대별 수록 대중교통 승객 수")
             st.caption("전체에는 버스·지하철이 포함돼요. 일부 동이 빠진 시간은 수록된 부분합이며, 이 하루를 평소 이용량으로 일반화하지 않아요.")

@@ -31,8 +31,8 @@ HTML = """
 <section class="hero" aria-label="차차차, 서울에서 차와 살기">
   <div class="intro">
     <p class="eyebrow"><span class="brand">차차차</span><span>서울의 자동차 생활 안내서</span></p>
-    <h1>우리 동네,<br>차 키워도 될까요<span class="coral">?</span></h1>
-    <p class="description">차량 보유, 주차 여건, 차가 꼭 필요한지 한눈에 알아봐요.</p>
+    <h1>우리 동네,<br>차와 살기 좋을까요<span class="coral">?</span></h1>
+    <p class="description">차량 보유, 주차 여건, 차가 꼭 필요한지 한눈에 확인할 수 있어요.</p>
   </div>
   <figure class="map-scene">
     <svg class="seoul" viewBox="0 0 740 620" aria-label="서울 구 지도. 구를 누르면 동네를 바꿀 수 있어요.">
@@ -59,7 +59,7 @@ HTML = """
       <text class="map-empty" x="370" y="310" text-anchor="middle" fill="#4A5270" hidden>지도 경계 자료 없음</text>
     </svg>
     <div class="legend" aria-label="지도 판정 범례"></div>
-    <figcaption><span class="map-guide">궁금한 구를 콕 눌러봐요</span><span class="source"></span></figcaption>
+    <figcaption><span class="map-guide">궁금한 구를 눌러 주세요</span><span class="source"></span></figcaption>
     <span class="hover-label" role="tooltip" hidden></span>
   </figure>
   <div class="arrival">
@@ -165,7 +165,7 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
   .verdict { gap: 7px; padding: 8px; }
   .verdict > svg { width: 25px; flex-basis: 25px; }
   .signals { font-size: 19px; }
-  figcaption { font-size: 10px; padding: 6px 0 0; }
+  figcaption { font-size: 11px; padding: 6px 0 0; }
   .hover-label { left: 0; right: 0; top: 0; font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -263,7 +263,7 @@ export default function(component) {
   select('.sentence').textContent = selected.sentence;
   select('.map-empty').toggleAttribute('hidden', shapes.length > 0);
   select('.travel').style.visibility = destination ? 'visible' : 'hidden';
-  select('.map-guide').textContent = shapes.length ? '궁금한 구를 콕 눌러봐요' : '위에서 동네를 골라주세요';
+  select('.map-guide').textContent = shapes.length ? '궁금한 구를 눌러 주세요' : '위에서 동네를 선택해 주세요';
   select('.seoul').setAttribute('aria-label', `서울 구 지도. 지금 선택한 동네는 ${selected.name}. 구를 누르면 선택해요.`);
   root.querySelectorAll('.verdict').forEach(button => {
     const topic = button.dataset.topic;
