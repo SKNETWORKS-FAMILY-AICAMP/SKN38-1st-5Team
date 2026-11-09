@@ -158,7 +158,7 @@ def _weather_chart(frame: pd.DataFrame, field: str):
 
 region_id = st.session_state.get("district_id")
 if region_id is None:
-    st.info("위에서 살펴볼 동네를 골라 주세요.")
+    st.info("위에서 동네를 선택해 주세요.")
     st.stop()
 region_id = int(region_id)
 options = load_options()

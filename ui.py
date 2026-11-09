@@ -142,7 +142,7 @@ def judgment_tabs(row: pd.Series) -> None:
     icons = {"ownership": ":material/directions_car:", "parking": ":material/local_parking:",
              "need": ":material/directions_bus:"}
     pages = {"ownership": ("ownership", "차량 보유 자세히"),
-             "parking": ("parking", "주차장 찾으러 가기"),
+             "parking": ("parking", "주차장 찾기"),
              "need": ("transit", "대중교통 살펴보기")}
     with st.container(gap=0, key="judgment_deck"):
         for column, (topic, spec) in zip(st.columns(3, gap="medium"), TOPICS.items()):
@@ -151,7 +151,7 @@ def judgment_tabs(row: pd.Series) -> None:
                 with st.container(key=f"tab_{'active' if active else 'idle'}_{topic}"):
                     st.button(spec.title, key=f"tab_{topic}", width="stretch", icon=icons[topic],
                               type="primary" if active else "tertiary", on_click=set_topic, args=(topic,),
-                              help="눌러보세요. 지도와 25구 순위도 이 기준으로 바뀌어요.")
+                              help="누르면 지도와 25구 순위가 이 기준으로 바뀌어요.")
                 st.metric(label=spec.unit, value=topic_value(row, topic, brief=True), width="stretch")
                 st.caption(rank_text(row, topic))
                 page, label = pages[topic]
@@ -296,7 +296,7 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
 
 def ranking_list(ranking: pd.DataFrame, topic: str) -> None:
     spec = TOPICS[topic]
-    st.caption(f"**서울 25구, 차례로 볼까요?** · {spec.order_label}")
+    st.caption(f"**서울 25구 순위** · {spec.order_label}")
     key = f"ranking_{topic}_{st.session_state.get('rank_epoch', 0)}"
     st.altair_chart(ranking_chart(ranking, topic, st.session_state.district_id), key=key,
                     on_select=partial(select_rank_region, key), selection_mode="rank",

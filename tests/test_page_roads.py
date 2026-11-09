@@ -230,7 +230,7 @@ class RoadsPageTests(unittest.TestCase):
         with patch.object(q, "get_traffic_profile") as query:
             self.run_page()
         query.assert_not_called()
-        self.assertIn("동네를 골라 주세요", self.page_text())
+        self.assertIn("동네를 선택해 주세요", self.page_text())
 
 
 if __name__ == "__main__":

@@ -193,7 +193,7 @@ elif section == "DB 구성":
         st.caption("지역에는 여러 등록·시설 자료가, 충전소에는 여러 충전기가 연결돼요. 판정은 조회할 때 계산해요.")
 
 else:
-    st.subheader("숫자를 읽기 전에 함께 봐요", anchor=False)
+    st.subheader("숫자를 읽기 전에 확인할 점", anchor=False)
     st.caption("빠진 자료는 0으로 채우지 않고 자료 없음으로 표시해요.")
     for title, description in LIMITATIONS:
         with st.container(border=True, gap="xsmall"):

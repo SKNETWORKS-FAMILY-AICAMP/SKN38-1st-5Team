@@ -58,7 +58,7 @@ if st.session_state.get("compare_id") not in names:
     st.session_state.compare_id = next((value for value in ids if value != selected_id), selected_id)
 
 with st.container(border=True, gap="small", key="compare_pickers"):
-    st.markdown("**궁금한 두 동네를 골라봐요**")
+    st.markdown("**비교할 두 동네를 선택해 주세요**")
     left_picker, right_picker = st.columns(2, gap="medium")
     with left_picker:
         left_id = st.selectbox(

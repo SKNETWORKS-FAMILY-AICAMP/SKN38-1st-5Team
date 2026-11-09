@@ -130,7 +130,7 @@ def _source_caption(options: dict) -> None:
     latest = source.iloc[0]
     first, last = date_text(latest.reference_start), date_text(latest.reference_end)
     if "자료 없음" in (first, last):
-        reference = "기준일은 알 수 없음"
+        reference = "기준일 미제공"
     else:
         reference = f"자료 기준일 {first}" if first == last else f"자료 기준 {first} ~ {last}"
     st.caption(
@@ -140,7 +140,7 @@ def _source_caption(options: dict) -> None:
 
 def _station_map(points: pd.DataFrame) -> None:
     if points.empty:
-        st.info("이 조건에서 지도에 표시할 위치 자료가 없어요. 좌표가 없는 충전소도 목록에는 남겨 두었어요.")
+        st.info("이 조건에서는 지도에 표시할 위치(좌표) 정보가 없어요. 아래 목록에서 주소로 확인해 주세요.")
         return
     data = points[["latitude", "longitude", "place_name", "address", "operator_name"]].copy()
     for column in ("place_name", "address", "operator_name"):
@@ -170,7 +170,7 @@ def _station_map(points: pd.DataFrame) -> None:
 
 selected = st.session_state.get("district_id")
 if selected is None:
-    st.info("위 메뉴에서 살펴볼 동네를 골라 주세요.")
+    st.info("위 메뉴에서 동네를 선택해 주세요.")
     st.stop()
 region_id = int(selected)
 row = district_row(load_frame(q.get_summary_metrics, region_id), region_id)
@@ -224,7 +224,7 @@ with st.grid(2, min_column_width=350, gap="medium"):
         _bars(_category(breakdown, "connector"), "charging_connectors", "커넥터")
         st.caption("여러 커넥터가 달린 기기도 한 대로 세어요. 이름이 없는 코드는 자료 없음으로 남겨 두었어요.")
 
-st.subheader("무료 주차와 이용 조건도 살펴봐요", anchor=False)
+st.subheader("무료 주차와 이용 조건", anchor=False)
 with st.grid(2, min_column_width=290, gap="medium"):
     with st.container(border=True, height="stretch"):
         st.metric("무료 주차로 수록된 충전기", number(_category_count(breakdown, "parking", "Y"), suffix="기"))
@@ -240,7 +240,7 @@ with st.grid(2, min_column_width=290, gap="medium"):
                       column_config={"충전기 수": st.column_config.NumberColumn(format="%,d")})
 st.caption("무료 주차는 충전 요금 무료를 뜻하지 않아요. 무료 주차여도 입주민 전용 등 이용 제한이 있을 수 있어요. 자료 없음은 무료나 자유 이용을 뜻하지 않아요.")
 
-st.subheader(f"{district} 충전소를 찾아봐요", anchor=False)
+st.subheader(f"{district} 충전소 찾기", anchor=False)
 with st.container(horizontal=True, vertical_alignment="bottom"):
     speed = st.segmented_control("충전 속도", list(SPEED_LABELS), default="all", required=True,
                                  format_func=lambda value: SPEED_LABELS[value], key="charging_speed") or "all"

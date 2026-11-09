@@ -113,7 +113,7 @@ with st.container(gap="small", key="ownership_content"):
         _metric(row, "electric_share_pct", "전기차 비중", 2, "%")
     st.caption("서울 평균은 자료가 있는 구별 값의 산술평균이에요. 비율도 구별 비율의 평균이며, 서울 전체 합계로 계산한 비율과 달라요. 전기차 비중 차이는 %p로 표시해요.")
 
-    st.subheader("어떤 차가 살고 있을까요?", anchor=False)
+    st.subheader("어떤 차가 등록되어 있을까요?", anchor=False)
     breakdown = load_frame(q.get_registration_breakdown, region_id)
     vehicle_column, fuel_column = st.columns(2, gap="medium")
     with vehicle_column.container(border=True, height="stretch", gap="small"):

@@ -75,7 +75,7 @@ def _coverage(points: pd.DataFrame, kind: str, district: str) -> dict:
 
 def _place_map(points: pd.DataFrame, kind: str) -> None:
     if points.empty:
-        st.info("이 조건에서 지도에 표시할 위치 자료가 없어요. 좌표가 없는 곳도 아래 목록에서 확인할 수 있어요.")
+        st.info("원본 자료에 이 동네 주차장의 위치(좌표) 정보가 없어 지도에 표시할 수 없어요. 아래 목록에서 주소로 확인해 주세요.")
         return
     # 주소로 위치를 추정하지 않고 get_place_points의 유효 좌표만 쓴다.
     data = points[["latitude", "longitude", "address"]].copy()
@@ -138,7 +138,7 @@ def _source_caption(options: dict, source_code: str, label: str) -> None:
 
 selected = st.session_state.get("district_id")
 if selected is None:
-    st.info("위 메뉴에서 살펴볼 동네를 골라 주세요.")
+    st.info("위 메뉴에서 동네를 선택해 주세요.")
     st.stop()
 region_id = int(selected)
 options = load_options()
@@ -167,7 +167,7 @@ st.caption(
     "관리번호가 겹치는 항목은 면수 합계와 지도에서 제외하며, 면수 자료가 빠지면 자료 없음으로 표시해요."
 )
 
-st.subheader(f"{district}에서 주차할 곳을 찾아봐요", anchor=False)
+st.subheader(f"{district} 주차장 찾기", anchor=False)
 with st.container(horizontal=True, vertical_alignment="bottom", gap="medium"):
     facility = st.segmented_control(
         "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,
