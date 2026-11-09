@@ -79,7 +79,7 @@ CSS = """
 .parking-hero {
   --navy: #27336B; --ink: #1B2340; --mid: #8E98CF; --pale: #EEF0FA; --coral: #FF7A66;
   display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr);
-  gap: 22px; align-items: center; height: 350px; width: 100%; min-width: 0;
+  gap: 22px; align-items: center; height: auto; min-height: 350px; width: 100%; min-width: 0;
   color: var(--ink); font-family: 'Noto Sans KR', var(--st-font), sans-serif;
 }
 .hero-copy { min-width: 0; padding: 0 0 0 3px; }
@@ -100,7 +100,7 @@ h1 { padding: 0; margin: 15px 0 11px; color: var(--ink); font-family: Jua, var(-
 .parking-scene { min-width: 0; width: 100%; margin: 0; }
 .lot { width: 100%; height: auto; display: block; overflow: hidden; }
 .lot text { font-family: 'Noto Sans KR', var(--st-font), sans-serif; }
-figcaption { display: flex; justify-content: space-between; gap: 8px; margin: 5px 20px 0; font-size: 11px; line-height: 1.5; color: #4A5270; }
+figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin: 5px 20px 0; font-size: 11px; line-height: 1.5; color: #4A5270; }
 .tap-hint { font-weight: 700; color: var(--navy); }
 .hero-car { cursor: pointer; outline: none; transform-origin: 0 0; }
 .car-body { transform-box: fill-box; transform-origin: center; }
@@ -129,7 +129,7 @@ figcaption { display: flex; justify-content: space-between; gap: 8px; margin: 5p
   figcaption { margin-inline: 9px; font-size: 10px; }
 }
 @media (max-width: 740px) {
-  .parking-hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: 386px; gap: 9px; align-items: start; }
+  .parking-hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; height: auto; min-height: 0; gap: 9px; align-items: start; }
   .hero-copy { padding: 0; }
   .eyebrow { font-size: 11px; gap: 9px; line-height: 1; }
   .brand { font-size: 19px; }
