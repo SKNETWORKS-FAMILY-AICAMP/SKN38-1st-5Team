@@ -63,22 +63,42 @@ class RemoteConnectionTest(unittest.TestCase):
                 self.assertTrue(args['ssl'])
                 self.assertEqual(listeners, 1)
 
+    @staticmethod
+    def ca_pem() -> bytes:
+        from datetime import datetime, timedelta, timezone
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        subject = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, 'Test CA')])
+        now = datetime.now(timezone.utc)
+        cert = (x509.CertificateBuilder().subject_name(subject).issuer_name(subject)
+                .public_key(key.public_key()).serial_number(x509.random_serial_number())
+                .not_valid_before(now - timedelta(days=1)).not_valid_after(now + timedelta(days=1))
+                .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+                .sign(key, hashes.SHA256()))
+        return cert.public_bytes(serialization.Encoding.PEM)
+
+    def test_ca_text_verifies_certificate_without_a_file(self):
+        pem = self.ca_pem().decode('ascii')
+        original_context = ssl.create_default_context
+        with patch('db.connection.ssl.create_default_context', wraps=original_context) as create_context:
+            args, listeners = self.connection_args({'host': 'database.example.invalid', 'ssl_ca': f'\n{pem}'})
+        create_context.assert_called_once_with(cadata=pem.strip())
+        self.assertTrue(args['ssl'].check_hostname)
+        self.assertEqual(args['ssl'].verify_mode, ssl.CERT_REQUIRED)
+        self.assertEqual(listeners, 1)
+
+    def test_invalid_ca_text_fails_without_leaking_value(self):
+        text = '-----BEGIN CERTIFICATE-----\nprivate-looking-value\n-----END CERTIFICATE-----'
+        with self.assertRaisesRegex(ValueError, '인증서 형식') as caught:
+            self.connection_args({'ssl_ca': text})
+        self.assertNotIn('private-looking-value', str(caught.exception))
+
     def test_ca_file_environment_fallback_and_secret_priority(self):
         with tempfile.TemporaryDirectory() as directory:
             ca = Path(directory) / 'ca.pem'
-            from datetime import datetime, timedelta, timezone
-            from cryptography import x509
-            from cryptography.hazmat.primitives import hashes, serialization
-            from cryptography.hazmat.primitives.asymmetric import rsa
-            key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-            subject = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, 'Test CA')])
-            now = datetime.now(timezone.utc)
-            cert = (x509.CertificateBuilder().subject_name(subject).issuer_name(subject)
-                    .public_key(key.public_key()).serial_number(x509.random_serial_number())
-                    .not_valid_before(now - timedelta(days=1)).not_valid_after(now + timedelta(days=1))
-                    .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
-                    .sign(key, hashes.SHA256()))
-            ca.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+            ca.write_bytes(self.ca_pem())
             original_context = ssl.create_default_context
             with patch('db.connection.ssl.create_default_context', wraps=original_context) as create_context:
                 args, _ = self.connection_args({}, {'MYSQL_SSL_CA': str(ca)})

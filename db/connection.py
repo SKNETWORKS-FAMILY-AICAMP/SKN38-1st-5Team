@@ -108,12 +108,15 @@ def _cached_engine() -> Engine:
     )
     connect_args = {"connect_timeout": 5, "read_timeout": 15, "write_timeout": 15}
     if config["ssl_enabled"]:
-        ca_path = Path(config["ssl_ca"]).expanduser() if config["ssl_ca"] else None
+        # 파일을 둘 수 없는 배포 환경에서는 인증서 내용을 비밀 설정에 직접 넣는다.
+        ca_text = config["ssl_ca"].strip() if config["ssl_ca"].lstrip().startswith("-----BEGIN CERTIFICATE-----") else None
+        ca_path = Path(config["ssl_ca"]).expanduser() if config["ssl_ca"] and ca_text is None else None
         if ca_path is not None and not ca_path.is_file():
             raise ValueError("MySQL CA 인증서 파일을 찾을 수 없습니다. 접속 설정을 확인하세요.")
         try:
             # Pass a context: PyMySQL's dict options disable hostname checks without an explicit CA.
-            connect_args["ssl"] = ssl.create_default_context(cafile=str(ca_path) if ca_path else None)
+            connect_args["ssl"] = (ssl.create_default_context(cadata=ca_text) if ca_text
+                                   else ssl.create_default_context(cafile=str(ca_path) if ca_path else None))
         except (OSError, ssl.SSLError, ValueError):
             raise ValueError("MySQL CA 인증서 파일을 읽을 수 없습니다. 인증서 형식을 확인하세요.") from None
     engine = create_engine(
