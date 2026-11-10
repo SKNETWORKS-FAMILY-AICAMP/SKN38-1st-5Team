@@ -216,7 +216,7 @@ CSS = """
 .st-key-site_root [data-testid="stDataFrame"] {
   border: 1px solid var(--site-line); border-radius: 14px; overflow: hidden;
 }
-.st-key-site_root [data-testid="stVegaLiteChart"], .st-key-site_root [data-testid="stDeckGlJsonChart"] {
+.st-key-site_root [data-testid="stVegaLiteChart"] {
   border-radius: 16px; overflow: hidden;
 }
 .st-key-site_root [data-testid="stPageLink-NavLink"] { transition: background-color .15s ease, color .15s ease; }

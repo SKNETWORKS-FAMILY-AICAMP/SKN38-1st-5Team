@@ -27,18 +27,22 @@
     <tr><th>구분</th><th>메뉴</th><th>할 수 있는 것</th></tr>
   </thead>
   <tbody>
-    <tr><td align="center">🏠 시작</td><td><b>우리 동네</b></td><td>서울 지도에서 구를 고르면 차량 보유·주차 여건·차 필요성 세 판정과 25구 순위를 보여줍니다.</td></tr>
-    <tr><td rowspan="5" align="center">🔍 동네 살펴보기</td><td><b>차량 보유</b></td><td>서울 25구의 차량 보유 현황과 차종별 구성을 서울 평균과 비교합니다.</td></tr>
-    <tr><td><b>주차 찾기</b></td><td>동네의 주차 여건과 공영·민영 주차장 위치를 지도에서 찾습니다.</td></tr>
-    <tr><td><b>전기차 충전</b></td><td>충전기 구성과 충전소 위치를 살펴봅니다. (실시간 빈자리 정보는 아님)</td></tr>
-    <tr><td><b>대중교통</b></td><td>시간대별 승객 흐름으로 차 없이 다닐 때의 동네 모습을 살펴봅니다.</td></tr>
-    <tr><td><b>도로와 날씨</b></td><td>수록된 시간대별 교통량과 날씨 표본을 살펴봅니다.</td></tr>
-    <tr><td rowspan="2" align="center">⚖️ 비교·조회</td><td><b>두 동네 비교</b></td><td>두 구의 세 판정과 근거를 같은 기준으로 나란히 비교합니다.</td></tr>
+    <tr><td rowspan="6" align="center">🏠 상단 메뉴</td><td><b>우리 동네</b></td><td>서울 지도에서 구를 선택하고 차량 보유·주차 여건·차 필요성의 분포를 살펴봅니다.</td></tr>
+    <tr><td><b>25구 순위</b></td><td>선택한 구의 세 판정 카드, 서울 25구 순위, 판정 기준과 출처를 확인합니다.</td></tr>
+    <tr><td><b>주차·충전 찾기</b></td><td>동네의 주차 여건을 확인하고 주차장·충전소 위치를 지도에서 찾습니다.</td></tr>
+    <tr><td><b>두 동네 비교</b></td><td>두 구의 세 판정과 근거를 같은 기준으로 나란히 비교합니다.</td></tr>
     <tr><td><b>전국 등록 조회</b></td><td>시도·차종·용도별 전국 등록대수를 조회합니다. (2026-09 기준 26,706,123대)</td></tr>
-    <tr><td rowspan="2" align="center">💡 도움말</td><td><b>차차차 FAQ</b></td><td>서비스 이용 안내와 현대 EV FAQ를 검색하고 원문 링크를 확인합니다.</td></tr>
+    <tr><td><b>기업 FAQ</b></td><td>서비스 이용 안내와 현대 EV FAQ를 검색하고 원문 링크를 확인합니다.</td></tr>
+    <tr><td rowspan="6" align="center">🔍 더 보기</td><td><b>차량 보유</b></td><td>서울 25구의 차량 보유 현황을 지도에서 보고 차종별 구성과 서울 평균을 비교합니다.</td></tr>
+    <tr><td><b>대중교통</b></td><td>시간대별 승객 흐름으로 차 없이 다닐 때의 동네 모습을 살펴봅니다.</td></tr>
+    <tr><td><b>전기차 충전</b></td><td>충전기 구성과 충전소 위치를 살펴봅니다. (실시간 빈자리 정보는 아님)</td></tr>
+    <tr><td><b>도로와 날씨</b></td><td>실시간 교통 지도와 수록된 시간대별 교통량·날씨 표본을 각각 살펴봅니다.</td></tr>
+    <tr><td><b>물어보기</b></td><td>동네와 자동차 생활에 대해 질문하고 답변과 근거 자료를 확인합니다.</td></tr>
     <tr><td><b>자료 안내</b></td><td>자료 출처, 기준 시점, 판정 규칙과 자료의 한계를 확인합니다.</td></tr>
   </tbody>
 </table>
+
+홈 이외의 지도에는 Kakao 지도를 사용합니다. 카카오 응답은 DB에 저장하지 않으며, MySQL의 공공데이터를 지도에 표시합니다.
 
 ## 세 판정의 기준
 
@@ -58,7 +62,7 @@
 |---|---|
 | 언어·데이터 처리 | Python 3.14, Pandas |
 | 데이터베이스 | MySQL 8, ERDCloud, DBeaver |
-| 웹·시각화 | Streamlit 1.67.0, Altair 5.3.0 |
+| 웹·시각화 | Streamlit 1.67.0, Altair 5.3.0, Kakao Maps JavaScript SDK |
 | 수집 | 공공데이터 포털 API 2종, BeautifulSoup |
 | 협업 | Git, GitHub |
 
@@ -116,7 +120,7 @@ SKN38-1st-5Team/
 py -3.14 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 
-# 2. DB 접속 설정 파일 만들기 → 팀 접속값 입력
+# 2. 접속 설정 파일 만들기 → DB 접속값과 아래 키 설정 입력
 copy .streamlit\secrets.toml.example .streamlit\secrets.toml
 
 # 3. 실행 → 브라우저에서 http://localhost:8510
@@ -124,6 +128,19 @@ copy .streamlit\secrets.toml.example .streamlit\secrets.toml
 ```
 
 macOS는 `.venv\Scripts\python` 대신 `.venv/bin/python`, `copy` 대신 `cp`를 사용합니다. 실제 접속값(`secrets.toml`)은 레포에 올리지 않습니다.
+
+실행 전 `.streamlit/secrets.toml`의 DB 설정과 함께 다음 항목의 빈 값을 채웁니다. `javascript_api_key`는 지도 표시, `rest_api_key`는 경로 조회, `[anthropic]`의 `api_key`는 물어보기에 사용합니다.
+
+```toml
+[kakao]
+javascript_api_key = ""
+rest_api_key = ""
+
+[anthropic]
+api_key = ""
+```
+
+카카오디벨로퍼스에서 카카오맵 사용을 활성화하고, JavaScript 키의 **JavaScript SDK 도메인**에 실제 접속 주소(로컬 예: `http://localhost:8510`)와 배포 주소를 등록합니다. [카카오 설정 안내](https://developers.kakao.com/docs/ko/kakaomap/common)를 참고하세요. JavaScript 키가 없으면 차량 보유와 주차·충전은 대체 지도를 사용하고, 실시간 교통 지도는 안내 문구를 표시합니다.
 
 로컬 MySQL 설정에는 `ssl_ca` 항목을 넣지 않습니다. 이전 예시를 복사했다면 `ssl_ca = ""` 줄을 삭제하세요. `MYSQL_SSL_CA` 환경변수도 명시하면 로컬 TLS가 활성화됩니다. 원격 DB는 이 항목 없이도 TLS·서버 인증서·호스트명을 검증하며, 사설 CA가 필요한 경우에만 실제 CA 인증서 경로를 설정합니다.
 

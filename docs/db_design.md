@@ -22,19 +22,21 @@ DB 덤프·정제 CSV·수집 원본은 팀 내부에서 관리하고 **공개 �
 
 ### 정식 앱과 조회의 연결
 
-시작점은 [app.py](../app.py)이며 `app_pages/`의 네 화면을 연결한다. [site_shell.py](../site_shell.py)는 공통 navbar의 메뉴·동네 선택, 홈 hero와 나머지 페이지 머리말, footer의 출처 안내를 맡고 `assets/`의 로고·자동차 세 대 그림을 사용한다. [ui.py](../ui.py)는 세 칸 판정·지도·한눈에 읽는 우리 동네·클릭하는 25구 막대 순위·표시 단위를 맡는다. [details.py](../details.py)는 홈에서 자세한 자료를 펼쳤을 때만 해당 자료를 조회한다.
+시작점은 [app.py](../app.py)이며 `app_pages/`의 12개 화면을 연결한다. 상단 메뉴는 우리 동네·25구 순위·주차·충전 찾기·두 동네 비교·전국 등록 조회·기업 FAQ이고, 더 보기에는 차량 보유·대중교통·전기차 충전·도로와 날씨·물어보기·자료 안내가 있다. [site_shell.py](../site_shell.py)는 공통 메뉴·동네 선택, 홈 지도 영역과 페이지 머리말, footer의 메뉴 링크를 맡는다. 홈은 지도만 표시하며, 세 판정 카드·25구 막대 순위·판정 기준과 출처는 [25구 순위](../app_pages/ranking.py)에 있다. [ui.py](../ui.py)는 이 화면에서 사용하는 판정·순위·출처 안내와 공통 표시 단위를 제공한다.
 
 | 화면 | 입력 → 결과 | 주요 조회·테이블 |
 | --- | --- | --- |
-| [우리 동네](screens/01_home.png), [모바일](screens/05_home_mobile.png) | Navbar·지도·막대 행에서 구 선택 → 둥근 세 칸의 판정·근거값·동네 요약. 주제 선택 → 지도 색과 서울 25구 막대 순위 | `get_district_ranking`, `get_region_boundaries`; 등록·인구·주차·승객 집계와 `region_boundary` |
+| [우리 동네](screens/01_home.png), [모바일](screens/05_home_mobile.png) | Navbar·지도에서 구 선택, 주제 선택 → 서울 지도 색과 선택 구 표시 | `get_district_ranking`, `get_region_boundaries`; 등록·인구·주차·승객 집계와 `region_boundary` |
+| [25구 순위](../app_pages/ranking.py) | 선택한 구의 세 판정 카드·근거값·서울 현황, 항목별 25구 순위와 판정 기준·출처 | `get_district_ranking`, `get_filter_options`; 같은 지표 CTE와 `source_snapshot` |
+| [주차·충전 찾기](../app_pages/parking.py) | 구·시설 조건 선택 → 수록 주차 여건, 주차장·충전소 지도와 목록 | `get_parking_summary`, `get_place_points`, `search_places`, `get_charger_detail`; `parking_site`, `charging_station`, `charger` |
 | [두 동네 비교](screens/02_compare.png) | 두 구 선택 → 나란한 둥근 카드의 세 판정·근거값 차이·서울 전체 순위 | `get_compare_metrics`, `get_registration_breakdown`; 같은 지표 CTE와 `registration` |
-| [전국 등록 조회](screens/03_national.png) | 시도·차종·용도 선택 → 조건별 등록 합계·서울 등록·시도별 막대·등록표. 전체 조건은 16개 시도 이름을 표시하고 서울 막대는 코랄 강조 | `get_national_registrations`; `province_registration`, `vehicle_type` |
+| [전국 등록 조회](screens/03_national.png) | 시도·차종·용도 선택 → 등록 지표·시도별 용도/차종 누적 막대·등록표 | `get_national_registrations`; `province_registration`, `vehicle_type` |
 | [기업 FAQ](screens/04_faq.png) | 검색어·기업·분류 선택 → 둥근 질문 상자, 펼친 원문 답변·원문 링크·수집일 | `search_faq`; `company`, `faq`, `source_snapshot` |
-| 공통 navbar·footer | 네 메뉴 이동·현재 메뉴·동네 선택, 하단의 자료 출처·기준 기간·수집일과 추정 안내 | `get_filter_options`; `region`, 유효한 `source_snapshot`의 `snapshots` |
+| 공통 navbar·footer, 자료 안내 | 상단 6개 메뉴와 더 보기 6개 메뉴·현재 메뉴·동네 선택. 자료 안내에서 출처·기준 기간·수집일과 한계 확인 | `get_filter_options`; `region`, 유효한 `source_snapshot`의 `snapshots` |
 
-홈의 `자세한 자료`는 차량 구성, 주차·충전 시설, 시간대별 승객으로 나뉜다. 등록은 `get_summary_metrics`·`get_registration_breakdown`, 시설은 `get_place_points`·`search_places`·`get_charger_summary`·`get_charger_detail`, 승객과 날씨는 `get_trend_data`·`get_weather`로 읽는다. 충전 속도는 요약·지도·목록에 동일하게 적용한다. 주차 목록은 최대 100건, 충전기 목록은 최대 200기이며 지도에서 빠진 좌표 없는 시설도 목록에 남긴다.
+차량 구성은 차량 보유와 두 동네 비교에서 `get_summary_metrics`·`get_registration_breakdown`으로 조회한다. 주차·충전 찾기와 전기차 충전의 시설 지도·목록은 `get_place_points`·`search_places`·`get_charger_detail`을 사용하며, 전기차 충전의 구성은 `get_charger_breakdown`으로 읽는다. 시간대별 승객은 대중교통에서 `get_trend_data`로, 수록 교통량과 날씨는 도로와 날씨에서 `get_traffic_profile`·`get_weather`로 읽는다.
 
-세 판정과 서울 전체 순위는 SQL에서 계산한다. 전국 화면의 선택 합계·시도별 막대용 합계는 SQL로 필터링한 결과를 Python에서 더하며 결측이 있으면 확정하지 않는다. 도로 교통량도 DB에 보존하지만 현재 홈의 시간 그래프는 승객만 표시한다. 최신 서울 공통 날씨는 별도로 표시하고 승객과 같은 관측 시각으로 간주하지 않는다.
+세 판정과 서울 전체 순위는 SQL에서 계산한다. 전국 화면의 선택 합계·시도별 막대용 합계는 SQL로 필터링한 결과를 Python에서 더하며 결측이 있으면 확정하지 않는다. 홈 외 지도는 Kakao 지도를 사용하고, 도로와 날씨에는 실시간 교통 지도가 있다. 카카오 응답은 DB에 저장하지 않으며 MySQL의 공공데이터를 지도에 표시한다. 실시간 교통 지도와 DB에 보존한 교통량·날씨 표본은 구분해 표시하고, 서울 공통 날씨를 구별 날씨나 승객과 같은 관측 시각으로 간주하지 않는다.
 
 ## 2. 원본 보존과 2NF 정규화
 
@@ -133,7 +135,7 @@ PK는 행을 식별하는 기본키, FK는 다른 표를 참조하는 외래키�
 
 주차 면/등록 차량, 충전기/전기차, 등록 차량/세대의 세 축을 25구 백분위로 바꿔 각 1/3씩 평균한다. 주차·충전 값은 클수록, 등록 부담은 작을수록 점수가 높다. 동률은 평균 순위를 사용하고 모두 같으면 해당 축은 50점이다. 25구 공통 세 지표가 하나라도 유효하지 않으면 점수는 결측, 보조 판정은 `자료 부족`이다.
 
-반환 점수 `score`는 소수 1자리, `score_raw`는 반올림 전 값이다. 70 이상 권장, 40 이상 70 미만 조건 확인, 40 미만 보류이며 판정은 반올림 전 값으로 정한다. 이 규칙은 [scoring.py](../scoring.py)의 가중치·기준과 일치하도록 **현재 조회 SQL에서 계산**한다. 현재 홈·비교 화면에는 이 종합점수를 표시하지 않고 세 판정을 보여 준다. 세 판정의 RANK 구간과 이 종합점수의 평균순위 백분위를 혼동하지 않는다. 통근·날씨·정류장 값은 보조 종합점수에 들어가지 않는다.
+반환 점수 `score`는 소수 1자리, `score_raw`는 반올림 전 값이다. 70 이상 권장, 40 이상 70 미만 조건 확인, 40 미만 보류이며 판정은 반올림 전 값으로 정한다. 이 규칙은 [scoring.py](../scoring.py)의 가중치·기준과 일치하도록 **현재 조회 SQL에서 계산**한다. 현재 25구 순위·두 동네 비교 화면에는 이 종합점수를 표시하지 않고 세 판정을 보여 준다. 세 판정의 RANK 구간과 이 종합점수의 평균순위 백분위를 혼동하지 않는다. 통근·날씨·정류장 값은 보조 종합점수에 들어가지 않는다.
 
 ## 5. 수집본·필터·결측 규칙
 
