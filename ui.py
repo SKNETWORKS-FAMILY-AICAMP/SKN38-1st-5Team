@@ -184,19 +184,16 @@ def neighborhood_sentence(row: pd.Series) -> str:
 
 
 def mobility_mood(row: pd.Series) -> str:
-    """Illustrate mobility context; ownership prevalence is not a benefit/penalty.
-
-    High transit usage is a positive proxy, never an inverted need score.
-    Missing indicators stay neutral rather than implying a poor neighborhood.
-    """
+    """빨간 판정 2개 이상은 울음, 여유 있는 조건은 활짝 웃음."""
     if any(word(row.get(f"{topic}_level")) not in TOPICS[topic].levels for topic in TOPICS):
         return "smile"
-    parking, need = word(row.get("parking_level")), word(row.get("need_level"))
-    if need == "대중교통으로 충분":
-        return "smile" if parking == "빠듯함" else "happy"
-    if parking == "빠듯함":
+    ownership, parking, need = (word(row.get(f"{topic}_level")) for topic in TOPICS)
+    red_count = sum((ownership == "많은 편", parking == "빠듯함", need == "차가 필요한 편"))
+    if red_count >= 2:
         return "crying"
-    return "happy" if parking == "좋음" and need == "있으면 편함" else "smile"
+    if red_count == 0 and (ownership == "적은 편" or parking == "좋음" or need == "대중교통으로 충분"):
+        return "happy"
+    return "smile"
 
 
 def neighborhood_summary(row: pd.Series) -> None:
@@ -245,8 +242,7 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
             return 'first'
         if rank <= 3:
             return 'podium'
-        level = word(row.get(f"{topic}_level"))
-        if level in {'많은 편', '빠듯함', '차가 필요한 편', '적은 편' if topic == 'charging' else ''} or rank == ordered[rank_col].max():
+        if rank == ordered[rank_col].max():
             return 'caution'
         return 'neutral'
     records = [{
@@ -268,12 +264,12 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
     inks = ['#166534', '#854D0E', '#B91C1C', '#1B2340', '#64748B']
     row_area = base.mark_rect(x=0, x2="width", cornerRadius=6, cursor="pointer").encode(
         color=alt.Color('tier:N', legend=None, scale=alt.Scale(domain=tiers,
-            range=['#DCFCE7', '#FEF9C3', '#FEE2E2', '#F8FAFC', '#F1F5F9'])))
+            range=['#DCFCE7', '#FEF9C3', '#FEE2E2', '#FFFFFF', '#FFFFFF'])))
     highlight = base.transform_filter("datum.selected").mark_rect(
         x=0, x2="width", fillOpacity=0, stroke="#27336B", strokeWidth=1.5, cornerRadius=6)
     bars = base.mark_bar(height=11, cornerRadiusEnd=5, stroke="#C8CDE3", strokeWidth=0.6, cursor="pointer").encode(
         x=x, x2=alt.datum(0),
-        color=alt.Color('tier:N', legend=None, scale=alt.Scale(domain=tiers, range=['#15803D', '#CA8A04', '#DC2626', '#8E98CF', '#94A3B8'])))
+        color=alt.Color('tier:N', legend=None, scale=alt.Scale(domain=tiers, range=['#15803D', '#CA8A04', '#DC2626', '#CBD5E1', '#CBD5E1'])))
     weight = alt.expr("datum.selected || datum.highest ? 800 : 500")
     label_color = alt.Color("tier:N", legend=None, scale=alt.Scale(domain=tiers, range=inks))
     ranks = base.mark_text(align="right", x=20, fontSize=15, cursor="pointer").encode(

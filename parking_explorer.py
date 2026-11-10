@@ -330,14 +330,15 @@ def render_map(records, district, station=None, radius=500, animate=True, *, key
 
 
 def explorer(records, district, facility, *, region_id=None):
-    with st.container(horizontal=True, vertical_alignment="bottom"):
-        query = st.text_input("역 이름 검색", placeholder="예: 남부터미널역, 홍대입구역",
+    with st.container(key="parking_station_controls"):
+        control_columns = st.columns(3)
+        query = control_columns[0].text_input("역 이름 검색", placeholder="예: 남부터미널역, 홍대입구역",
                               key="parking_station_query", help="역 이름을 입력하고 Enter를 누르면 검색해요.")
         stations = station_search(query.strip() if query.strip() else f"{district} 지하철역")
-        station_index = st.selectbox("가까운 시설을 찾을 역", range(len(stations) + 1),
+        station_index = control_columns[1].selectbox("가까운 시설을 찾을 역", range(len(stations) + 1),
                                      format_func=lambda i: "역 선택 안 함" if i == 0 else stations[i - 1]["name"],
                                      key=f"parking_station_{district}_{query.strip()}")
-        radius = st.select_slider("강조 반경", options=[300, 500, 1000, 2000], value=500,
+        radius = control_columns[2].select_slider("강조 반경", options=[300, 500, 1000, 2000], value=500,
                                   format_func=lambda r: f"{r:,}m", key="parking_station_radius")
     animate = st.checkbox("가까운 핀 깜빡임", value=True, key="parking_pin_animation")
     station = stations[station_index - 1] if station_index else None

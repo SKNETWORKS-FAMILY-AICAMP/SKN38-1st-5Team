@@ -8,7 +8,7 @@
 .kakao-places [hidden] { display: none !important; }
 .kakao-places .kp-map { width: 100%; height: 410px; background: #EEF0FA; border: 1px solid #C8CDE3; }
 .kakao-places .kp-status, .kakao-places .kp-legend { margin: 8px 0; font-size: 16px; color: #4A5270; }
-.kakao-places .kp-detail { margin-top: 10px; padding: 16px; border: 1px solid #C8CDE3; border-radius: 14px; background: #F7F8FC; overflow-wrap: anywhere; }
+.kakao-places .kp-detail { margin-top: 10px; padding: 16px; border: 1px solid #C8CDE3; border-radius: 14px; background: #FFF3D6; overflow-wrap: anywhere; }
 .kakao-places .kp-popup { width: min(290px, calc(100vw - 90px)); max-height: 400px; overflow: auto; padding: 12px; font-size: 18px; line-height: 1.85; color: #1B2340; }
 .kakao-places .kp-popup strong, .kakao-places .kp-detail strong { font-size: 24px; line-height:1.5; }
 .kakao-places .kp-tag { display: inline-block; margin-right: 8px; color: #27336B; font-weight: 600; }

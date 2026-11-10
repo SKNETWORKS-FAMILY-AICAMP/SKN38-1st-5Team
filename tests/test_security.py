@@ -201,11 +201,15 @@ class ASGITests(unittest.IsolatedAsyncioTestCase):
     async def test_security_headers_replace_unsafe_values_without_dropping_cookies(self):
         async def downstream(scope, receive, send):
             await send({"type": "http.response.start", "status": 200, "headers": [
-                (b"X-Frame-Options", b"SAMEORIGIN"), (b"set-cookie", b"a=1"), (b"set-cookie", b"b=2")]})
+                (b"X-Frame-Options", b"SAMEORIGIN"),
+                (b"Content-Security-Policy", b"frame-ancestors *"),
+                (b"set-cookie", b"a=1"), (b"set-cookie", b"b=2")]})
         events = await exchange(SecurityMiddleware(downstream), http_scope(), [])
         headers = events[0]["headers"]
         self.assertEqual([value for name, value in headers if name == b"set-cookie"], [b"a=1", b"b=2"])
         self.assertEqual([value for name, value in headers if name.lower() == b"x-frame-options"], [b"DENY"])
+        self.assertEqual([value for name, value in headers if name.lower() == b"content-security-policy"],
+                         [b"frame-ancestors 'none'"])
 
     def test_streamlit_run_detects_wrapper_without_starting_a_server(self):
         with patch("streamlit.web.bootstrap.run_asgi_app") as launch:
