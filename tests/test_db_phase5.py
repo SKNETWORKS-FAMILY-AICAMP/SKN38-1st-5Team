@@ -11,8 +11,11 @@ from unittest.mock import MagicMock, Mock, patch
 import streamlit
 from sqlalchemy import URL
 from sqlalchemy.dialects.mysql import dialect
+from pymysql.connections import Connection as PyMySQLConnection
+from pymysql.constants import CLIENT
+from pymysql.protocol import MysqlPacket
 
-from db.connection import _clear_engine_cache, _require_tls, get_engine
+from db.connection import _TLSConnection, _clear_engine_cache, _require_tls, get_engine
 from db.init_schema import CORE_TABLE, apply_schema
 
 
@@ -142,6 +145,99 @@ class RemoteConnectionTest(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'TLS 연결'):
                     _require_tls(connection, None)
                 connection.close.assert_called_once()
+
+
+class TLSBeforeAuthenticationTest(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch('socket.create_connection', side_effect=AssertionError('network forbidden')))
+        self.addCleanup(_clear_engine_cache)
+
+    def connection(self, cls=_TLSConnection, tls=True):
+        # defer_connect plus mocked packet I/O guarantees no network or real secrets.
+        connection = cls(host='database.example.invalid', user='dummy-user',
+                         password='dummy-password', database='dummy-db',
+                         ssl=ssl.create_default_context() if tls else None,
+                         defer_connect=True)
+        connection.server_version = '8.0.0'
+        connection.server_capabilities = CLIENT.SECURE_CONNECTION | CLIENT.PLUGIN_AUTH | CLIENT.CONNECT_WITH_DB
+        connection.salt = b'12345678901234567890'
+        connection._auth_plugin_name = 'mysql_native_password'
+        connection._sock = MagicMock()
+        connection.write_packet = Mock()
+        connection._read_packet = Mock(return_value=MysqlPacket(b'\x00\x00\x00\x02\x00\x00\x00', connection.encoding))
+        if tls:
+            connection.ctx = MagicMock()
+        return connection
+
+    def test_non_ssl_handshake_sends_zero_packets(self):
+        connection = self.connection()
+        with self.assertRaisesRegex(RuntimeError, '필수 TLS') as caught:
+            connection._request_authentication()
+        connection.write_packet.assert_not_called()
+        connection._read_packet.assert_not_called()
+        connection.ctx.wrap_socket.assert_not_called()
+        for value in ('dummy-user', 'dummy-password', 'dummy-db', 'database.example.invalid'):
+            self.assertNotIn(value, str(caught.exception))
+
+    def test_guard_without_tls_context_fails_closed(self):
+        connection = self.connection(tls=False)
+        connection.server_capabilities |= CLIENT.SSL
+        with self.assertRaisesRegex(RuntimeError, '필수 TLS'):
+            connection._request_authentication()
+        connection.write_packet.assert_not_called()
+        connection._read_packet.assert_not_called()
+
+    def test_verified_tls_precedes_authentication(self):
+        connection = self.connection()
+        connection.server_capabilities |= CLIENT.SSL
+        original_socket = connection._sock
+        order = []
+        connection.write_packet.side_effect = lambda packet: order.append('auth' if b'dummy-user' in packet else 'ssl-request')
+        connection.ctx.wrap_socket.side_effect = lambda *args, **kwargs: order.append('tls') or MagicMock()
+        connection._request_authentication()
+        self.assertEqual(order, ['ssl-request', 'tls', 'auth'])
+        connection.ctx.wrap_socket.assert_called_once_with(original_socket,
+                                                           server_hostname='database.example.invalid')
+        self.assertTrue(connection._secure)
+
+    def test_certificate_failure_sends_no_authentication(self):
+        connection = self.connection()
+        connection.server_capabilities |= CLIENT.SSL
+        connection.ctx.wrap_socket.side_effect = ssl.SSLCertVerificationError('dummy certificate failure')
+        with self.assertRaises(ssl.SSLCertVerificationError):
+            connection._request_authentication()
+        self.assertEqual(connection.write_packet.call_count, 1)  # SSLRequest only.
+        self.assertNotIn(b'dummy-user', connection.write_packet.call_args.args[0])
+        connection._read_packet.assert_not_called()
+
+    def test_local_plaintext_driver_behavior_is_preserved(self):
+        connection = self.connection(PyMySQLConnection, tls=False)
+        connection._request_authentication()
+        self.assertEqual(connection.write_packet.call_count, 1)
+        self.assertIn(b'dummy-user', connection.write_packet.call_args.args[0])
+        self.assertFalse(connection._secure)
+
+    def test_engine_uses_guard_only_when_tls_is_required(self):
+        for secret, required in (({'host': 'localhost'}, False),
+                                 ({'host': 'localhost', 'ssl_ca': ''}, True),
+                                 ({'host': 'database.example.invalid'}, True)):
+            with self.subTest(secret=secret):
+                _clear_engine_cache()
+                with patch.dict(os.environ, {}, clear=True), patch.object(streamlit, 'secrets', {'mysql': secret}), \
+                        patch('db.connection.create_engine') as create, patch('db.connection.event.listen'):
+                    get_engine()
+                options = create.call_args.kwargs
+                if required:
+                    creator = options['creator']
+                    self.assertIs(creator.func, _TLSConnection)
+                    self.assertIs(creator.keywords['ssl'], options['connect_args']['ssl'])
+                    self.assertEqual(creator.keywords['host'], secret['host'])
+                    self.assertEqual(creator.keywords['charset'], 'utf8mb4')
+                    self.assertTrue(creator.keywords['ssl'].check_hostname)
+                    self.assertEqual(creator.keywords['ssl'].verify_mode, ssl.CERT_REQUIRED)
+                else:
+                    self.assertNotIn('creator', options)
+        _clear_engine_cache()
 
 
 class RemoteSchemaTest(unittest.TestCase):

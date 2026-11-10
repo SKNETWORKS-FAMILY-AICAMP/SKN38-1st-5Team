@@ -175,14 +175,19 @@ def quick_menu() -> None:
 
 
 def _column(ranking: pd.DataFrame, column: str) -> pd.Series:
-    # 계약 열이 빠진 응답에서도 값을 지어내지 않도록 빈 열은 0으로 두고 표시 여부를 따로 판단한다.
     if column not in ranking:
-        return pd.Series(0.0, index=ranking.index)
-    return pd.to_numeric(ranking[column], errors="coerce").fillna(0).astype("float64")
+        return pd.Series(float("nan"), index=ranking.index)
+    return pd.to_numeric(ranking[column], errors="coerce").astype("float64")
 
 
-def _total(ranking: pd.DataFrame, column: str) -> float:
-    return float(_column(ranking, column).sum())
+def _complete_total(values: pd.Series) -> float | None:
+    if len(values) != 25 or values.isna().any():
+        return None
+    return float(values.sum())
+
+
+def _total(ranking: pd.DataFrame, column: str) -> float | None:
+    return _complete_total(_column(ranking, column))
 
 
 def seoul_overview(ranking: pd.DataFrame) -> None:
@@ -194,17 +199,23 @@ def seoul_overview(ranking: pd.DataFrame) -> None:
     electric, population = _total(ranking, "electric_count"), _total(ranking, "population")
     chargers, stations = _total(ranking, "listed_count"), _total(ranking, "listed_station_count")
     fast = _total(ranking, "fast_count")
-    spaces = float((_column(ranking, "parking_value") * _column(ranking, "vehicle_count")).sum())
-    riders = float((_column(ranking, "need_value") * _column(ranking, "population")).sum())
-    if not vehicles or not households or not population:
-        return
+    spaces = _complete_total(_column(ranking, "parking_value") * _column(ranking, "vehicle_count"))
+    riders = _complete_total(_column(ranking, "need_value") * _column(ranking, "population"))
+
+    def formatted(value, digits=0, scale=1, prefix=""):
+        return "자료 없음" if value is None else f"{prefix}{value * scale:,.{digits}f}"
+
+    def ratio(part, whole, digits, scale=1):
+        value = None if part is None or whole is None or whole == 0 else part / whole
+        return formatted(value, digits, scale)
+
     cells = (
-        ("등록 차량", f"{vehicles:,.0f}", "대", "25구 합계"),
-        ("세대당 차량", f"{vehicles / households:.2f}", "대", f"{households:,.0f} 세대 기준"),
-        ("전기차", f"{electric:,.0f}", "대", f"등록 차량의 {100 * electric / vehicles:.1f}%"),
-        ("수록 충전기", f"{chargers:,.0f}", "기", f"충전소 {stations:,.0f}곳 · 급속 {fast:,.0f}기"),
-        ("수록 주차면", f"약 {spaces / 1e4:,.0f}", "만 면", f"차 100대당 {100 * spaces / vehicles:.1f}면"),
-        ("하루 대중교통 승객", f"약 {riders / 1e4:,.0f}", "만 명", f"주민 1명당 {riders / population:.2f}명"),
+        ("등록 차량", formatted(vehicles), "대", "25구 합계"),
+        ("세대당 차량", ratio(vehicles, households, 2), "대", f"{formatted(households)} 세대 기준"),
+        ("전기차", formatted(electric), "대", f"등록 차량의 {ratio(electric, vehicles, 1, 100)}%"),
+        ("수록 충전기", formatted(chargers), "기", f"충전소 {formatted(stations)}곳 · 급속 {formatted(fast)}기"),
+        ("수록 주차면", formatted(spaces, scale=1e-4, prefix="약 "), "만 면", f"차 100대당 {ratio(spaces, vehicles, 1, 100)}면"),
+        ("하루 대중교통 승객", formatted(riders, scale=1e-4, prefix="약 "), "만 명", f"주민 1명당 {ratio(riders, population, 2)}명"),
     )
     st.subheader("서울 자동차 현황", anchor=False)
     st.html('<dl class="home-stats">' + "".join(

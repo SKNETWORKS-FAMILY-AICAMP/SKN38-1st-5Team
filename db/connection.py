@@ -1,15 +1,32 @@
 import os
 import re
 import ssl
-from functools import lru_cache
+from functools import lru_cache, partial
 from pathlib import Path
 from threading import RLock
 
 from sqlalchemy import URL, create_engine, event
 from sqlalchemy.engine import Engine
+from pymysql.connections import Connection as PyMySQLConnection
+from pymysql.constants import CLIENT
 
 LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
 _ENGINE_LOCK = RLock()
+
+
+class _TLSConnection(PyMySQLConnection):
+    """Fail before credentials leave the client if the handshake cannot use TLS.
+
+    PyMySQL 1.1.2's private authentication hook runs after the server greeting,
+    before its SSLRequest/authentication packets. Recheck this ordering when
+    upgrading PyMySQL. The base implementation performs verified TLS wrapping
+    before authentication; the SQLAlchemy connect check remains a second guard.
+    """
+
+    def _request_authentication(self):
+        if not self.ssl or not self.server_capabilities & CLIENT.SSL:
+            raise RuntimeError("MySQL 서버가 필수 TLS 연결을 지원하지 않습니다.")
+        return super()._request_authentication()
 
 
 def is_local_config(config: dict | URL | None = None) -> bool:
@@ -119,6 +136,13 @@ def _cached_engine() -> Engine:
                                    else ssl.create_default_context(cafile=str(ca_path) if ca_path else None))
         except (OSError, ssl.SSLError, ValueError):
             raise ValueError("MySQL CA 인증서 파일을 읽을 수 없습니다. 인증서 형식을 확인하세요.") from None
+    engine_options = {}
+    if config["ssl_enabled"]:
+        # A per-engine creator avoids globally patching PyMySQL or other modules.
+        engine_options["creator"] = partial(
+            _TLSConnection, **url.translate_connect_args(username="user"),
+            **url.query, **connect_args,
+        )
     engine = create_engine(
         url,
         pool_pre_ping=True,
@@ -126,6 +150,7 @@ def _cached_engine() -> Engine:
         echo=False,
         hide_parameters=True,
         connect_args=connect_args,
+        **engine_options,
     )
     if config["ssl_enabled"]:
         event.listen(engine, "connect", _require_tls)

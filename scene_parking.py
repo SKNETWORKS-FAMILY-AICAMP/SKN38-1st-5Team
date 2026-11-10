@@ -336,6 +336,13 @@ export default function(component) {
   text(root, 'scene-label', scenes[data.parkingLevel] || '주차 자료를 기다리고 있어요');
   root.dataset.districtId = district;
   root.dataset.parkingLevel = data.parkingLevel;
+  const signColors = {sufficient:['#DCFCE7','#15803D'],normal:['#FEF9C3','#A16207'],caution:['#FEE2E2','#DC2626']};
+  const [signFill, signInk] = signColors[statusState] || ['#EEF0FA','#4A5270'];
+  const sign = root.querySelector('.scene-sign');
+  sign.querySelector('rect').setAttribute('fill',signFill);
+  sign.querySelector('rect').setAttribute('stroke',signInk);
+  sign.querySelector('circle').setAttribute('fill',signInk);
+  sign.querySelector('text').setAttribute('fill',signInk);
   state.heroes.forEach((car, index) => {
     const level = data.levels[topics[index]] || '자료 없음';
     car.setAttribute('aria-label', `${labels[index]}: ${level}. 누르면 자동차가 인사해요.`);

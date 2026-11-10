@@ -63,7 +63,7 @@ with st.grid(3, min_column_width=260, gap="small"):
 
 st.subheader("항목별 25구 순위", anchor=False)
 st.caption("항목마다 상위 5개와 가장 낮은 곳을 보여 드려요. 순위는 반올림 전 값으로 정하고, 행을 누르면 그 동네를 골라요.")
-ranked = ranking.assign(charging_value=ranking.get("charger_per_electric_vehicle"),
+ranked = ranking.copy().assign(charging_value=ranking.get("charger_per_electric_vehicle"),
                         charging_rank=ranking.get("charger_per_electric_vehicle_rank"))
 with st.grid(4, min_column_width=270, gap="small"):
     for topic, title in (("ownership", "차량"), ("parking", "주차"), ("charging", "충전"), ("need", "대중교통")):
