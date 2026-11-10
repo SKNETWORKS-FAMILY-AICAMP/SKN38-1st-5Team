@@ -129,7 +129,7 @@ CSS = """
   .st-key-home_quick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .glance { grid-template-columns: 1fr; }
 }
-.home-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid #E2E5F0;
+.home-stats { padding: 0 !important; margin: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid #E2E5F0;
   border-radius: 18px; overflow: hidden; }
 .home-stats > div { padding: 22px 20px; border-right: 1px solid #E2E5F0; min-width: 0; display: flex; flex-direction: column; background: #F7F8FC; }
 .home-stats > div:last-child { border-right: none; }

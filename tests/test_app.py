@@ -220,7 +220,8 @@ class AppTestCase(unittest.TestCase):
     def test_site_search_reaches_ranking_and_renamed_pages(self):
         at = self.app
         for query, group, member in (("25구 순위", 1, 0), ("순위", 1, 0), ("주차·충전 찾기", 0, 1),
-                                     ("주차 찾기", 0, 1), ("기업 FAQ", 2, 0)):
+                                     ("주차 찾기", 0, 1), ("기업 FAQ", 2, 0),
+                                     ("전기차", 0, 2), ("충전", 0, 2), ("버스", 0, 3), ("날씨", 0, 4)):
             with self.subTest(query=query):
                 at.switch_page("app_pages/home.py").run()
                 tools = at.get_by_key("site_tools")
@@ -253,7 +254,7 @@ class AppTestCase(unittest.TestCase):
         content = at.get_by_key("site_content")
         self.assertEqual(len(at.get("bidi_component")), 1)
         self.assertEqual([item.value for item in content.subheader],
-                         ["마포구라면 이렇게 알아보세요", "자주 찾는 메뉴", "서울 자동차 현황", "25구 순위"])
+                         ["마포구라면 이렇게 알아보세요", "서울 자동차 현황", "25구 순위"])
         at.get_by_key("site_footer")
         for element in ("metric", "expander", "dataframe", "vega_lite_chart"):
             with self.subTest(element=element):

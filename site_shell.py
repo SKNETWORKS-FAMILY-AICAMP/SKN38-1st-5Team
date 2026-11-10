@@ -236,8 +236,16 @@ CSS = """
 }
 .st-key-footer_brand .brand-home { color: #fff; font-size: 30px; }
 .st-key-site_footer p { font-size: 16px; line-height: 1.7; color: #EEF0FA; margin: 8px 0 0; }
-.st-key-footer_menu { max-width: 680px; }
-.st-key-footer_menu a { color: #fff; min-height: 44px; padding: 6px 10px; border-radius: 999px; }
+[data-testid="stForm"] [data-testid="InputInstructions"] { display: none; }
+.st-key-footer_menu { max-width: 720px; display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 24px; align-items: start; }
+.st-key-footer_menu > div { width: 100% !important; min-width: 0; }
+.st-key-footer_menu [class*="st-key-footer_col_"] { width: 100%; }
+.st-key-footer_menu [class*="st-key-footer_col_"] > div { width: 100% !important; }
+.st-key-site_footer p.footer-head { margin: 0 0 6px; padding: 0 10px 8px; font-size: 14px; font-weight: 700;
+  color: #FF9E8F; border-bottom: 1px solid rgba(238, 240, 250, .18); letter-spacing: .02em; }
+.st-key-footer_menu a { color: #fff; min-height: 40px; padding: 6px 10px; border-radius: 10px; justify-content: flex-start; }
+@media (max-width: 700px) { .st-key-footer_menu { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 18px; } }
 .st-key-footer_menu a:hover { background: #27336B; }
 .st-key-footer_menu a p { color: #fff; margin: 0; font-size: 16px; }
 .footer-intro { max-width: 420px; }
@@ -538,13 +546,43 @@ def sitemap(pages: Sequence[st.Page]) -> None:
             st.divider()
 
 
+# 통합검색에서 짧은 낱말로 바로 갈 수 있는 메뉴. 앞에 있는 낱말이 먼저 맞는다.
+SEARCH_WORDS = (
+    ("전기차", "charging"), ("충전", "charging"), ("주차", "parking"),
+    ("버스", "transit"), ("지하철", "transit"), ("대중교통", "transit"),
+    ("날씨", "roads"), ("도로", "roads"), ("교통량", "roads"),
+    ("순위", "ranking"), ("비교", "compare"), ("전국", "national"),
+    ("보유", "ownership"), ("등록", "ownership"), ("추천", "finder"), ("찾기", "finder"),
+    ("FAQ", "faq"), ("자료", "about"), ("출처", "about"),
+)
+SEARCH_HINT = "전기차 · 충전 · 주차 · 버스 · 날씨 · 순위 · 비교 · 마포구"
+
+
+def search_target(text: str, pages: Sequence[st.Page]) -> st.Page | None:
+    """검색어에 맞는 메뉴를 돌려준다. 메뉴 이름 그대로 → 짧은 낱말 표 → 메뉴 이름 속 낱말 순서로 본다."""
+    compact = text.replace(" ", "")
+    for page in pages:
+        if compact == page.title.replace(" ", ""):
+            return page
+    by_path = {page.url_path: page for page in pages}
+    for word, path in SEARCH_WORDS:
+        if word.upper() in compact.upper() and path in by_path:
+            return by_path[path]
+    for page in pages:
+        # "주차 찾기"처럼 메뉴 이름 사이가 줄어도 단어가 모두 맞으면 그 메뉴로 보낸다.
+        if all(word in page.title for word in text.split()):
+            return page
+    return None
+
+
 def site_search(pages: Sequence[st.Page], options: dict[str, Any]) -> None:
     with st.popover("통합검색", icon=":material/search:"):
-        with st.form("site_search_form", border=False, clear_on_submit=True):
-            query = st.text_input("통합검색", placeholder="구 이름, 메뉴, 궁금한 점", max_chars=200,
+        with st.form("site_search_form", border=False, clear_on_submit=True, enter_to_submit=True):
+            query = st.text_input("통합검색", placeholder="예: 전기차, 충전, 마포구", max_chars=40,
                                   label_visibility="collapsed")
             submitted = st.form_submit_button("검색", icon=":material/search:", type="primary", width="stretch")
-        st.caption("예: 마포구 · 25구 순위 · 차 없어도 살 만한 동네")
+        st.caption(f"구 이름이나 메뉴 낱말로 찾아요 · {SEARCH_HINT}")
+        st.caption("그 밖의 말은 질문으로 보고 ‘물어보기’로 넘겨요.")
     text = (query or "").strip() if submitted else ""
     if not text:
         return
@@ -555,12 +593,9 @@ def site_search(pages: Sequence[st.Page], options: dict[str, Any]) -> None:
                 # 구 선택 상자는 다음 실행 첫머리에서 이 값으로 맞춰진다.
                 st.session_state.selected_region_id = region_id
                 st.switch_page("app_pages/home.py")
-    compact = text.replace(" ", "")
-    for page in pages:
-        # "주차 찾기"처럼 메뉴 이름 사이가 줄어도 단어가 모두 맞으면 그 메뉴로 보낸다.
-        if compact and (compact in page.title.replace(" ", "")
-                        or all(word in page.title for word in text.split())):
-            st.switch_page(page)
+    target = search_target(text, pages)
+    if target is not None:
+        st.switch_page(target)
     # 구나 메뉴가 아니면 질문으로 보고 물어보기로 넘긴다.
     st.session_state.ask_prefill = text
     st.switch_page("app_pages/ask.py")
@@ -598,6 +633,17 @@ def footer(pages: Sequence[st.Page]) -> None:
                 with st.container(key="footer_brand"):
                     brand()
                 st.html('<p class="footer-intro">차차차 · 서울에서 차와 살기<br>서울 25구의 차량 보유, 주차 여건, 차 필요성을 한눈에 비교할 수 있어요.</p>')
-            with st.container(horizontal=True, gap="xsmall", wrap=True, width="stretch", key="footer_menu"):
-                for page in pages:
-                    st.page_link(page, label=page.title, icon="", width="content")
+            # 사이트맵과 같은 묶음으로 열을 나눠, 메뉴가 줄과 칸에 맞춰 서도록 한다.
+            by_path = {page.url_path: page for page in pages}
+            columns = [("우리 동네", PRIMARY_PATHS)] + [(label, paths) for label, _icon, paths in NAV_GROUPS]
+            listed = {path for _label, paths in columns for path in paths}
+            extra = [page for page in pages if page.url_path not in listed]
+            with st.container(horizontal=True, gap="large", width="stretch", key="footer_menu"):
+                for number, (label, paths) in enumerate(columns):
+                    members = [by_path[path] for path in paths if path in by_path]
+                    if number == len(columns) - 1:
+                        members += extra
+                    with st.container(gap="xxsmall", key=f"footer_col_{number}"):
+                        st.html(f'<p class="footer-head">{label}</p>')
+                        for page in members:
+                            st.page_link(page, label=page.title, icon="", width="stretch")

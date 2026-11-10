@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+import readable
 from db import queries as q
 from ui import (date_text, district_row, incomplete_transit, judgment_tabs, load_frame,
                 number, ranking_list, source_notes, word)
@@ -25,6 +26,7 @@ if ranking.empty:
 row = district_row(ranking, int(st.session_state.district_id))
 st.subheader(f":orange[**{word(row.get('district_name'))}**]의 세 가지 판정", anchor=False)
 judgment_tabs(row)
+readable.cards(row, ranking, ("own", "park", "need", "charger"), title="서울 평균과 견주면")
 
 seoul = ranking.reindex(columns=[
     "district_name", "vehicle_count", "household_count", "electric_count", "listed_count",
