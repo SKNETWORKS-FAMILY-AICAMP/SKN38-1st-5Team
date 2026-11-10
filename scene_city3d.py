@@ -104,7 +104,7 @@ CSS = """
 .h2-hero .h2-kakao { position: relative; isolation: isolate; width: 100%; height: calc(100% - 55px); margin-top: 26px; border-radius: 16px; overflow: hidden; background: #EEF0FA; }
 /* 고정 지도가 터치를 잡고 있으면 지도 위에서 페이지를 내릴 수 없다. */
 .h2-hero .h2-kakao * { touch-action: auto !important; }
-.h2-hero .h2-bar { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: #1B2340; font: 700 13px/1.2 'Noto Sans KR', var(--st-font, sans-serif); cursor: pointer; white-space: nowrap; transform: translate(-50%, -100%); }
+.h2-hero .h2-bar { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: #1B2340; font: 700 13px/1.2 'Noto Sans KR', var(--st-font, sans-serif); cursor: pointer; white-space: nowrap; transform: translate(-50%, -100%); }
 .h2-hero .h2-bar-stem { display: block; width: 12px; height: 0; border-radius: 4px 4px 0 0; background: #27336B; box-shadow: inset -4px 0 0 #00000026; transition: height .7s cubic-bezier(.2,.7,.2,1); }
 .h2-hero .h2-bar-name { padding: 1px 4px; border-radius: 6px; background: #FFFFFFE6; }
 .h2-hero .h2-kakao[data-compact="true"] .h2-bar { gap: 2px; font-size: 12px; line-height: 15px; }
@@ -113,7 +113,8 @@ CSS = """
 .h2-hero .h2-bar[aria-pressed="true"] .h2-bar-stem { background: #FF7A66; }
 .h2-hero .h2-bar[aria-pressed="true"] .h2-bar-name { background: #27336B; color: #FFF; }
 .h2-hero .h2-bar[data-missing="true"] .h2-bar-stem { background: none; border: 1px dashed #4A5270; }
-.h2-hero .h2-bar:focus-visible { outline: 3px solid #27336B; outline-offset: 2px; border-radius: 6px; }
+.h2-hero .h2-bar:focus-visible { outline: none; }
+.h2-hero .h2-bar:focus-visible .h2-bar-name { outline: 3px solid #27336B; outline-offset: 1px; }
 .h2-hero .h2-grid { fill: none; stroke: #8E98CF; stroke-width: .65; opacity: .13; }
 .h2-hero .h2-footprints { fill: #36416A; stroke: #7884B3; stroke-width: .7; opacity: .55; }
 .h2-hero .h2-district { cursor: pointer; outline: none; }
@@ -315,6 +316,7 @@ function clearKakao(state) {
   state.kakao.items = [];
 }
 function fitKakao(state) {
+  if (!state.kakao.items.length) return;
   state.kakao.map.relayout();
   state.kakao.map.setBounds(state.kakao.bounds, 12, 12, 12, 12);
   placeKakao(state);
@@ -375,7 +377,7 @@ function drawKakao(state) {
       const step = ['ArrowRight','ArrowDown'].includes(event.key) ? 1 : -1;
       items[(current + step + items.length) % items.length].button.focus();
     };
-    // SDK는 앵커를 처음 크기로 한 번만 계산한다. 막대가 자라도 밑변이 구 중심에 남도록 CSS로 맞춘다.
+    // SDK는 앵커를 처음 크기로 한 번만 계산한다. CSS로 밑변을 구 중심에 맞추고, SDK가 감싼 칸은 크기를 없애 클릭을 가로채지 않게 한다.
     const overlay = new api.maps.CustomOverlay({
       map, content: button, clickable: true, xAnchor: 0, yAnchor: 0, zIndex: 2,
       position: new api.maps.LatLng(d.center[1], d.center[0]),
@@ -383,6 +385,9 @@ function drawKakao(state) {
     return {id: d.id, label: d.name, count: d.count, shapes, button, stem, name, overlay};
   });
   state.kakao.bounds = bounds;
+  // 경계 자료가 비면 빈 지도 대신 SVG 쪽 안내를 보여 준다.
+  if (districts.length) state.root.dataset.map = 'kakao';
+  else delete state.root.dataset.map;
   fitKakao(state);
 }
 function startKakao(state, appkey) {
@@ -396,6 +401,13 @@ function startKakao(state, appkey) {
       center: new api.maps.LatLng(37.56, 126.98), level: 9,
       draggable: false, scrollwheel: false, disableDoubleClickZoom: true,
     });
+    // 더 축소되면 25구 이름이 들어갈 자리가 없다.
+    map.setMaxLevel(10);
+    // SDK가 터치를 취소하면 지도 위에서 페이지를 내릴 수 없다. 탭 판정은 SDK에 그대로 맡긴다.
+    ['touchstart', 'touchmove'].forEach(type => element.addEventListener(type, event => {
+      event.preventDefault = () => {};
+      Object.defineProperty(event, 'returnValue', {set() {}});
+    }, {capture: true, passive: true}));
     state.kakao = {api, map, items: [], bounds: null};
     drawKakao(state);
     paintKakao(state);
