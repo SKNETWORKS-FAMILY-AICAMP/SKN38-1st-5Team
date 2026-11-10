@@ -1,5 +1,6 @@
 import streamlit as st
 
+import home_extras
 from db import queries as q
 from details import facility_details, registration_details, transit_details
 from ui import (date_text, district_row, incomplete_transit, judgment_tabs, load_frame,
@@ -38,3 +39,5 @@ with st.expander("자세한 자료 보기", icon=":material/table_chart:",
             facility_details(region_id)
         else:
             transit_details(region_id, row)
+
+home_extras.render(row, ranking)

@@ -22,6 +22,8 @@ st.set_page_config(
 pages = [
     st.Page("app_pages/home.py", title="우리 동네", icon=":material/map:",
             default=True, help="서울 지도에서 차량 보유, 주차 여건, 차 필요성을 확인해요."),
+    st.Page("app_pages/finder.py", title="동네 찾기", url_path="finder",
+            icon=":material/travel_explore:", help="내 상황과 기준을 고르면 서울 25구를 내 기준으로 추천해 드려요."),
     st.Page("app_pages/ownership.py", title="차량 보유", url_path="ownership",
             icon=":material/directions_car:", help="서울 25구의 차량 보유 현황을 입체 지도로 살펴볼 수 있어요."),
     st.Page("app_pages/parking.py", title="주차 찾기", url_path="parking",

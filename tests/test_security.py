@@ -367,7 +367,7 @@ class PrePushTests(unittest.TestCase):
 
 class NavigationSecurityTests(unittest.TestCase):
     def test_all_pages_in_nav_and_footer_and_new_headers_without_database(self):
-        expected = {"", "ownership", "parking", "charging", "transit", "roads", "compare",
+        expected = {"", "finder", "ownership", "parking", "charging", "transit", "roads", "compare",
                     "national", "faq", "ask", "about"}
         with patch.dict(os.environ, {"CHACHACHA_ALLOW_BOTS": "1"}), \
                 patch("ui.load_options", return_value={}), \
@@ -375,14 +375,14 @@ class NavigationSecurityTests(unittest.TestCase):
             app = AppTest.from_file(ROOT / "app.py").run()
             self.assertFalse(app.exception)
             menu = [link.proto.page for link in app.get_by_key("site_menu").page_link]
-            more = [link.proto.page for link in app.get_by_key("site_more_links").page_link]
+            more = [link.proto.page for number in range(3)
+                    for link in app.get_by_key(f"site_group_{number}").page_link]
             footer = [link.proto.page for link in app.get_by_key("footer_menu").page_link]
             self.assertEqual(set(menu), expected)
-            self.assertEqual([path for path in menu if path not in more],
-                             ["", "ownership", "parking", "transit"])
-            self.assertEqual(more, ["charging", "roads", "compare", "national", "faq", "ask", "about"])
-            self.assertEqual(len(more), 7)
-            self.assertEqual(len(footer), 11)
+            self.assertEqual([path for path in menu if path not in more], ["", "finder"])
+            self.assertEqual(more, ["ownership", "parking", "charging", "transit", "roads",
+                                    "compare", "national", "faq", "ask", "about"])
+            self.assertEqual(len(footer), 12)
             self.assertEqual(set(footer), expected)
             self.assertTrue(any("noindex" in element.proto.body for element in app.get("html")))
             for path in ("charging", "roads", "about"):

@@ -40,7 +40,7 @@ CSS = """
   color: #1B2340; white-space: nowrap;
 }
 /* Jua는 굵기가 하나뿐이라 합성 굵기를 쓰지 않는다. */
-.st-key-site_menu a p, .st-key-site_menu button p, .st-key-site_more_links a p {
+.st-key-site_menu a p, .st-key-site_menu button p {
   font-family: Jua, sans-serif; font-size: 17px; font-weight: 400;
 }
 .st-key-site_menu [data-testid="stIconMaterial"] { font-size: 18px; color: #27336B; }
@@ -49,16 +49,27 @@ CSS = """
   min-height: 44px; padding: 9px 10px; border-radius: 999px;
   color: #1B2340; font-size: 14px; white-space: nowrap;
 }
-.st-key-nav_more_current button { background: #EEF0FA; border-color: #27336B; }
-.st-key-site_more_links a {
+/* 묶음 메뉴 버튼은 바로가기 메뉴와 같은 모양으로 보이게 테두리를 숨긴다. */
+.st-key-site_menu [class*="st-key-nav_group_"] button {
+  border-color: transparent; background: transparent; box-shadow: none;
+}
+.st-key-site_menu [class*="st-key-nav_group_"] button:hover { background: #EEF0FA; color: #27336B; }
+.st-key-site_menu [class*="st-key-nav_group_"] button p { font-family: Jua, sans-serif; font-size: 17px; font-weight: 400; }
+.st-key-site_menu [class*="st-key-nav_group_current_"] button { background: #EEF0FA; color: #27336B; }
+.st-key-site_menu [class*="st-key-nav_group_current_"] button p {
+  text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px;
+}
+[class*="st-key-site_group_"] { min-width: 220px; }
+[class*="st-key-site_group_"] a p { font-family: Jua, sans-serif; font-size: 17px; font-weight: 400; }
+[class*="st-key-site_group_"] a {
   min-height: 44px; padding: 9px 12px; border-radius: 16px; color: #1B2340;
 }
-.st-key-site_more_links a:hover { background: #EEF0FA; color: #27336B; }
-.st-key-site_more_links [class*="st-key-more_"] { min-height: 48px; }
-.st-key-site_more_links [class*="st-key-more_current_"] a {
+[class*="st-key-site_group_"] a:hover { background: #EEF0FA; color: #27336B; }
+[class*="st-key-site_group_"] [class*="st-key-more_"] { min-height: 48px; }
+[class*="st-key-site_group_"] [class*="st-key-more_current_"] a {
   background: #EEF0FA; color: #27336B; text-decoration: underline;
 }
-.st-key-site_more_links a:focus-visible { outline: 3px solid #27336B; }
+[class*="st-key-site_group_"] a:focus-visible { outline: 3px solid #27336B; }
 .st-key-site_menu [class*="st-key-nav_current_"] a {
   color: #27336B; background: #EEF0FA;
 }
@@ -272,28 +283,54 @@ def brand() -> None:
     )
 
 
+# 바로 가는 메뉴와, 이름을 붙인 묶음 메뉴. 묶음 이름은 README 주요 화면 표의 구분과 같다.
+PRIMARY_PATHS = ("", "finder")
+NAV_GROUPS = (
+    ("동네 살펴보기", ":material/directions_car:", ("ownership", "parking", "charging", "transit", "roads")),
+    ("비교·조회", ":material/compare_arrows:", ("compare", "national")),
+    ("도움말", ":material/help:", ("faq", "ask", "about")),
+)
+
+
+def menu_order(pages: Sequence[st.Page]) -> list[st.Page]:
+    """메뉴에 보이는 순서대로 페이지를 돌려준다(바로가기 다음 묶음 순서)."""
+    by_path = {page.url_path: page for page in pages}
+    paths = [*PRIMARY_PATHS, *(path for _label, _icon, group in NAV_GROUPS for path in group)]
+    ordered = [by_path[path] for path in paths if path in by_path]
+    # 묶음에 넣지 않은 새 페이지도 메뉴에서 빠지지 않게 끝에 붙인다.
+    return ordered + [page for page in pages if page not in ordered]
+
+
 def navbar(pages: Sequence[st.Page], current: st.Page,
            options: dict[str, Any], on_change: Callable[[], None]) -> None:
-    primary_paths = {"", "ownership", "parking", "transit"}
-    more_pages = [page for page in pages if page.url_path not in primary_paths]
+    by_path = {page.url_path: page for page in pages}
+    grouped = {path for _label, _icon, group in NAV_GROUPS for path in group}
+    leftovers = [page for page in pages if page.url_path not in grouped and page.url_path not in PRIMARY_PATHS]
+    groups = [(label, icon, [by_path[path] for path in paths if path in by_path])
+              for label, icon, paths in NAV_GROUPS]
+    if leftovers:
+        groups[-1] = (groups[-1][0], groups[-1][1], groups[-1][2] + leftovers)
     with st.container(horizontal=True, vertical_alignment="center", gap="small", key="site_navbar"):
         with st.container(width=156, key="site_brand"):
             brand()
         with st.container(horizontal=True, vertical_alignment="center", gap="xxsmall", wrap=False, key="site_menu"):
-            for index, page in enumerate(pages):
-                if page.url_path not in primary_paths:
+            for index, path in enumerate(PRIMARY_PATHS):
+                page = by_path.get(path)
+                if page is None:
                     continue
                 active = "current" if page.url_path == current.url_path else "other"
                 with st.container(width="content", key=f"nav_{active}_{index}"):
                     st.page_link(page, label=page.title, icon=page.icon, width="content")
-            if more_pages:
-                active = "current" if current.url_path not in primary_paths else "other"
-                with st.container(width="content", key=f"nav_more_{active}"):
-                    with st.popover("더 보기"):
-                        with st.container(gap="xxsmall", key="site_more_links"):
-                            for index, page in enumerate(more_pages):
+            for number, (label, icon, members) in enumerate(groups):
+                if not members:
+                    continue
+                active = "current" if current in members else "other"
+                with st.container(width="content", key=f"nav_group_{active}_{number}"):
+                    with st.popover(label, icon=icon):
+                        with st.container(gap="xxsmall", key=f"site_group_{number}"):
+                            for index, page in enumerate(members):
                                 selected = "current" if page.url_path == current.url_path else "other"
-                                with st.container(key=f"more_{selected}_{index}"):
+                                with st.container(key=f"more_{selected}_{number}_{index}"):
                                     st.page_link(page, label=page.title, icon=page.icon, width="stretch")
         with st.container(width=164, key="site_picker"):
             regions = options.get("regions")
@@ -318,6 +355,7 @@ def hero(district_name: str) -> None:
 
 def page_header(path: str) -> None:
     headings = {
+        "finder": ("나에게 맞는 동네 찾기", "내 상황과 중요하게 보는 기준을 고르면, 서울 25구를 내 기준으로 순위를 매겨 추천해 드려요."),
         "charging": ("우리 동네 충전 여건은 어떨까요?", "전기차 대비 충전기 수와 충전소 위치를 살펴볼 수 있어요. 실시간 빈자리 정보는 아니에요."),
         "roads": ("어느 시간에 길이 붐빌까요?", "평일과 주말의 수록 교통량을 비교하고, 날씨 표본도 함께 살펴볼 수 있어요."),
         "about": ("차차차가 사용하는 자료", "자료 출처와 기준 시점, 세 가지 판정의 규칙과 한계를 확인할 수 있어요."),

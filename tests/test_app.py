@@ -163,17 +163,16 @@ class AppTestCase(unittest.TestCase):
 
     def test_eleven_pages_and_metric_page_links(self):
         at = self.app
-        expected = ["", "ownership", "parking", "charging", "transit", "roads",
+        expected = ["", "finder", "ownership", "parking", "charging", "transit", "roads",
                     "compare", "national", "faq", "ask", "about"]
-        expected_menu = ["", "ownership", "parking", "transit", "charging", "roads",
-                         "compare", "national", "faq", "ask", "about"]
+        expected_menu = expected
         menu = at.get_by_key("site_menu").page_link
-        more = at.get_by_key("site_more_links").page_link
-        self.assertEqual(len(menu), 11)
-        self.assertEqual(len(more), 7)
-        self.assertEqual(len(menu) - len(more), 4)
+        groups = [[link.proto.page for link in at.get_by_key(f"site_group_{number}").page_link]
+                  for number in range(3)]
+        self.assertEqual(len(menu), 12)
+        self.assertEqual(groups, [["ownership", "parking", "charging", "transit", "roads"],
+                                  ["compare", "national"], ["faq", "ask", "about"]])
         self.assertEqual([link.proto.page for link in menu], expected_menu)
-        self.assertEqual([link.proto.page for link in more], expected_menu[4:])
         labels = {link.proto.page: link.value for link in menu}
         for path, label in (("charging", "전기차 충전"), ("roads", "도로와 날씨"), ("about", "자료 안내")):
             self.assertEqual(labels[path], label)
@@ -181,7 +180,7 @@ class AppTestCase(unittest.TestCase):
             links = at.get_by_key(f"judgment_{topic}").page_link
             self.assertEqual(len(links), 1)
             self.assertEqual(links[0].proto.page, target)
-        for page in ("ownership", "parking", "charging", "transit", "roads", "compare",
+        for page in ("finder", "ownership", "parking", "charging", "transit", "roads", "compare",
                      "national", "faq", "ask", "about", "home"):
             with self.subTest(page=page):
                 at.switch_page(f"app_pages/{page}.py").run()

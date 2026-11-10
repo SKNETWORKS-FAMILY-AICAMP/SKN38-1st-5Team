@@ -19,7 +19,7 @@ class IdleNudgeTests(unittest.TestCase):
             is_default = "default" in keywords and ast.literal_eval(keywords["default"])
             paths.append("" if is_default else ast.literal_eval(keywords["url_path"]))
 
-        self.assertEqual(len(paths), 11)
+        self.assertEqual(len(paths), 12)
         self.assertEqual(set(MESSAGES), set(paths))
         for path in paths:
             with self.subTest(page=path):
