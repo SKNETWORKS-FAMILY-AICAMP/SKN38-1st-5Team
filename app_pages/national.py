@@ -104,7 +104,7 @@ if not valid_totals.empty:
 
 chart_column, table_column = st.columns([3, 2], gap="medium")
 with chart_column:
-    with st.container(border=True, key="national_chart_card"):
+    with st.container(border=True, height="stretch", key="national_chart_card"):
         st.markdown("**시도마다 차가 얼마나 있을까요?**")
         split = st.segmented_control(
             "막대 구성", ["용도별", "차종별"], default="용도별",
@@ -162,7 +162,7 @@ with chart_column:
             st.caption(f"합계 자료 없음: {', '.join(missing)}. 빠진 항목이 있어 막대와 전체 합계를 확정하지 않았어요.")
 
 with table_column:
-    with st.container(border=True, key="national_table_card"):
+    with st.container(border=True, height="stretch", key="national_table_card"):
         st.markdown("**등록 자료 표**")
         st.caption(f"선택 조건에 맞는 {len(frame):,}개 항목 · 단위: 대")
         frame["usage_name"] = frame.usage_code.astype(object).map(usage_names)

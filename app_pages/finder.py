@@ -127,7 +127,7 @@ with st.container(key="finder_cards"):
     cards = st.columns(3)
     for index, column in enumerate(cards):
         row = table.iloc[index]
-        with column.container(border=True, gap="small", key=f"finder_pick_{index}"):
+        with column.container(border=True, gap="small", height="stretch", key=f"finder_pick_{index}"):
             st.caption(f"{index + 1}위")
             st.markdown(f"### {row.district_name}")
             st.metric("내 기준 점수", f"{int(row.score)}점" if pd.notna(row.score) else "자료 없음")

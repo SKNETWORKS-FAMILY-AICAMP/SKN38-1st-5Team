@@ -237,6 +237,11 @@ CSS = """
 .st-key-footer_brand .brand-home { color: #fff; font-size: 30px; }
 .st-key-site_footer p { font-size: 16px; line-height: 1.7; color: #EEF0FA; margin: 8px 0 0; }
 [data-testid="stForm"] [data-testid="InputInstructions"] { display: none; }
+/* 나란히 놓인 숫자 카드는 글이 줄바꿈돼도 같은 높이로 맞춘다. */
+.st-key-site_content [data-testid="stElementContainer"]:has(> [data-testid="stMetric"]) { height: 100%; }
+.st-key-site_content [data-testid="stElementContainer"] > [data-testid="stMetric"] { height: 100%; box-sizing: border-box; }
+/* 좁은 화면에서 선택 버튼 묶음이 카드 밖으로 나가지 않게 줄바꿈한다. */
+.st-key-site_content [data-testid="stButtonGroup"] [role="radiogroup"] { flex-wrap: wrap; row-gap: 6px; }
 .st-key-footer_menu { max-width: 720px; display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: 24px; align-items: start; }
 .st-key-footer_menu > div { width: 100% !important; min-width: 0; }

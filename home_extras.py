@@ -207,7 +207,7 @@ def next_steps(row: pd.Series, ranking: pd.DataFrame) -> None:
         st.html(f'<p class="home-lead">{escape(lead)}</p>')
         for column, (key, reason) in zip(st.columns(len(cards)), cards):
             link = LINKS[key]
-            with column.container(gap="small", key=f"next_card_{key}"):
+            with column.container(gap="small", height="stretch", key=f"next_card_{key}"):
                 st.html(f'<span class="next-why">{escape(reason)}</span>'
                         f'<span class="next-title">{escape(link.title)}</span>'
                         f'<span class="next-desc">{escape(link.description)}</span>'

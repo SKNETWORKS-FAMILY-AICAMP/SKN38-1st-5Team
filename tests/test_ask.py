@@ -409,7 +409,7 @@ class AskPageTest(OfflineTestCase):
         self.assertTrue(app.chat_input(key="ask_prompt").disabled)
         self.assertEqual(len([b for b in app.button if b.key.startswith("ask_example_")]), 3)
         self.assertTrue(all(app.button(key=f"ask_example_{i}").disabled for i in range(3)))
-        self.assertEqual(sum(link.value == "물어보기" for link in app.page_link), 2)
+        self.assertEqual(sum(link.value == "물어보기" for link in app.page_link), 3)
         app.switch_page("app_pages/faq.py").run()
         self.assertFalse(app.exception)
         self.factory.assert_not_called()
