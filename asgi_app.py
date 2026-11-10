@@ -12,6 +12,7 @@ from security import BOT_NOTICE, is_blocked_user_agent
 
 SECURITY_HEADERS = {
     b"x-frame-options": b"DENY",
+    b"content-security-policy": b"frame-ancestors 'none'",
     b"x-content-type-options": b"nosniff",
     b"referrer-policy": b"strict-origin-when-cross-origin",
     b"x-robots-tag": b"noindex, nofollow, noarchive",

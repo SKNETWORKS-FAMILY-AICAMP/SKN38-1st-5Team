@@ -13,10 +13,12 @@ py -3.14 -m venv .venv
 copy .streamlit\secrets.toml.example .streamlit\secrets.toml
 
 # 3. 실행 → 브라우저에서 http://localhost:8510
-.venv\Scripts\python -m streamlit run app.py --server.port 8510
+.venv\Scripts\python -m streamlit run asgi_app.py --server.port 8510
 ```
 
 macOS는 `.venv\Scripts\python` 대신 `.venv/bin/python`, `copy` 대신 `cp`를 사용합니다. 실제 접속값(`secrets.toml`)은 레포에 올리지 않습니다.
+
+보안 미들웨어를 적용하려면 시작 파일을 `asgi_app.py`로 지정합니다. `app.py`로 직접 실행하면 앱 내부 요청 제한은 동작하지만, `asgi_app.py`의 HTTP 보안 헤더와 WebSocket 연결 전 봇 차단은 적용되지 않습니다. Streamlit Cloud에서도 배포 시작 파일을 확인하고, 배포 후 실제 응답에서 `X-Frame-Options: DENY`와 `Content-Security-Policy: frame-ancestors 'none'`을 확인하세요. 이 정책은 다른 사이트가 차차차를 프레임으로 삽입하는 것을 제한하며, 차차차 내부 지도 프레임의 로딩을 제한하는 정책은 아닙니다.
 
 실행 전 `.streamlit/secrets.toml`의 DB 설정과 함께 다음 항목의 빈 값을 채웁니다. `javascript_api_key`는 지도 표시, `rest_api_key`는 경로 조회, `[anthropic]`의 `api_key`는 물어보기에 사용합니다.
 
