@@ -118,7 +118,6 @@ st.html("""<style>
 .parking-side-detail p {margin:8px 0;}
 </style>""")
 hero_column, map_column = st.columns([1, 1.6], gap="large")
-station_slot = hero_column.container(key="parking_station_slot")
 with hero_column.container(key="parking_page_hero"):
     parking_hero(
         district_id=region_id, district_name=district,
@@ -143,18 +142,20 @@ detail_slot = hero_column.container(key="parking_detail_slot")
 with map_column:
     st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
     with st.container(key="parking_search_controls"):
-        facility_column, keyword_column = st.columns([1, 1.7], vertical_alignment="bottom")
+        facility_column, station_column = st.columns([1, 2.5], vertical_alignment="top")
+        station_slot = station_column.container(key="parking_station_slot")
         facility = facility_column.segmented_control(
             "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,
             key="parking_facility", persist_state="session",
         )
+        keyword_column, operation_column = st.columns([1.7, 1], vertical_alignment="bottom")
         keyword = keyword_column.text_input(
             "이름·주소 검색", placeholder="주차장·충전소 이름이나 주소", max_chars=500,
             key="parking_keyword", width="stretch", persist_state="session",
             help="지도는 시설 이름이나 주소로, 아래 수록 주차장 목록은 주소로 찾아요. 검색 기호도 글자 그대로 찾아요.",
         ).strip()
         if facility == "주차장":
-            operation = st.segmented_control(
+            operation = operation_column.segmented_control(
                 "주차장 운영", ["전체", "공영", "민영"], default="전체", required=True,
                 key="parking_operation", persist_state="session",
             ) or "전체"
