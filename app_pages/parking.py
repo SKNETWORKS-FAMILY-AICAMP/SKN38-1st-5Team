@@ -114,14 +114,14 @@ st.html("""<style>
 .st-key-parking_station_controls [data-testid="stWidgetLabel"] {min-height:36px;display:flex;align-items:end;}
 .st-key-parking_station_controls [data-testid="stTextInput"] input,
 .st-key-parking_station_controls [data-baseweb="select"] {min-height:44px;}
-.st-key-parking_search_controls {border:1px solid #DDE1F0;border-radius:16px;padding:18px;background:#F7F8FC;}
+.st-key-parking_search_controls {border:1px solid #DDE1F0;border-radius:16px;padding:16px;background:#F7F8FC;}
 .st-key-parking_search_controls [data-testid="stWidgetLabel"] p {font-size:17px;font-weight:700;color:#27336B;}
 .st-key-parking_search_controls [data-testid="stCheckbox"] label {min-height:0;}
 .parking-side-detail {padding:16px 18px;border:1px solid #E7CD87;border-radius:14px;background:#FFF3D6;max-height:300px;overflow:auto;font-size:16px;line-height:1.6;}
 .parking-side-detail h3 {font-size:21px;margin:0 0 10px;color:#27336B;}
 .parking-side-detail p {margin:8px 0;}
 </style>""")
-hero_column, map_column = st.columns([1, 1.6], gap="large")
+hero_column, map_column = st.columns([1.15, 1.6], gap="large")
 with hero_column.container(key="parking_page_hero"):
     parking_hero(
         district_id=region_id, district_name=district,
@@ -149,13 +149,13 @@ detail_slot = hero_column.container(key="parking_detail_slot")
 with map_column:
     st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
     with st.container(key="parking_search_controls"):
-        facility_column, station_column = st.columns([1, 2.5], vertical_alignment="top")
+        facility_column, station_column = st.columns([1, 3], vertical_alignment="top")
         station_slot = station_column.container(key="parking_station_slot")
         facility = facility_column.segmented_control(
             "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,
             key="parking_facility", persist_state="session",
         )
-        keyword_column, operation_column = st.columns([1.7, 1], vertical_alignment="bottom")
+        keyword_column, operation_column = st.columns([2, 1.4], vertical_alignment="bottom")
         keyword = keyword_column.text_input(
             "이름·주소 검색", placeholder="주차장·충전소 이름이나 주소", max_chars=500,
             key="parking_keyword", width="stretch", persist_state="session",
