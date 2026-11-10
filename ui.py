@@ -196,6 +196,38 @@ def mobility_mood(row: pd.Series) -> str:
     return "smile"
 
 
+def purchase_context(row: pd.Series, ranking: pd.DataFrame, traffic: pd.DataFrame) -> tuple[str, str]:
+    """수록 교통량·주민 수·주차 비율을 비교하는 참고 표현. 누락은 중립으로 둔다."""
+    columns = {"avg_vehicles_per_point", "seoul_avg_vehicles_per_point", "observed_hour_count", "complete_hour_count"}
+    unavailable = ("smile", "교통량·인구·주차 자료가 모두 갖춰지면 이동 여건을 함께 비교해요.")
+    if not columns <= set(traffic.columns) or "population" not in ranking or traffic.empty:
+        return unavailable
+    values = traffic[list(columns)].apply(pd.to_numeric, errors="coerce")
+    population = pd.to_numeric(row.get("population"), errors="coerce")
+    populations = pd.to_numeric(ranking.population, errors="coerce").dropna()
+    parking = word(row.get("parking_level"))
+    if (values.isna().any().any() or populations.empty or pd.isna(population)
+            or parking not in TOPICS["parking"].levels or len(values) < 24
+            or not values.observed_hour_count.gt(0).all()
+            or not values.complete_hour_count.eq(values.observed_hour_count).all()
+            or not values.seoul_avg_vehicles_per_point.gt(0).all()):
+        return unavailable
+    ratio = float((values.avg_vehicles_per_point / values.seoul_avg_vehicles_per_point).mean())
+    low_population, high_population = populations.quantile([1/3, 2/3])
+    traffic_level = "적음" if ratio <= .85 else "많음" if ratio >= 1.15 else "보통"
+    population_level = "적음" if population < low_population else "많음" if population > high_population else "보통"
+    transit = word(row.get("need_level"))
+    bad = sum((traffic_level == "많음", population_level == "많음", parking == "빠듯함", transit == "차가 필요한 편"))
+    mood = "crying" if bad >= 2 else "smile"
+    if traffic_level == "적음" and population_level == "적음" and parking == "좋음":
+        mood = "happy"
+    explanation = (f"지점당 관측 교통량 {traffic_level} · 수록 주민 수 {population_level} · 주차 {parking}. "
+                   "교통량은 같은 시간대 서울 지점당 평균의 85% 이하·115% 이상, 인구는 25구의 하위·상위 3분의 1을 기준으로 비교해요. "
+                   "낮은 대중교통 이용 지표도 주의 조건에 포함해요. 두 가지 이상이면 주의 표정이에요. "
+                   "관측 도로와 수록 주차장 기준이며 실제 정체·빈자리·노선 편의나 개인의 구매 적합성을 뜻하지 않아요.")
+    return mood, explanation
+
+
 def neighborhood_summary(row: pd.Series) -> None:
     with st.container(border=True, gap=4, key="neighborhood_summary"):
         st.caption("한눈에 읽는 우리 동네")

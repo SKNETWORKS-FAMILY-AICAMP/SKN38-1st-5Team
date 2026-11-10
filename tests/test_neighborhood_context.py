@@ -91,7 +91,7 @@ class NeighborhoodContextTest(unittest.TestCase):
             with self.subTest(levels=levels):
                 row = district(*levels)
                 ranking = pd.DataFrame([row])
-                def fetch(query):
+                def fetch(query, *args):
                     return ranking if query is scene_seoul.q.get_district_ranking else pd.DataFrame()
                 with patch.object(scene_seoul, 'load_frame', side_effect=fetch), \
                         patch.object(scene_seoul.st, 'session_state', {'district_id': 1, 'topic': 'need'}), \
@@ -99,7 +99,7 @@ class NeighborhoodContextTest(unittest.TestCase):
                     scene_seoul.render_hero('테스트구')
                 data = hero.call_args.kwargs['data']
                 self.assertEqual(data['selected']['sentence'], neighborhood_sentence(row))
-                self.assertEqual(data['selected']['mobility_mood'], mobility_mood(row))
+                self.assertEqual(data['selected']['mobility_mood'], 'smile')
                 verdicts = data['selected']['verdicts']
                 self.assertEqual([v['level'] for v in verdicts], list(levels))
                 self.assertIn('2.40명', verdicts[2]['value'])

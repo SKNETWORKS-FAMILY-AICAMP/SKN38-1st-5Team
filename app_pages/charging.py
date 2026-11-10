@@ -7,7 +7,6 @@ import streamlit as st
 import readable
 
 from db import queries as q
-from parking_explorer import charger_records, render_map
 from ui import date_text, display_table, district_row, load_frame, load_options, number, word
 
 
@@ -246,7 +245,8 @@ with st.grid(2, min_column_width=290, gap="medium"):
                       column_config={"충전기 수": st.column_config.NumberColumn(format="%,d")})
 st.caption("무료 주차는 충전 요금 무료를 뜻하지 않아요. 무료 주차여도 입주민 전용 등 이용 제한이 있을 수 있어요. 자료 없음은 무료나 자유 이용을 뜻하지 않아요.")
 
-st.subheader(f"{district} 충전소 찾기", anchor=False)
+st.subheader(f"{district} 충전소 이용 정보", anchor=False)
+st.page_link("app_pages/parking.py", label="주차·충전 위치 지도에서 찾기", icon=":material/map:")
 with st.container(horizontal=True, vertical_alignment="bottom"):
     speed = st.segmented_control("충전 속도", list(SPEED_LABELS), default="all", required=True,
                                  format_func=lambda value: SPEED_LABELS[value], key="charging_speed") or "all"
@@ -270,11 +270,10 @@ if not devices.empty:
 stations = devices.drop_duplicates("station_id").copy() if not devices.empty else pd.DataFrame()
 station_ids = stations.station_id.tolist() if not stations.empty else []
 visible_points = points.loc[points.place_id.isin(station_ids)].copy() if not points.empty else points
-st.caption(f"현재 조건의 충전소 {len(stations):,}곳 · 충전기 {len(devices):,}기 · 지도 {len(visible_points):,}곳")
+st.caption(f"현재 조건의 충전소 {len(stations):,}곳 · 충전기 {len(devices):,}기 · 위치 자료 {len(visible_points):,}곳")
 if len(stations) > len(visible_points):
     st.caption(f"좌표가 없거나 표시 범위를 벗어난 충전소 {len(stations) - len(visible_points):,}곳은 목록에서 확인해 주세요.")
-st.caption("지도 점 하나는 같은 운영기관이 관리하는 충전소예요. 같은 장소의 다른 운영기관은 점이 겹칠 수 있어요.")
-render_map(charger_records(visible_points, devices), district, key="charging_station_map", region_id=region_id)
+st.caption("같은 장소라도 운영기관이 다르면 별도 충전소예요. 위치 지도는 주차·충전 찾기에서 볼 수 있어요.")
 
 if not stations.empty:
     mapped_ids = set(visible_points.place_id) if not visible_points.empty else set()

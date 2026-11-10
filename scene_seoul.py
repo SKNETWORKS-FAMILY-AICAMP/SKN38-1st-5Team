@@ -9,7 +9,7 @@ import streamlit as st
 from car_expression import add_expression, FACE_JS
 from db import queries as q
 from ui import (COLORS, TOPICS, date_text, district_row, load_frame, neighborhood_sentence,
-                mobility_mood, number, rank_text, remember_region, set_topic, topic_value, word)
+                purchase_context, number, rank_text, remember_region, set_topic, topic_value, word)
 
 
 KEY = "hero_h3_seoul_drawing"
@@ -70,6 +70,7 @@ HTML = """
     <p class="summary-caption">한눈에 읽는 우리 동네</p>
     <p class="arrival-title" aria-hidden="true"><span class="typed"></span><span class="cursor">|</span></p>
     <p class="sentence"></p>
+    <p class="context-note"></p>
     <div class="verdicts" aria-label="선택한 동네의 세 가지 판정">__VERDICTS__</div>
     <p class="guide">세 기준을 누르면 지도가 바뀌어요.<br>서울 25구 안에서 비교한 참고 판정이에요. 대중교통은 주민 대비 수록 승객 수로, 개인의 차량 구매 필요를 뜻하지 않아요.</p>
     <span class="sr-only announcement" role="status" aria-live="polite" aria-atomic="true"></span>
@@ -121,6 +122,7 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
   background: #fff; color: #27336B; border: 1px solid #8E98CF; border-radius: 14px;
   padding: 9px 14px; font-size: 13px; line-height: 1.6; pointer-events: none; }
 .arrival { grid-column: 1; grid-row: 2; align-self: center; padding: 18px 0 6px; min-width: 0; }
+.context-note {font-size:14px;line-height:1.6;color:#4A5270;padding:12px;border-radius:12px;background:#FFFFFFB8;}
 .summary-caption { font-size: 13px; color: #4A5270; margin-bottom: 5px; }
 .arrival-title { font: 29px/1.3 'Jua', var(--st-heading-font), sans-serif; min-height: 38px; color: #27336B; }
 .typed .district-name { color: #C24C38; }
@@ -268,6 +270,8 @@ export default function(component) {
   });
   select('.source').textContent = data.boundary_source;
   select('.sentence').textContent = selected.sentence;
+  select('.context-note').textContent = selected.context_note || '';
+  select('.travel .car').setAttribute('aria-label', selected.name + ' 이동 여건 참고 표정');
   select('.map-empty').toggleAttribute('hidden', shapes.length > 0);
   select('.travel').style.visibility = destination ? 'visible' : 'hidden';
   select('.map-guide').textContent = shapes.length ? '궁금한 구를 눌러 주세요' : '위에서 동네를 선택해 주세요';
@@ -556,6 +560,8 @@ def render_hero(district_name: str) -> None:
     boundaries = load_frame(q.get_region_boundaries)
     region_id = st.session_state.get("district_id")
     row = district_row(ranking, int(region_id)) if region_id is not None else pd.Series(dtype=object)
+    profile = load_frame(q.get_traffic_profile, int(region_id)) if region_id is not None else pd.DataFrame()
+    mood, context_note = purchase_context(row, ranking, profile)
     count = number(row.get("vehicle_count"), suffix="대")
     years = sorted({int(y) for y in boundaries.get("boundary_year", pd.Series(dtype=float)).dropna()})
     source = "통계청 " + ", ".join(map(str, years)) + "년 경계" if years else "경계 자료 없음"
@@ -581,7 +587,8 @@ def render_hero(district_name: str) -> None:
                 "name": word(row.get("district_name"), district_name),
                 "count": f"등록 {count} · {date_text(row.get('stat_month'), month=True)}",
                 "sentence": neighborhood_sentence(row),
-                "mobility_mood": mobility_mood(row),
+                "mobility_mood": mood,
+                "context_note": context_note,
                 "verdicts": _verdicts(row),
             },
         },

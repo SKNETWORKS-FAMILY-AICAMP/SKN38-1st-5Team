@@ -950,10 +950,14 @@ def get_traffic_profile(region_id) -> pd.DataFrame:
         ), city_hour AS (
             SELECT d.*,
                    AVG(d.avg_vehicles) OVER (PARTITION BY d.day_type, d.hour_of_day) AS seoul_avg_vehicles,
+                   AVG(d.avg_vehicles / NULLIF(d.avg_valid_point_direction_count, 0))
+                     OVER (PARTITION BY d.day_type, d.hour_of_day) AS seoul_avg_vehicles_per_point,
                    COUNT(*) OVER (PARTITION BY d.day_type, d.hour_of_day) AS seoul_region_count
             FROM district_hour d
         )
         SELECT hour_of_day, day_type, avg_vehicles, seoul_avg_vehicles,
+               avg_vehicles / NULLIF(avg_valid_point_direction_count, 0) AS avg_vehicles_per_point,
+               seoul_avg_vehicles_per_point,
                observed_hour_count, complete_hour_count, expected_point_direction_count,
                avg_valid_point_direction_count, min_valid_point_direction_count, seoul_region_count,
                reference_start, reference_end, source_snapshot_id
