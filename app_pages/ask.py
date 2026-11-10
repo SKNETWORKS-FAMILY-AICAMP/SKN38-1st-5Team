@@ -102,7 +102,8 @@ st.caption(f"이번 대화에서 {MAX_SESSION_QUESTIONS - st.session_state.ask_c
 prompt = st.chat_input("어느 동네의 자동차 생활이 궁금한가요?", key="ask_prompt",
                        max_chars=MAX_QUESTION_CHARS, submit_mode="disable",
                        disabled=client is None or limit_reached)
-prompt = prompt or example_prompt
+# 머리말의 통합검색에서 넘어온 질문은 한 번만 쓴다.
+prompt = prompt or example_prompt or st.session_state.pop("ask_prefill", None)
 if prompt:
     try:
         # 화면의 입력 제한은 우회할 수 있어 서버에서도 검사한다.

@@ -78,6 +78,12 @@ CSS = """
   text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px;
 }
 .st-key-site_picker { flex: 0 0 auto; }
+.st-key-site_tools { flex: 0 0 auto; }
+.st-key-site_tools button { min-height: 44px; border-radius: 999px; }
+.st-key-site_tools button p { font-size: 16px; font-weight: 700; color: #1B2340; white-space: nowrap; }
+.st-key-site_tools [data-testid="stPopover"] > div > button { border-color: transparent; background: transparent; }
+.st-key-site_tools button:hover p { color: #2451A4; }
+[class*="st-key-sitemap_row_"] a p { font-size: 16px; }
 .st-key-site_hero {
   background: #EEF0FA; padding: 16px 0;
   box-shadow: 0 0 0 100vmax #EEF0FA; clip-path: inset(0 -100vmax);
@@ -344,6 +350,63 @@ def navbar(pages: Sequence[st.Page], current: st.Page,
                 st.selectbox("살펴볼 동네", ids, format_func=lambda value: names[value],
                              key="district_id", icon=":material/location_on:",
                              on_change=on_change, label_visibility="collapsed", persist_state="session")
+        with st.container(horizontal=True, width="content", vertical_alignment="center", gap="small",
+                          key="site_tools"):
+            site_search(pages, options)
+            if st.button("전체메뉴", icon=":material/menu:", key="site_sitemap_open", type="tertiary"):
+                sitemap(pages)
+
+
+SITEMAP_NOTES = {
+    "": "서울 25구에서 나에게 맞는 동네",
+    "동네 살펴보기": "구별 자동차 생활 자료",
+    "비교·조회": "두 동네와 전국 통계",
+    "도움말": "묻고, 찾고, 확인하기",
+}
+
+
+@st.dialog("사이트맵", width="large")
+def sitemap(pages: Sequence[st.Page]) -> None:
+    by_path = {page.url_path: page for page in pages}
+    rows = [("우리 동네", SITEMAP_NOTES[""], [by_path[path] for path in PRIMARY_PATHS if path in by_path])]
+    rows += [(label, SITEMAP_NOTES.get(label, ""), [by_path[path] for path in paths if path in by_path])
+             for label, _icon, paths in NAV_GROUPS]
+    for number, (label, note, members) in enumerate(rows):
+        with st.container(horizontal=True, gap="large", key=f"sitemap_row_{number}"):
+            with st.container(width=220):
+                st.markdown(f"**{label}**")
+                st.caption(note)
+            with st.container(gap="xxsmall"):
+                for page in members:
+                    st.page_link(page, label=page.title, icon=page.icon)
+        if number < len(rows) - 1:
+            st.divider()
+
+
+def site_search(pages: Sequence[st.Page], options: dict[str, Any]) -> None:
+    with st.popover("통합검색", icon=":material/search:"):
+        with st.form("site_search_form", border=False, clear_on_submit=True):
+            query = st.text_input("통합검색", placeholder="구 이름, 메뉴, 궁금한 점", max_chars=200,
+                                  label_visibility="collapsed")
+            submitted = st.form_submit_button("검색", icon=":material/search:", type="primary", width="stretch")
+        st.caption("예: 마포구 · 주차 찾기 · 차 없어도 살 만한 동네")
+    text = (query or "").strip() if submitted else ""
+    if not text:
+        return
+    regions = options.get("regions")
+    if regions is not None and not regions.empty:
+        for region_id, name in zip(regions.region_id.astype(int), regions.district_name.astype(str)):
+            if text in (name, name.removesuffix("구")):
+                # 구 선택 상자는 다음 실행 첫머리에서 이 값으로 맞춰진다.
+                st.session_state.selected_region_id = region_id
+                st.switch_page("app_pages/home.py")
+    compact = text.replace(" ", "")
+    for page in pages:
+        if compact and compact in page.title.replace(" ", ""):
+            st.switch_page(page)
+    # 구나 메뉴가 아니면 질문으로 보고 물어보기로 넘긴다.
+    st.session_state.ask_prefill = text
+    st.switch_page("app_pages/ask.py")
 
 
 def hero(district_name: str) -> None:
