@@ -108,7 +108,8 @@ if pd.notna(row.get("parking_rank")):
     parking_value += f" · 서울 25구 중 {int(row['parking_rank'])}위"
 
 st.html("""<style>
-.st-key-parking_page_hero {padding-bottom:12px;}
+.st-key-parking_page_hero {padding-bottom:0;height:100%;}
+.st-key-parking_top_row {margin-bottom:12px;}
 .st-key-parking_capacity [data-testid="stMetric"] {min-height:130px;box-sizing:border-box;}
 .st-key-parking_search_controls [data-testid="stWidgetLabel"],
 .st-key-parking_station_controls [data-testid="stWidgetLabel"] {min-height:36px;display:flex;align-items:end;}
@@ -129,33 +130,19 @@ st.html("""<style>
 .parking-side-detail h3 {font-size:21px;margin:0 0 10px;color:#27336B;}
 .parking-side-detail p {margin:8px 0;}
 </style>""")
-hero_column, map_column = st.columns([1.15, 1.6], gap="large")
-with hero_column.container(key="parking_page_hero"):
+with st.container(key="parking_top_row"):
+    header_column, search_column = st.columns([1.15, 1.6], gap="large")
+with header_column.container(key="parking_page_hero", height="stretch"):
     parking_hero(
         district_id=region_id, district_name=district,
         parking_level=word(row.get("parking_level")), parking_value=parking_value,
         levels={topic: word(row.get(f"{topic}_level")) for topic in ("ownership", "parking", "need")},
-        active_topic="parking", hide_scene=True,
+        active_topic="parking", hide_scene=True, stretch=True,
     )
 
-with hero_column.container(key="parking_charging_card"):
-    charging_summary(row, district)
 
-with hero_column:
-    capacity = district_row(load_frame(q.get_parking_summary, [region_id]), region_id)
-    with st.grid(2, min_column_width=160, gap="small", key="parking_capacity"):
-        st.metric("공영 주차면", number(capacity.get("public_space_count"), suffix="면"), border=True)
-        st.metric("민영 주차면", number(capacity.get("private_space_count"), suffix="면"), border=True)
-    st.caption(
-        "수록된 주차장의 면수이며 아파트 주차장은 빠져 있어요. 실제 빈자리가 아니에요. "
-        "관리번호가 겹치는 항목은 면수 합계와 지도에서 제외하며, 면수 자료가 빠지면 자료 없음으로 표시해요."
-    )
-
-detail_slot = hero_column.container(key="parking_detail_slot")
-
-
-with map_column:
-    with st.container(key="parking_search_controls"):
+with search_column:
+    with st.container(key="parking_search_controls", height="stretch"):
         st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
         facility_column, station_column = st.columns([1, 3], vertical_alignment="top")
         station_slot = station_column.container(key="parking_station_slot")
@@ -174,6 +161,24 @@ with map_column:
                 "주차장 운영", ["전체", "공영", "민영"], default="전체", required=True,
                 key="parking_operation", persist_state="session",
             ) or "전체"
+
+
+hero_column, map_column = st.columns([1.15, 1.6], gap="large")
+with hero_column.container(key="parking_charging_card"):
+    charging_summary(row, district)
+
+with hero_column:
+    capacity = district_row(load_frame(q.get_parking_summary, [region_id]), region_id)
+    with st.grid(2, min_column_width=160, gap="small", key="parking_capacity"):
+        st.metric("공영 주차면", number(capacity.get("public_space_count"), suffix="면"), border=True)
+        st.metric("민영 주차면", number(capacity.get("private_space_count"), suffix="면"), border=True)
+    st.caption(
+        "수록된 주차장의 면수이며 아파트 주차장은 빠져 있어요. 실제 빈자리가 아니에요. "
+        "관리번호가 겹치는 항목은 면수 합계와 지도에서 제외하며, 면수 자료가 빠지면 자료 없음으로 표시해요."
+    )
+
+detail_slot = hero_column.container(key="parking_detail_slot")
+
 
 # 지도·검색 줄 아래에, 이 구의 주차 여건을 서울 평균과 견준 카드를 넓게 보여 준다.
 _ranking = load_frame(q.get_district_ranking)

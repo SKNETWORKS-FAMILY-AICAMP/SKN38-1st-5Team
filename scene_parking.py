@@ -77,7 +77,7 @@ HTML = """
 
 
 CSS = """
-.parking-hero.map-layout {display:block;padding:20px;min-height:330px;border:1px solid #DDE1F0;border-radius:18px;background:#F7F8FC;}
+.parking-hero.map-layout {display:block;padding:20px;min-height:330px;height:100%;border:1px solid #DDE1F0;border-radius:18px;background:#F7F8FC;}
 .parking-hero.map-layout h1 {font-size:clamp(34px,2.7vw,40px);line-height:1.25;}
 .parking-hero.map-layout .intro {font-size:18px;}
 .parking-hero.map-layout .district-line {margin-top:12px;}
@@ -86,7 +86,7 @@ CSS = """
 .parking-hero.map-layout .measure,.parking-hero.map-layout .little-road {font-size:16px;line-height:1.6;}
 @media(max-width:600px){.parking-hero.map-layout {padding:20px;min-height:0;}.parking-hero.map-layout h1 {font-size:34px;}}
 
-:host { display: block; width: 100%; }
+:host { display: block; width: 100%; height:100%; }
 * { box-sizing: border-box; }
 .parking-hero {
   --navy: #27336B; --ink: #1B2340; --mid: #8E98CF; --pale: #EEF0FA; --coral: #FF7A66;
@@ -398,6 +398,7 @@ def parking_hero(
     levels: dict[str, str],
     active_topic: str,
     hide_scene: bool = False,
+    stretch: bool = False,
 ) -> None:
     _PARKING_HERO(
         key="hero_h4_parking",
@@ -412,5 +413,5 @@ def parking_hero(
             "hideScene": hide_scene,
         },
         width="stretch",
-        height="content",
+        height="stretch" if stretch else "content",
     )
