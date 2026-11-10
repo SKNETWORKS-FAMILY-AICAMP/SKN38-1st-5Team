@@ -132,36 +132,22 @@ python -m unittest tests.test_fetch_faq
 
 실제 수집일은 `fetched_on`, 한국 시각의 정확한 수집시각은 `collected_at` 열에 기록합니다. 시간 초과·FAQ 구조 변경·중복 질문·출력 실패 시 기존 CSV를 교체하지 않고 브라우저를 종료합니다. 새 수집 CSV는 검토용이며 기존 검산된 수집본이나 DB를 자동 갱신하지 않습니다. 원본·CSV는 Git에 추가하지 않습니다. 위 테스트는 가상 HTML과 모의 브라우저를 사용하여 외부 수집 없이 실행합니다.
 
-## 검사 실행과 제출 자료
-
-테스트는 Python 3.14 환경과 Node.js가 필요합니다. MySQL 통합 테스트에는 팀에서 전달받은 데이터가 적재된 로컬 `chachacha` DB가 필요합니다. 원본 데이터와 실제 접속정보를 Git에 추가하지 않습니다.
-
-```bash
-# 의존성 설치: 프로젝트의 고정 목록 사용
-python -m pip install -r requirements.lock.txt
-
-# 공개 경계 파일 복원: 고정 커밋과 SHA-256 검증, data/raw 아래에 저장
-python scripts/fetch_boundary.py
-
-# DB·외부 브라우저 없이 실행하는 보안·수집 단위 테스트
-python -m unittest tests.test_fetch_boundary tests.test_fetch_faq tests.test_db_phase5 tests.test_kakao_routes tests.test_security
-
-# DB와 Node.js가 준비된 환경에서 전체 검사
-node --version
-python -m unittest discover -s tests
-python scripts/check_before_push.py
-```
-
-`fetch_boundary.py`는 기존 파일이 수집 기록의 해시와 일치하면 네트워크를 호출하지 않습니다. 다운로드 크기·해시·25구 형식을 검증한 뒤에만 파일을 교체합니다. 경계 원본은 계속 Git에서 제외됩니다. macOS에서 Homebrew의 `node@24`를 사용한다면 실행 전 `export PATH="$(brew --prefix node@24)/bin:$PATH"`로 경로를 추가할 수 있습니다.
-
-과제의 **DB 설계 문서·수집 데이터·조회 프로그램** 제출 범위와 공개/비공개 구분은 [제출 산출물 점검표](docs/submission_checklist.md)를 참고하세요.
-
 ## 앞으로의 계획
 
 - **차차차 종합 점수 화면 반영**: `scoring.py` 보조 모델 검증 후 결정
 - **맞춤형 주차비 계산**: 주차 요금·차량유형별 감면 데이터 추가 필요
 - **EV 전용 모드**: 충전기 1기당 전기차 수, 신규 충전소 입지 분석
 - **행정동 단위 분석**: 행정동별 등록·주차 데이터 확보 필요
+
+## 회고
+
+| 이름 | 역할 | 회고 |
+|---|---|---|
+| 고재윤 | 팀장 · PM |  |
+| 한기현 | 프론트엔드 |  |
+| 박채영 | 백엔드 |  |
+| 이현지 | 백엔드 |  |
+| 권대원 | 서포터 |  |
 
 ---
 
