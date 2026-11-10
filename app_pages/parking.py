@@ -108,15 +108,23 @@ if pd.notna(row.get("parking_rank")):
     parking_value += f" · 서울 25구 중 {int(row['parking_rank'])}위"
 
 st.html("""<style>
-.st-key-parking_page_hero {padding-bottom:20px;}
+.st-key-parking_page_hero {padding-bottom:12px;}
 .st-key-parking_capacity [data-testid="stMetric"] {min-height:130px;box-sizing:border-box;}
 .st-key-parking_search_controls [data-testid="stWidgetLabel"],
 .st-key-parking_station_controls [data-testid="stWidgetLabel"] {min-height:36px;display:flex;align-items:end;}
 .st-key-parking_station_controls [data-testid="stTextInput"] input,
 .st-key-parking_station_controls [data-baseweb="select"] {min-height:44px;}
-.st-key-parking_search_controls {border:1px solid #DDE1F0;border-radius:16px;padding:16px;background:#F7F8FC;}
+.st-key-parking_search_controls {border:1px solid #DDE1F0;border-radius:16px;padding:12px 16px;background:#F7F8FC;}
 .st-key-parking_search_controls [data-testid="stWidgetLabel"] p {font-size:17px;font-weight:700;color:#27336B;}
 .st-key-parking_search_controls [data-testid="stCheckbox"] label {min-height:0;}
+.st-key-parking_pin_animation {margin-top:-10px;}
+.st-key-parking_pin_animation [data-testid="stWidgetLabel"] {min-height:0;display:block;}
+.st-key-parking_pin_animation [data-testid="stWidgetLabel"] p {font-size:15px;line-height:1.4;margin:0;}
+.st-key-parking_station_slot [data-testid="stVerticalBlock"],
+.st-key-parking_station_controls {gap:6px;}
+.st-key-parking_search_controls > [data-testid="stVerticalBlock"] {gap:12px;}
+.st-key-parking_search_controls [data-testid="stHorizontalBlock"] {align-items:flex-start;}
+.st-key-parking_search_controls [data-testid="stWidgetLabel"] {align-items:center;}
 .parking-side-detail {padding:16px 18px;border:1px solid #E7CD87;border-radius:14px;background:#FFF3D6;max-height:300px;overflow:auto;font-size:16px;line-height:1.6;}
 .parking-side-detail h3 {font-size:21px;margin:0 0 10px;color:#27336B;}
 .parking-side-detail p {margin:8px 0;}
@@ -147,8 +155,8 @@ detail_slot = hero_column.container(key="parking_detail_slot")
 
 
 with map_column:
-    st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
     with st.container(key="parking_search_controls"):
+        st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
         facility_column, station_column = st.columns([1, 3], vertical_alignment="top")
         station_slot = station_column.container(key="parking_station_slot")
         facility = facility_column.segmented_control(
