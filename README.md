@@ -9,7 +9,7 @@
 | 팀장 · PM | 고재윤 | [@jjygo](https://github.com/jjygo) | 범위·일정·발표 준비 조율 |
 | 프론트엔드 | 한기현 | [@airnsie-sudo](https://github.com/airnsie-sudo) | Streamlit 화면·지도·시연 |
 | 백엔드 | 박채영 | [@chaezero03](https://github.com/chaezero03) | 데이터 수집·DB 구축·SQL 조회 |
-| 백엔드 | 이현지 | [@ira1234567](https://github.com/ira1234567) | 데이터 수집·DB 구축·SQL 조회 |
+| 백엔드 | 이현지 | [@ira1234847](https://github.com/ira1234567) | 데이터 수집·DB 구축·SQL 조회 |
 | 서포터 | 권대원 | [@SorryToT](https://github.com/SorryToT) | 데이터 확인·문서·발표 자료 |
 
 ## 왜 차차차인가요?
