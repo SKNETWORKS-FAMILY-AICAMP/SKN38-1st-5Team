@@ -293,7 +293,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(self.app.metric[1].value, "자료 없음")
         self.assertEqual(self.app.metric[1].label, "차 100대당 주차면")
         self.assertTrue((self.ranking_table("parking").value["값"] == "자료 없음").all())
-        self.assertIn("주차 여건 자료는 없어요", data["selected"]["sentence"])
+        self.assertIn("주차 자료 없음", data["selected"]["sentence"])
         for district in data["district_data"]:
             verdict = next(v for v in district["verdicts"] if v["topic"] == "parking")
             self.assertEqual(verdict["level"], "자료 없음")

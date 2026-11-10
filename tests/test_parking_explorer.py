@@ -385,13 +385,13 @@ console.log('Lifecycle, clustering, replacement, failure, retry and cleanup pass
             self.assertFalse(app.error)
             self.assertTrue(any("500m 안 주차장 1곳" in x.value for x in app.caption))
             app.text_input(key="parking_keyword").set_value("홍대 테스트").run()
-            html = app.get("iframe")[0].proto.srcdoc
+            html = json.loads(next(x.proto.json for x in app.get("bidi_component") if x.proto.component_name == "chachacha_parking_frame"))["html"]
             payload = json.loads(re.search(r"const data=(.*?);\nconst esc", html, re.S).group(1))
             self.assertEqual(payload["places"][0]["name"], "홍대 테스트 주차장")
             self.assertEqual(payload["station"]["name"], station["name"])
             self.assertEqual(payload["places"][0]["latitude"], 37.557)
             app.checkbox(key="parking_pin_animation").uncheck().run()
-            self.assertIn('"animate": false', app.get("iframe")[0].proto.srcdoc)
+            self.assertIn('"animate": false', json.loads(next(x.proto.json for x in app.get("bidi_component") if x.proto.component_name == "chachacha_parking_frame"))["html"])
             app.text_input(key="parking_keyword").set_value("일치하지않는장소").run()
             self.assertTrue(any("반경에 표시할 시설이 없어요" in x.value for x in app.info))
 

@@ -78,6 +78,9 @@ HTML = """
 
 CSS = """
 .parking-hero.map-layout {display:block;}
+.parking-hero.map-layout h1 {font-size:32px;line-height:1.3;}
+.parking-hero.map-layout .intro {font-size:16px;}
+.parking-hero.map-layout .district-line {margin-top:16px;}
 .parking-hero.map-layout .parking-scene {display:none;}
 
 :host { display: block; width: 100%; }
