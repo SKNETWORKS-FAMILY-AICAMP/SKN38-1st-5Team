@@ -17,11 +17,17 @@ def count_text(value: int | None) -> str:
     return "자료 없음" if value is None or pd.isna(value) else f"{int(value):,}대"
 
 
+def share_text(part: int | None, total: int | None) -> str:
+    if part is None or total is None or pd.isna(part) or pd.isna(total) or total <= 0:
+        return "자료 없음"
+    return f"{part / total * 100:.1f}%"
+
+
 options = load_options()
 vehicle_types = options.get("vehicle_types")
 type_names = (dict(zip(vehicle_types.vehicle_type_code, vehicle_types.vehicle_type_name))
               if vehicle_types is not None else {})
-usage_names = {"official": "관용", "private": "자가용", "commercial": "영업용"}
+usage_names = {"private": "자가용", "commercial": "영업용", "official": "관용"}
 with st.container(border=True, gap="small", key="national_filters"):
     st.markdown("**조회 조건**")
     province_picker, type_picker, usage_picker = st.columns(3, gap="medium")
@@ -52,25 +58,38 @@ if frame.empty:
 
 frame = frame.copy()
 total = complete_total(frame.vehicle_count)
-seoul_rows = frame.loc[frame.province_name.astype(str).str.startswith("서울")]
-seoul_total = complete_total(seoul_rows.vehicle_count)
+capital_rows = frame.loc[frame.province_name.astype(str).str.startswith(("서울", "경기", "인천"))]
+capital_total = complete_total(capital_rows.vehicle_count)
+commercial_total = (0 if usage is not None and usage != "commercial" else
+                    complete_total(frame.loc[frame.usage_code.eq("commercial"), "vehicle_count"]))
+passenger_total = (0 if vehicle_type is not None and vehicle_type != "passenger" else
+                   complete_total(frame.loc[frame.vehicle_type_code.eq("passenger"), "vehicle_count"]))
 province_count = frame.province_name.nunique()
 
 st.caption(
     f"자료 기준 {date_text(frame.iloc[0].stat_month, month=True)} · "
-    "원본에 수록된 시도만 포함해요. 한 달 자료라 월별 증감은 알 수 없어요."
+    f"원자료 수록 지역 중 현재 조건의 {province_count:,}개 지역 · "
+    "이륜차는 제외해요. 한 달 자료라 월별 증감은 알 수 없어요."
 )
-seoul_text = (
-    "선택에서 제외" if seoul_rows.empty and province is not None
-    and not str(province).startswith("서울") else count_text(seoul_total)
+st.caption(
+    f"현재 조건: {province or '전체 시도'} · {type_names.get(vehicle_type, '전체 차종')} · "
+    f"{usage_names.get(usage, '전체 용도')} · 합계와 비중은 모두 현재 조건 기준이며, "
+    f"비중의 분모는 현재 조건 합계 {count_text(total)}예요."
 )
-with st.grid(3, min_column_width=280, gap="medium"):
-    st.metric("선택 조건 합계", count_text(total), border=True,
-              help="현재 시도·차종·용도 조건의 등록 대수를 합한 값이에요.")
-    st.metric("서울 등록", seoul_text, border=True,
-              help="현재 선택 조건에 포함된 서울의 등록 대수예요.")
-    st.metric("자료에 있는 지역", f"{province_count:,}개", border=True,
-              help="현재 조건의 원본 자료에 실제로 수록된 지역 수예요.")
+with st.grid(4 if province is None else 3, min_column_width=280, gap="medium"):
+    with st.container(border=True):
+        st.metric("전국 합계" if province is None else "선택 조건 합계", count_text(total))
+        st.caption(f"원자료 수록 {province_count:,}개 지역 합계")
+    if province is None:
+        with st.container(border=True):
+            st.metric("수도권 비중", share_text(capital_total, total))
+            st.caption(f"서울·경기·인천 · {count_text(capital_total)}")
+    with st.container(border=True):
+        st.metric("영업용 비중", share_text(commercial_total, total))
+        st.caption(f"현재 조건 중 영업용 · {count_text(commercial_total)}")
+    with st.container(border=True):
+        st.metric("승용 비중", share_text(passenger_total, total))
+        st.caption(f"현재 조건 중 승용 · {count_text(passenger_total)}")
 if frame.province_name.eq("전남광주").any():
     st.caption("지역 이름은 원본 자료를 따라요. '전남광주'는 한 지역으로 세어요.")
 
@@ -78,31 +97,55 @@ totals = (
     frame.groupby("province_name", observed=True, sort=False)["vehicle_count"]
     .agg(complete_total).reset_index()
 )
-totals["is_seoul"] = totals.province_name.astype(str).str.startswith("서울")
 valid_totals = totals.loc[totals.vehicle_count.notna()].copy()
 if not valid_totals.empty:
     valid_totals["vehicle_count"] = valid_totals.vehicle_count.astype("int64")
+    valid_totals = valid_totals.sort_values("vehicle_count", ascending=False, kind="stable")
 
 chart_column, table_column = st.columns([3, 2], gap="medium")
 with chart_column:
     with st.container(border=True, key="national_chart_card"):
         st.markdown("**시도마다 차가 얼마나 있을까요?**")
-        st.caption("현재 선택 조건 기준 · 서울은 코랄색 막대로 표시했어요."
-                   if valid_totals.is_seoul.any() else "현재 선택 조건의 시도별 등록 대수예요.")
+        split = st.segmented_control(
+            "막대 구성", ["용도별", "차종별"], default="용도별",
+            key="national_split", required=True, persist_state="session",
+        )
+        st.caption("현재 선택 조건의 시도별 등록 대수 · 합계가 많은 순으로 표시해요.")
         if valid_totals.empty:
             st.caption("시도별 합계 자료 없음")
         else:
+            segment_column = "usage_code" if split == "용도별" else "vehicle_type_code"
+            segment_names = usage_names if split == "용도별" else type_names
+            segments = (
+                frame.loc[frame.province_name.isin(valid_totals.province_name)]
+                .groupby(["province_name", segment_column], observed=True, sort=False)["vehicle_count"]
+                .agg(complete_total).reset_index()
+            )
+            segments["vehicle_count"] = segments.vehicle_count.astype("int64")
+            segments["segment_name"] = segments[segment_column].astype(object).map(segment_names)
+            segment_labels = [name for name in segment_names.values() if name in segments.segment_name.values]
+            segments["segment_order"] = segments.segment_name.map(
+                {name: index for index, name in enumerate(segment_names.values())}
+            )
             province_labels = valid_totals.province_name.astype(str).tolist()
             plot_height = max(160, len(valid_totals) * 28)
             chart = (
-                alt.Chart(valid_totals).mark_bar(cornerRadiusEnd=6).encode(
-                    x=alt.X("vehicle_count:Q", title="등록 대수",
+                alt.Chart(segments).mark_bar(cornerRadiusEnd=6).encode(
+                    x=alt.X("vehicle_count:Q", title="등록 대수", stack="zero",
                             axis=alt.Axis(format=",.0f", tickCount=4, labelFontSize=15, titleFontSize=15)),
-                    y=alt.Y("province_name:N", title=None, sort="-x",
+                    y=alt.Y("province_name:N", title=None, sort=province_labels,
                             axis=alt.Axis(values=province_labels, labelLimit=150, labelFontSize=15,
                                           labelOverlap=False, labelBound=False)),
-                    color=alt.condition(alt.datum.is_seoul, alt.value("#FF7A66"), alt.value("#27336B")),
+                    color=alt.Color(
+                        "segment_name:N", title=None, sort=segment_labels,
+                        scale=alt.Scale(domain=list(segment_names.values()),
+                                        range=["#27336B", "#FF7A66", "#8E98CF", "#C8CDE3"][:len(segment_names)]),
+                        legend=alt.Legend(orient="top", columns=2, labelFontSize=15,
+                                          labelFont="Noto Sans KR", labelColor="#1B2340"),
+                    ),
+                    order=alt.Order("segment_order:Q", sort="ascending"),
                     tooltip=[alt.Tooltip("province_name:N", title="시도"),
+                             alt.Tooltip("segment_name:N", title="구분"),
                              alt.Tooltip("vehicle_count:Q", title="등록 대수", format=",.0f")],
                 ).properties(height=plot_height, padding={"left": 5, "top": 5, "bottom": 5, "right": 16}).configure_view(stroke=None).configure_axis(
                     labelFontSize=15, titleFontSize=15, labelColor="#1B2340", titleColor="#4A5270",
@@ -111,10 +154,9 @@ with chart_column:
                 )
             )
             # Streamlit이 축까지 포함한 높이에 맞추므로 눈금 공간을 별도로 확보한다.
-            highlight_text = " 서울을 코랄색으로 강조해요." if valid_totals.is_seoul.any() else ""
             st.altair_chart(chart, key="national_province_chart", width="stretch",
-                            height=plot_height + 64,
-                            alt=f"선택한 조건의 {len(valid_totals)}개 시도별 자동차 등록 대수. 모든 시도 이름을 표시해요.{highlight_text}")
+                            height=plot_height + 112,
+                            alt=f"선택한 조건의 {len(valid_totals)}개 시도별 자동차 등록 대수와 {split} 구성. 합계가 많은 순이며 모든 시도 이름을 표시해요.")
         missing = totals.loc[totals.vehicle_count.isna(), "province_name"].astype(str).tolist()
         if missing:
             st.caption(f"합계 자료 없음: {', '.join(missing)}. 빠진 항목이 있어 막대와 전체 합계를 확정하지 않았어요.")

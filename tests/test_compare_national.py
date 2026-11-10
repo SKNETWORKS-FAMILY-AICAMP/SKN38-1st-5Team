@@ -8,6 +8,7 @@ import pyarrow as pa
 from streamlit.testing.v1 import AppTest
 
 from tests import app_env
+from tests.test_compare_table import cells_for, table_from_app
 from db import queries as q
 
 
@@ -51,30 +52,44 @@ class CompareNationalTest(unittest.TestCase):
         self.ready(app)
         metrics = self.metric_values(app)
         total = int(expected.vehicle_count.astype("int64").sum())
-        self.assertEqual(metrics["선택 조건 합계"], f"{total:,}대")
+        label = "전국 합계" if app.selectbox(key="national_province").value is None else "선택 조건 합계"
+        self.assertEqual(metrics[label], f"{total:,}대")
         self.assertEqual(len(app.dataframe[0].value), len(expected))
         self.assertEqual(int(app.dataframe[0].value["등록 대수"].astype("int64").sum()), total)
         chart = self.chart_frame(app)
         wanted = expected.assign(vehicle_count=expected.vehicle_count.astype("int64"))
-        wanted = wanted.groupby("province_name", observed=True).vehicle_count.sum().to_dict()
-        self.assertEqual(dict(zip(chart.province_name, chart.vehicle_count)), wanted)
-        self.assertEqual(set(chart.loc[chart.is_seoul, "province_name"]),
-                         {"서울"} if "서울" in wanted else set())
-        axis = self.chart_spec(app)["encoding"]["y"]["axis"]
-        self.assertCountEqual(axis["values"], wanted)
+        wanted_segments = wanted.groupby(["province_name", "usage_code"], observed=True).vehicle_count.sum()
+        plotted_segments = chart.set_index(["province_name", "usage_code"]).vehicle_count
+        self.assertEqual(plotted_segments.to_dict(), wanted_segments.to_dict())
+        wanted = wanted.groupby("province_name", observed=True).vehicle_count.sum().sort_values(ascending=False)
+        encoding = self.chart_spec(app)["encoding"]
+        self.assertEqual(encoding["x"]["stack"], "zero")
+        self.assertEqual(encoding["y"]["sort"], wanted.index.tolist())
+        axis = encoding["y"]["axis"]
+        self.assertCountEqual(axis["values"], wanted.index)
         self.assertFalse(axis["labelOverlap"])
 
     def test_national_totals_chart_and_raw_rows_agree(self):
         app = self.page("national")
         self.assert_national_result(app, self.national)
         values = self.metric_values(app)
-        self.assertEqual(values["선택 조건 합계"], "26,706,123대")
-        self.assertEqual(values["서울 등록"], "3,150,351대")
-        self.assertEqual(values["자료에 있는 지역"], "16개")
+        frame = self.national.assign(vehicle_count=self.national.vehicle_count.astype("int64"))
+        total = int(frame.vehicle_count.sum())
+        capital = int(frame.loc[frame.province_name.isin(["서울", "경기", "인천"]), "vehicle_count"].sum())
+        commercial = int(frame.loc[frame.usage_code.eq("commercial"), "vehicle_count"].sum())
+        passenger = int(frame.loc[frame.vehicle_type_code.eq("passenger"), "vehicle_count"].sum())
+        self.assertEqual(values["전국 합계"], f"{total:,}대")
+        self.assertEqual(values["수도권 비중"], f"{capital / total * 100:.1f}%")
+        self.assertEqual(values["영업용 비중"], f"{commercial / total * 100:.1f}%")
+        self.assertEqual(values["승용 비중"], f"{passenger / total * 100:.1f}%")
+        captions = "\n".join(item.value for item in app.caption)
+        self.assertIn(f"{frame.province_name.nunique()}개 지역", captions)
+        self.assertIn(f"{capital:,}대", captions)
+        self.assertIn("전남광주", captions)
+        self.assertIn("이륜차", captions)
         color = self.chart_spec(app)["encoding"]["color"]
-        self.assertEqual(color["condition"]["test"], "datum.is_seoul")
-        self.assertEqual(color["condition"]["value"], "#FF7A66")
-        self.assertEqual(color["value"], "#27336B")
+        self.assertEqual(color["field"], "segment_name")
+        self.assertEqual(color["scale"]["range"], ["#27336B", "#FF7A66", "#8E98CF"])
 
     def test_national_combined_filters_and_selection_survive_navigation(self):
         app = self.page("national")
@@ -85,8 +100,9 @@ class CompareNationalTest(unittest.TestCase):
         expected = q.get_national_registrations(
             province_name="서울", vehicle_type_code="passenger", usage_code="private")
         self.assert_national_result(app, expected)
-        self.assertEqual(self.metric_values(app)["서울 등록"],
-                         self.metric_values(app)["선택 조건 합계"])
+        self.assertNotIn("수도권 비중", self.metric_values(app))
+        self.assertEqual(self.metric_values(app)["영업용 비중"], "0.0%")
+        self.assertEqual(self.metric_values(app)["승용 비중"], "100.0%")
         app.switch_page("app_pages/compare.py").run()
         self.ready(app)
         self.assertEqual(app.selectbox(key="district_id").value, self.ids["강서구"])
@@ -96,12 +112,13 @@ class CompareNationalTest(unittest.TestCase):
         self.assertEqual(app.selectbox(key="national_usage").value, "private")
         self.assert_national_result(app, expected)
 
-    def test_national_non_seoul_filter_does_not_fabricate_zero_seoul(self):
+    def test_national_province_filter_hides_capital_share(self):
         app = self.page("national")
         province = next(name for name in self.national.province_name.unique() if name != "서울")
         app.selectbox(key="national_province").select(province).run()
         self.assert_national_result(app, q.get_national_registrations(province_name=province))
-        self.assertEqual(self.metric_values(app)["서울 등록"], "선택에서 제외")
+        self.assertNotIn("수도권 비중", self.metric_values(app))
+        self.assertEqual(len(app.metric), 3)
 
     def test_national_missing_counts_do_not_become_a_complete_total(self):
         incomplete = self.national.copy()
@@ -113,8 +130,9 @@ class CompareNationalTest(unittest.TestCase):
             app.run()
         self.ready(app)
         values = self.metric_values(app)
-        self.assertEqual(values["선택 조건 합계"], "자료 없음")
-        self.assertEqual(values["서울 등록"], "자료 없음")
+        self.assertEqual(values["전국 합계"], "자료 없음")
+        for label in ("수도권 비중", "영업용 비중", "승용 비중"):
+            self.assertEqual(values[label], "자료 없음")
         self.assertIn("자료 없음", app.dataframe[0].value["등록 대수"].tolist())
         chart = self.chart_frame(app)
         seoul = chart.loc[chart.province_name.eq("서울"), "vehicle_count"]
@@ -137,30 +155,36 @@ class CompareNationalTest(unittest.TestCase):
         app.selectbox(key="compare_id").select(self.ids["강남구"]).run()
         self.ready(app)
         expected = q.get_compare_metrics(self.ids["강서구"], self.ids["강남구"])
-        self.assertEqual(len(app.metric), 6)
-        self.assertCountEqual([metric.value for metric in app.metric],
+        table = table_from_app(app)
+        judgments = [item.get_text().split(" · ", 1)[1] for item in table.select(".compare-judgment")]
+        self.assertEqual(len(judgments), 6)
+        self.assertCountEqual(judgments,
                               [str(row[f"{topic}_level"]) for _, row in expected.iterrows()
                                for topic in ("ownership", "parking", "need")])
         captions = "\n".join(item.value for item in app.caption)
-        for _, row in expected.iterrows():
-            self.assertIn(f"{float(row.parking_value) * 100:.1f}면", captions)
+        for index, (_, row) in enumerate(expected.iterrows()):
+            self.assertEqual(cells_for(table, "parking_value")[index].select_one(".compare-value").get_text(),
+                             f"{float(row.parking_value) * 100:.1f}면")
             for topic in ("ownership", "parking", "need"):
-                self.assertIn(f"서울 25구 중 {int(row[f'{topic}_rank'])}위", captions)
+                self.assertIn(f"서울 25구 중 {int(row[f'{topic}_rank'])}위",
+                              cells_for(table, f"{topic}_value")[index].select_one(".compare-rank").get_text())
         self.assertIn("일부 행정동", captions)
         self.assertIn("아파트", captions)
-        self.assertIn("부분 관측", app.metric[2].delta)
-        self.assertIn("부분 관측", app.metric[5].delta)
+        for cell in cells_for(table, "need_value"):
+            self.assertIn("부분 관측", cell.select_one(".compare-difference").get_text())
+            self.assertIsNone(cell.select_one(".compare-more"))
 
     def test_compare_direction_and_first_picker_stay_in_sync(self):
         app = self.page("compare")
         app.selectbox(key="compare_first_id").select(self.ids["마포구"]).run()
         app.selectbox(key="compare_id").select(self.ids["강남구"]).run()
         self.ready(app)
-        self.assertIn("더 많아요", app.metric[3].delta)
-        self.assertIn("더 적어요", app.metric[2].delta)
-        self.assertIn("더 많아요", app.metric[5].delta)
+        table = table_from_app(app)
+        self.assertIn("더 많아요", cells_for(table, "ownership_value")[1].select_one(".compare-difference").get_text())
+        self.assertIn("더 적어요", cells_for(table, "need_value")[0].select_one(".compare-difference").get_text())
+        self.assertIn("더 많아요", cells_for(table, "need_value")[1].select_one(".compare-difference").get_text())
         self.assertTrue(any("승객 수가 적은 쪽을 차 필요성이 더 높은" in item.value for item in app.caption))
-        self.assertNotIn("미만면", app.metric[1].delta)
+        self.assertNotIn("미만면", cells_for(table, "parking_value")[0].get_text())
         app.selectbox(key="compare_first_id").select(self.ids["강서구"]).run()
         self.ready(app)
         self.assertEqual(app.selectbox(key="district_id").value, self.ids["강서구"])
@@ -217,7 +241,12 @@ class CompareNationalTest(unittest.TestCase):
         self.ready(app)
         self.assertTrue(any("같은 동네" in item.value or "같은 구" in item.value for item in app.info))
         self.assertEqual(app.selectbox(key="compare_id").value, selected)
-        self.assertTrue(all(metric.delta == "근거값이 같아요" for metric in app.metric))
+        table = table_from_app(app)
+        self.assertEqual([item.get_text() for item in table.select(".compare-difference")], ["근거값이 같아요"] * 6)
+        self.assertFalse(table.select(".compare-more"))
+        for row in table.select("tbody tr:not(.compare-group)"):
+            cells = row.find_all("td")
+            self.assertEqual(cells[0].get_text(), cells[1].get_text())
         app.session_state["compare_details"] = True
         app.run()
         self.ready(app)
@@ -249,9 +278,14 @@ class CompareNationalTest(unittest.TestCase):
                 with patch("db.queries.get_compare_metrics", return_value=comparison):
                     app.run()
                 self.ready(app)
-                self.assertEqual([metric.delta for metric in app.metric[:3]], expected)
+                table = table_from_app(app)
+                cells = [cells_for(table, f"{topic}_value") for topic in ("ownership", "parking", "need")]
+                self.assertEqual([pair[0].select_one(".compare-difference").get_text() for pair in cells], expected)
                 reverse = [text.replace("더 많아요", "더 적어요") for text in expected]
-                self.assertEqual([metric.delta for metric in app.metric[3:]], reverse)
+                self.assertEqual([pair[1].select_one(".compare-difference").get_text() for pair in cells], reverse)
+                for pair, text in zip(cells, expected):
+                    self.assertEqual(bool(pair[0].select_one(".compare-more")), "더 많아요" in text)
+                    self.assertIsNone(pair[1].select_one(".compare-more"))
 
     def test_compare_missing_judgment_is_not_an_invented_comparison(self):
         app = self.page("compare")
@@ -263,7 +297,14 @@ class CompareNationalTest(unittest.TestCase):
         with patch("db.queries.get_compare_metrics", return_value=incomplete):
             app.run()
         self.ready(app)
-        self.assertEqual(sum(metric.value == "자료 없음" for metric in app.metric), 2)
+        table = table_from_app(app)
+        self.assertEqual([cell.select_one(".compare-value").get_text()
+                          for cell in cells_for(table, "parking_level")], ["자료 없음"] * 2)
+        for cell in cells_for(table, "parking_value"):
+            self.assertEqual(cell.select_one(".compare-value").get_text(), "자료 없음")
+            self.assertEqual(cell.select_one(".compare-difference").get_text(), "비교 자료 없음")
+            self.assertIsNone(cell.select_one(".compare-rank"))
+            self.assertIsNone(cell.select_one(".compare-more"))
 
 
 if __name__ == "__main__":
