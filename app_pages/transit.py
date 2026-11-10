@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 
 import readable
+import transit_savings
 
 from db import queries as q
 from scene_drive import render_hero
@@ -182,3 +183,5 @@ for column, (icon, title, description) in zip(st.columns(3, gap="medium"), BENEF
     with column.container(border=True, height="stretch", gap="small"):
         st.markdown(f"### :material/{icon}: {title}")
         st.write(description)
+
+transit_savings.teaser()
