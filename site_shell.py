@@ -349,12 +349,25 @@ def navbar(pages: Sequence[st.Page], current: st.Page,
                 names = dict(zip(regions.region_id.astype(int), regions.district_name.astype(str)))
                 ids = list(names)
                 default = next((key for key, name in names.items() if name == "마포구"), ids[0])
+                # 내 동네 링크: 주소의 ?gu=마포구 를 처음 한 번만 반영해, 즐겨찾기한 링크로 바로 그 구가 열린다.
+                if not st.session_state.get("district_link_applied"):
+                    st.session_state.district_link_applied = True
+                    linked = str(st.query_params.get("gu", "")).strip()
+                    by_name = {name: key for key, name in names.items()}
+                    match = by_name.get(linked) or by_name.get(linked + "구")
+                    if match is not None:
+                        st.session_state.selected_region_id = match
                 if st.session_state.get("selected_region_id") not in ids:
                     st.session_state.selected_region_id = default
                 st.session_state.district_id = st.session_state.selected_region_id
                 st.selectbox("살펴볼 동네", ids, format_func=lambda value: names[value],
                              key="district_id", icon=":material/location_on:",
-                             on_change=on_change, label_visibility="collapsed", persist_state="session")
+                             on_change=on_change, label_visibility="collapsed", persist_state="session",
+                             help="고른 동네가 주소에 담겨요. 이 주소를 즐겨찾기하면 다음에도 이 동네로 열려요.")
+                # 지도·검색 등 어디서 바꿔도 주소가 지금 동네를 따라가게 한다.
+                current_name = names.get(st.session_state.district_id)
+                if current_name and st.query_params.get("gu") != current_name:
+                    st.query_params["gu"] = current_name
         with st.container(horizontal=True, width="content", vertical_alignment="center", gap="small",
                           key="site_tools"):
             site_search(pages, options)
