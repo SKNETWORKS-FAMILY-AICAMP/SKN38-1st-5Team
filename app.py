@@ -13,9 +13,7 @@ from site_shell import footer, hero, navbar, page_header, styles
 
 st.set_page_config(
     page_title="차차차 · 서울에서 차와 살기",
-    page_icon=(
-        Path(__file__).parent / "assets" / "chachacha-icons-v1" / "navy" / "favicon-64.png"
-    ),
+    page_icon=str(Path(__file__).parent / "favicon.png"),
     layout="wide",
 )
 
