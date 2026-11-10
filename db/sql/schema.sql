@@ -1,7 +1,7 @@
 CREATE DATABASE IF NOT EXISTS chachacha CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 USE chachacha;
 
--- 핵심 스키마는 12개 표로 구성한다.
+-- 서비스에서 사용하는 18개 표를 만든다.
 -- CHECK 제약은 MySQL 8.0.16 이상에서 적용된다.
 -- 신규 생성용이며 기존 표를 변경하는 마이그레이션은 포함하지 않는다.
 -- 기본 문자셋 변경은 기존 컬럼의 문자셋을 변환하지 않는다.
