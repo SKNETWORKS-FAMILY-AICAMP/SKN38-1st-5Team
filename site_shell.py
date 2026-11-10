@@ -3,8 +3,10 @@ from html import escape
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote, unquote
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 ASSETS = Path(__file__).parent / "assets"
@@ -78,6 +80,10 @@ CSS = """
   text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px;
 }
 .st-key-site_picker { flex: 0 0 auto; }
+.st-key-site_home { flex: 0 0 auto; }
+.st-key-site_home button { min-height: 44px; border-radius: 999px; white-space: nowrap; }
+.st-key-site_home button p { font-size: 15px; font-weight: 700; }
+.st-key-site_home iframe { display: none; }
 .st-key-site_tools { flex: 0 0 auto; }
 .st-key-site_tools button { min-height: 44px; border-radius: 999px; }
 .st-key-site_tools button p { font-size: 16px; font-weight: 700; color: #1B2340; white-space: nowrap; }
@@ -349,30 +355,79 @@ def navbar(pages: Sequence[st.Page], current: st.Page,
                 names = dict(zip(regions.region_id.astype(int), regions.district_name.astype(str)))
                 ids = list(names)
                 default = next((key for key, name in names.items() if name == "마포구"), ids[0])
-                # 내 동네 링크: 주소의 ?gu=마포구 를 처음 한 번만 반영해, 즐겨찾기한 링크로 바로 그 구가 열린다.
-                if not st.session_state.get("district_link_applied"):
-                    st.session_state.district_link_applied = True
+                by_name = {name: key for key, name in names.items()}
+                # 처음 들어왔을 때 한 번만: 공유 링크(?gu=) > 저장한 내 동네(쿠키) > 기본값 순서로 고른다.
+                if not st.session_state.get("home_district_applied"):
+                    st.session_state.home_district_applied = True
+                    saved = saved_home_district()
+                    st.session_state.home_district = saved if saved in by_name else None
                     linked = str(st.query_params.get("gu", "")).strip()
-                    by_name = {name: key for key, name in names.items()}
-                    match = by_name.get(linked) or by_name.get(linked + "구")
-                    if match is not None:
-                        st.session_state.selected_region_id = match
+                    start = by_name.get(linked) or by_name.get(linked + "구") or by_name.get(saved)
+                    if start is not None:
+                        st.session_state.selected_region_id = start
                 if st.session_state.get("selected_region_id") not in ids:
                     st.session_state.selected_region_id = default
                 st.session_state.district_id = st.session_state.selected_region_id
                 st.selectbox("살펴볼 동네", ids, format_func=lambda value: names[value],
                              key="district_id", icon=":material/location_on:",
-                             on_change=on_change, label_visibility="collapsed", persist_state="session",
-                             help="고른 동네가 주소에 담겨요. 이 주소를 즐겨찾기하면 다음에도 이 동네로 열려요.")
-                # 지도·검색 등 어디서 바꿔도 주소가 지금 동네를 따라가게 한다.
-                current_name = names.get(st.session_state.district_id)
-                if current_name and st.query_params.get("gu") != current_name:
-                    st.query_params["gu"] = current_name
+                             on_change=on_change, label_visibility="collapsed", persist_state="session")
+        current_name = names.get(st.session_state.get("district_id")) if regions is not None and not regions.empty else None
+        if current_name:
+            with st.container(width="content", key="site_home"):
+                home_district_button(current_name)
         with st.container(horizontal=True, width="content", vertical_alignment="center", gap="small",
                           key="site_tools"):
             site_search(pages, options)
             if st.button("전체메뉴", icon=":material/menu:", key="site_sitemap_open", type="tertiary"):
                 sitemap(pages)
+
+
+HOME_COOKIE = "chachacha_home_gu"
+
+
+def saved_home_district() -> str | None:
+    """브라우저에 저장된 내 동네 이름. 로그인 없이 쿠키로만 기억한다."""
+    try:
+        raw = st.context.cookies.get(HOME_COOKIE)
+    except Exception:
+        return None
+    return unquote(raw).strip() if raw else None
+
+
+def _write_home_cookie(name: str | None) -> None:
+    # 쿠키는 브라우저에서만 쓸 수 있어 높이 0짜리 컴포넌트로 한 번 기록한다.
+    value = quote(name) if name else ""
+    age = 60 * 60 * 24 * 365 if name else 0
+    components.html(
+        f"<script>document.cookie='{HOME_COOKIE}={value}; path=/; max-age={age}; SameSite=Lax';</script>",
+        height=0, width=0)
+
+
+def _toggle_home_district(name: str) -> None:
+    if st.session_state.get("home_district") == name:
+        st.session_state.home_district = None
+        st.session_state.home_cookie_pending = ("", None)
+        st.toast("내 동네 저장을 해제했어요.", icon=":material/star_outline:")
+    else:
+        st.session_state.home_district = name
+        st.session_state.home_cookie_pending = (name, name)
+        st.toast(f"{name}를 내 동네로 저장했어요. 다음에 들어오면 바로 열려요.", icon=":material/star:")
+
+
+def home_district_button(current: str) -> None:
+    saved = st.session_state.get("home_district")
+    if saved == current:
+        st.button("내 동네", icon=":material/star:", key="home_district_toggle", type="primary",
+                  on_click=_toggle_home_district, args=(current,),
+                  help="내 동네로 저장돼 있어요. 다시 누르면 저장을 해제해요.")
+    else:
+        st.button("내 동네로 저장", icon=":material/star_outline:", key="home_district_toggle",
+                  type="secondary", on_click=_toggle_home_district, args=(current,),
+                  help=(f"지금은 {saved}가 내 동네예요. 누르면 {current}로 바꿔요." if saved
+                        else "저장해 두면 다음에 들어올 때 이 동네가 바로 열려요. 이 브라우저에만 저장돼요."))
+    pending = st.session_state.pop("home_cookie_pending", None)
+    if pending is not None:
+        _write_home_cookie(pending[1])
 
 
 SITEMAP_NOTES = {
