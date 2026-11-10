@@ -73,8 +73,7 @@ SKN38-1st-5Team/
 ├── db/             # DB 연결·SQL 조회, sql/에 테이블 생성 SQL
 ├── etl/            # API 수집·FAQ 크롤링·정제·적재
 ├── docs/           # DB 설계 문서, 대표 SQL, ERD
-├── data/           # 데이터 출처 기록
-└── tests/, test/   # 테스트
+└── data/           # 데이터 출처 기록
 ```
 
 ## ERD

@@ -38,15 +38,14 @@
 - `db/connection.py`, `db/queries.py`
 - `requirements.txt`, `requirements.lock.txt`
 - 실제 비밀값이 없는 `.streamlit/secrets.toml.example`
-- README 실행 방법과 테스트 결과
+- README 실행 방법
 
 ## 재현 시 필요한 준비
 
 1. README의 Python 버전과 고정 의존성 목록을 사용한다.
 2. MySQL에 팀 내부 전달본을 적재하고 개인 접속정보를 설정한다.
 3. `python scripts/fetch_boundary.py`로 공개 지도 원본을 검증해 복원한다.
-4. 전체 JavaScript 테스트 실행을 위해 Node.js를 준비한다.
-5. `python -m unittest discover -s tests`와 공개 전 검사를 실행한다.
-6. Selenium 실제 수집은 Chrome·드라이버·네트워크·사이트 접근 조건이 준비된 경우에만 명시적으로 실행한다.
+4. 공개 전 검사를 실행한다.
+5. Selenium 실제 수집은 Chrome·드라이버·네트워크·사이트 접근 조건이 준비된 경우에만 명시적으로 실행한다.
 
 AWS 가입이나 외부 배포는 이 과제의 MySQL 연동·조회 구현을 확인하기 위한 필수 조건이 아니다. 현재 AWS 배포 계획은 취소된 상태다.

@@ -192,8 +192,6 @@ PK는 행을 식별하는 기본키, FK는 다른 표를 참조하는 외래키�
 
 ```bash
 .venv/bin/python -m db.self_check --report-dir /private/tmp/chachacha-db-check
-.venv/bin/python -m unittest discover tests
-.venv/bin/python -m unittest discover test
 ```
 
 앱 실행 및 폴더 설명은 [실행 안내](../README.md), 대표 조회는 [SQL 예제](sql_showcase.md)를 따른다. 보고서 경로를 `/private/tmp`로 지정한 첫 명령은 조회 검산 기록만 임시 폴더에 저장한다. DB 초기화 명령은 일반 조회 실행 절차에 포함하지 않는다.
@@ -207,4 +205,4 @@ PK는 행을 식별하는 기본키, FK는 다른 표를 참조하는 외래키�
 
 원격 MySQL 연결은 CA·호스트명 검증을 수행하고, 서버 인사 패킷에서 TLS 지원이 확인되지 않으면 인증 패킷 전송 전에 거부한다. 연결 후 TLS 암호군 확인도 유지한다. 로컬 기본 연결은 기존처럼 TLS를 명시하지 않은 경우에만 일반 연결을 허용한다.
 
-인증 전 차단은 고정된 PyMySQL 1.1.2의 `_request_authentication` 훅을 사용하는 전용 연결 클래스에 적용된다. 드라이버 버전을 바꿀 때 `tests.test_db_phase5.TLSBeforeAuthenticationTest`의 패킷 전송 순서·인증서 오류·로컬 연결 회귀 검사를 먼저 실행한다. 더미 자격증명과 모의 전송으로 검증하며 실제 인증정보를 테스트·로그에 기록하지 않는다.
+인증 전 차단은 고정된 PyMySQL 1.1.2의 `_request_authentication` 훅을 사용하는 전용 연결 클래스에 적용된다. 드라이버 버전을 바꿀 때는 이 훅이 그대로 동작하는지 먼저 확인한다.

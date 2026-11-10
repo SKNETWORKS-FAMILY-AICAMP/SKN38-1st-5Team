@@ -1,3 +1,6 @@
+# 물어보기에 LLM(Claude API)을 붙이려고 만들어 보다가 이번 프로젝트에서는 안 쓰기로 했습니다.
+# API 키를 빼서 실제로 호출은 안 되고, 화면에는 아직 연결되지 않았다는 안내만 나옵니다.
+
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
