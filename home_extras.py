@@ -202,7 +202,7 @@ def seoul_overview(ranking: pd.DataFrame) -> None:
         ("등록 차량", f"{vehicles:,.0f}", "대", "25구 합계"),
         ("세대당 차량", f"{vehicles / households:.2f}", "대", f"{households:,.0f} 세대 기준"),
         ("전기차", f"{electric:,.0f}", "대", f"등록 차량의 {100 * electric / vehicles:.1f}%"),
-        ("공공 충전기", f"{chargers:,.0f}", "기", f"충전소 {stations:,.0f}곳 · 급속 {fast:,.0f}기"),
+        ("수록 충전기", f"{chargers:,.0f}", "기", f"충전소 {stations:,.0f}곳 · 급속 {fast:,.0f}기"),
         ("수록 주차면", f"약 {spaces / 1e4:,.0f}", "만 면", f"차 100대당 {100 * spaces / vehicles:.1f}면"),
         ("하루 대중교통 승객", f"약 {riders / 1e4:,.0f}", "만 명", f"주민 1명당 {riders / population:.2f}명"),
     )
@@ -231,8 +231,10 @@ def top_ranks(ranking: pd.DataFrame) -> None:
             f'background:{"#27336B" if rank == 1 else "#8E98CF"}"></span></span>'
             f'<span class="v">{item.value:.{digits}f}</span></li>'
             for rank, item in enumerate(top.itertuples(), start=1))
+        # 작은 양수가 0으로 보이면 수록 자료가 없는 것처럼 읽힌다.
+        last_digits = 2 if 0 < last.value < 0.1 else digits
         blocks.append(f'<div><div><h3>{title}</h3><span class="m">{metric}</span></div><ol>{rows}</ol>'
-                      f'<span class="last">가장 낮은 곳 · {escape(str(last["name"]))} {last.value:.{digits}f}</span></div>')
+                      f'<span class="last">가장 낮은 곳 · {escape(str(last["name"]))} {last.value:.{last_digits}f}</span></div>')
     if not blocks:
         return
     st.subheader("25구 순위", anchor=False)
