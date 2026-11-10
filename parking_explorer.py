@@ -370,7 +370,7 @@ def explorer(records, district, facility, *, region_id=None, controls_container=
                                          key=f"parking_station_{district}_{query.strip()}")
             radius = control_columns[2].select_slider("강조 반경", options=[300, 500, 1000, 2000], value=500,
                                       format_func=lambda r: f"{r:,}m", key="parking_station_radius")
-        animate = st.checkbox("가까운 핀 깜빡임", value=True, key="parking_pin_animation")
+        animate = control_columns[2].checkbox("핀 깜빡임", value=True, key="parking_pin_animation")
         station = stations[station_index - 1] if station_index else None
         if not stations:
             st.caption("역 검색 결과가 없어요. 정확한 역 이름을 입력해 주세요.")

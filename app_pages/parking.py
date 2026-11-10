@@ -7,6 +7,7 @@ import readable
 
 from db import queries as q
 from scene_parking import parking_hero
+from scene_charging import charging_summary
 from parking_explorer import charger_records, explorer, fallback_parking, seoul_parking
 from ui import date_text, display_table, district_row, load_frame, load_options, number, topic_value, word
 
@@ -110,9 +111,12 @@ st.html("""<style>
 .st-key-parking_page_hero {padding-bottom:20px;}
 .st-key-parking_capacity [data-testid="stMetric"] {min-height:130px;box-sizing:border-box;}
 .st-key-parking_search_controls [data-testid="stWidgetLabel"],
-.st-key-parking_station_controls [data-testid="stWidgetLabel"] {min-height:48px;display:flex;align-items:end;}
+.st-key-parking_station_controls [data-testid="stWidgetLabel"] {min-height:36px;display:flex;align-items:end;}
 .st-key-parking_station_controls [data-testid="stTextInput"] input,
 .st-key-parking_station_controls [data-baseweb="select"] {min-height:44px;}
+.st-key-parking_search_controls {border:1px solid #DDE1F0;border-radius:16px;padding:18px;background:#F7F8FC;}
+.st-key-parking_search_controls [data-testid="stWidgetLabel"] p {font-size:17px;font-weight:700;color:#27336B;}
+.st-key-parking_search_controls [data-testid="stCheckbox"] label {min-height:0;}
 .parking-side-detail {padding:16px 18px;border:1px solid #E7CD87;border-radius:14px;background:#FFF3D6;max-height:300px;overflow:auto;font-size:16px;line-height:1.6;}
 .parking-side-detail h3 {font-size:21px;margin:0 0 10px;color:#27336B;}
 .parking-side-detail p {margin:8px 0;}
@@ -125,6 +129,9 @@ with hero_column.container(key="parking_page_hero"):
         levels={topic: word(row.get(f"{topic}_level")) for topic in ("ownership", "parking", "need")},
         active_topic="parking", hide_scene=True,
     )
+
+with hero_column.container(key="parking_charging_card"):
+    charging_summary(row, district)
 
 with hero_column:
     capacity = district_row(load_frame(q.get_parking_summary, [region_id]), region_id)
