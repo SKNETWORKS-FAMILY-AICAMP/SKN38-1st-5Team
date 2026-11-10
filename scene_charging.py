@@ -23,9 +23,9 @@ _GAUGE = st.components.v2.component(
       justify-content: space-between; gap: 24px; padding: 24px 30px;
       border: 1px solid #C8CDE3; border-radius: var(--st-base-radius, 16px);
       background: #EEF0FA; color: #1B2340; font-family: var(--st-font, sans-serif); }
-    .scene.compact {padding:26px 28px;gap:20px;min-height:220px;}
-    .scene.compact .district-name {font-size:36px;}
-    .scene.compact .title {font-size:26px;}
+    .scene.compact {padding:20px 24px;gap:18px;min-height:190px;}
+    .scene.compact .district-name {font-size:32px;}
+    .scene.compact .title {font-size:24px;}
     .scene.compact .battery {transform:none;}
     @media(max-width:480px){.scene.compact {padding:20px;min-height:0;}.scene.compact .district-name {font-size:32px;}}
     .copy { min-width: 0; }

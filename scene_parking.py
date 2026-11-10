@@ -77,10 +77,11 @@ HTML = """
 
 
 CSS = """
-.parking-hero.map-layout {display:block;padding:24px;min-height:390px;border:1px solid #DDE1F0;border-radius:18px;background:#F7F8FC;}
-.parking-hero.map-layout h1 {font-size:clamp(36px,3vw,44px);line-height:1.3;}
+.parking-hero.map-layout {display:block;padding:20px;min-height:330px;border:1px solid #DDE1F0;border-radius:18px;background:#F7F8FC;}
+.parking-hero.map-layout h1 {font-size:clamp(34px,2.7vw,40px);line-height:1.25;}
 .parking-hero.map-layout .intro {font-size:18px;}
-.parking-hero.map-layout .district-line {margin-top:16px;}
+.parking-hero.map-layout .district-line {margin-top:12px;}
+.parking-hero.map-layout .little-road {margin-top:14px;}
 .parking-hero.map-layout .parking-scene {display:none;}
 .parking-hero.map-layout .measure,.parking-hero.map-layout .little-road {font-size:16px;line-height:1.6;}
 @media(max-width:600px){.parking-hero.map-layout {padding:20px;min-height:0;}.parking-hero.map-layout h1 {font-size:34px;}}
