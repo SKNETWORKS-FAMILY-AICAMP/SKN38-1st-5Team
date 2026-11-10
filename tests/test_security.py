@@ -416,7 +416,7 @@ class PrePushTests(unittest.TestCase):
 
 class NavigationSecurityTests(unittest.TestCase):
     def test_all_pages_in_nav_and_footer_and_new_headers_without_database(self):
-        expected = {"", "finder", "ownership", "parking", "charging", "transit", "roads", "ranking", "compare",
+        expected = {"", "finder", "ownership", "parking", "transit", "roads", "ranking", "compare",
                     "national", "faq", "ask", "about"}
         with patch.dict(os.environ, {"CHACHACHA_ALLOW_BOTS": "1"}), \
                 patch("ui.load_options", return_value={}), \
@@ -429,17 +429,17 @@ class NavigationSecurityTests(unittest.TestCase):
             footer = [link.proto.page for link in app.get_by_key("footer_menu").page_link]
             self.assertEqual(set(menu), expected)
             self.assertEqual([path for path in menu if path not in more], ["", "finder"])
-            self.assertEqual(more, ["ownership", "parking", "charging", "transit", "roads",
+            self.assertEqual(more, ["ownership", "parking", "transit", "roads",
                                     "ranking", "compare", "national", "faq", "ask", "about"])
-            self.assertEqual(len(footer), 13)
+            self.assertEqual(len(footer), 12)
             self.assertEqual(set(footer), expected)
             self.assertTrue(any("noindex" in element.proto.body for element in app.get("html")))
-            for path in ("charging", "roads", "about"):
+            for path in ("roads", "about"):
                 app.switch_page(f"app_pages/{path}.py").run()
                 self.assertFalse(app.exception)
                 self.assertEqual(len(app.get_by_key("site_page_header").title), 1)
                 footer = [link.proto.page for link in app.get_by_key("footer_menu").page_link]
-                self.assertEqual(len(footer), 13)
+                self.assertEqual(len(footer), 12)
                 self.assertEqual(set(footer), expected)
 
     def test_footer_has_no_sources(self):

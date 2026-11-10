@@ -102,4 +102,3 @@ def charging_summary(row: pd.Series, district: str) -> None:
                  "accessibleLabel": f"{district} 충전 여건 {level}, {cells}칸. {rank_label}. 실시간 빈자리가 아닌 수록 충전기 비율이에요."},
            key="parking_charging_summary", width="stretch", height="content")
     st.caption("전기차 대비 수록 충전기 비율이에요. 실시간 빈자리·배터리 잔량과는 달라요.")
-    st.page_link("app_pages/charging.py", label="전기차 충전 상세보기", icon=":material/ev_station:")

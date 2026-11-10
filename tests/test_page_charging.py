@@ -149,203 +149,29 @@ class ChargingQueryTest(unittest.TestCase):
                     function(value)
 
 
-class ChargingPageTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.ranking = q.get_district_ranking()
-        cls.ids = dict(zip(cls.ranking.district_name.astype(str), cls.ranking.region_id.astype(int)))
+class ChargingSummaryTest(unittest.TestCase):
+    def test_shared_gauge_keeps_rank_and_missing_rules(self):
+        from scene_charging import _level
+        for rank, expected in ((1, 3), (8, 3), (9, 2), (17, 2), (18, 1), (25, 1)):
+            self.assertEqual(_level(pd.Series({'charger_per_electric_vehicle': .5,
+                                             'charger_per_electric_vehicle_rank': rank}))[1], expected)
+        self.assertEqual(_level(pd.Series(dtype=object)), ('자료 없음', 0))
 
-    def setUp(self):
-        key_patch = patch("parking_explorer.javascript_key", return_value="")
-        key_patch.start()
-        self.addCleanup(key_patch.stop)
-        environment = patch.dict(os.environ, {"CHACHACHA_ALLOW_BOTS": "1", "CHACHACHA_DEV": "1"})
-        environment.start()
-        self.addCleanup(environment.stop)
-        self.app = AppTest.from_file(ROOT / "app.py", default_timeout=30).run()
-        self.app.switch_page("app_pages/charging.py").run()
-        self.assert_ready()
+    def test_charging_menu_removed_and_search_reaches_parking(self):
+        from site_shell import NAV_GROUPS, SEARCH_WORDS
+        self.assertNotIn('charging', [path for _, _, paths in NAV_GROUPS for path in paths])
+        self.assertEqual(dict(SEARCH_WORDS)['충전'], 'parking')
+        self.assertFalse((ROOT / 'app_pages/charging.py').exists())
 
-    def assert_ready(self):
-        self.assertFalse(self.app.exception, [item.message for item in self.app.exception])
-        self.assertFalse(self.app.error, [item.value for item in self.app.error])
-
-    def text(self):
-        return "\n".join(str(item.value) for group in (self.app.caption, self.app.markdown, self.app.info, self.app.warning) for item in group)
-
-    def gauge(self):
-        components = [item.proto for item in self.app.get("bidi_component")
-                      if item.proto.component_name == "chachacha_charging_gauge"]
-        self.assertEqual(len(components), 1)
-        return json.loads(components[0].json)
-
-    def table(self, column):
-        return next(item.value for item in self.app.dataframe if column in item.value)
-
-    def test_initial_metrics_sources_and_gauge_replay(self):
-        row = q.get_summary_metrics(self.ids["마포구"]).iloc[0]
-        metrics = {item.label: item.value for item in self.app.metric}
-        self.assertEqual(metrics["전기차 한 대당 충전기"], f"{row.charger_per_electric_vehicle:,.2f}기")
-        self.assertEqual(metrics["서울 순위 · 충전기 비율"], f"{row.charger_per_electric_vehicle_rank}위 / 25구")
-        self.assertEqual(metrics["급속"], f"{row.fast_count:,}기")
-        self.assertEqual(metrics["완속"], f"{row.slow_count:,}기")
-        self.assertEqual(len(self.table("충전소")), row.listed_station_count)
-        self.assertIn("실시간 빈자리 정보가 아니에요", self.text())
-        self.assertIn("충전 요금 무료를 뜻하지 않아요", self.text())
-        self.assertIn("실제 배터리 충전량이나 주차 여건을 뜻하지 않아요", self.text())
-        self.assertEqual(self.gauge()["district_name"], "마포구")
-        self.assertTrue(any("실시간 빈자리" in item.value for item in self.app.warning))
-        self.assertIn("2026.09", self.text())
-        self.assertIn("2026.11.06", self.text())
-        self.assertTrue(self.gauge()["animate"])
-        self.app.run()
-        self.assert_ready()
-        self.assertFalse(self.gauge()["animate"])
-
-    def test_judgment_boundaries_and_missing_ratio(self):
-        summary = q.get_summary_metrics(self.ids["마포구"]).copy()
-        for rank, level in ((1, 3), (8, 3), (9, 2), (17, 2), (18, 1), (25, 1)):
-            changed = summary.assign(charger_per_electric_vehicle_rank=rank)
-            with patch.object(q, "get_summary_metrics", return_value=changed):
-                self.app.run()
-            self.assert_ready()
-            self.assertEqual(self.gauge()["level"], level)
-            self.assertEqual(self.gauge()["color"], {1: "#DC2626", 2: "#EAB308", 3: "#15803D"}[level])
-            self.assertFalse(self.gauge()["animate"])
-        changed = summary.assign(charger_per_electric_vehicle=pd.NA)
-        with patch.object(q, "get_summary_metrics", return_value=changed):
-            self.app.run()
-        self.assert_ready()
-        self.assertEqual(self.gauge()["level"], 0)
-        self.assertEqual(self.gauge()["color"], "#64748B")
-        self.assertIn("자료 없음", self.gauge()["title"])
-        self.assertEqual(self.app.metric[0].value, "자료 없음")
-
-    def test_connector_and_operator_charts_keep_labels_and_room_between_bars(self):
-        item_counts = []
-        heights = []
-        for chart in self.app.get("vega_lite_chart"):
-            spec = json.loads(chart.proto.spec)
-            heights.append(spec["height"])
-            payload = chart.proto.datasets[0].data.data if chart.proto.datasets else chart.proto.data.data
-            data = pa.ipc.open_stream(payload).read_all().to_pandas()
-            count = len(data)
-            item_counts.append(count)
-            with self.subTest(item_count=count):
-                # Streamlit fit은 전체 높이에서 축·제목 공간을 먼저 뺀다.
-                row_spacing = (spec["height"] - 80) / count
-                self.assertGreaterEqual(row_spacing, 24)
-                self.assertEqual(spec["mark"]["size"], 19)
-                self.assertGreater(row_spacing, spec["mark"]["size"])
-                self.assertIs(spec["encoding"]["y"]["axis"]["labelOverlap"], False)
-                self.assertEqual(data.is_highest.tolist(), data.charger_count.eq(data.charger_count.max()).tolist())
-                self.assertEqual(spec["encoding"]["color"]["condition"]["value"], "#FF7A66")
-                self.assertEqual(spec["encoding"]["color"]["value"], "#8E98CF")
-                self.assertIn("800", spec["encoding"]["y"]["axis"]["labelFontWeight"]["expr"])
-        self.assertCountEqual(item_counts, [7, 10])
-        self.assertEqual(len(set(heights)), 1)
-
-    def test_zero_breakdown_has_no_invented_leader(self):
-        breakdown = q.get_charger_breakdown(self.ids["마포구"]).copy()
-        breakdown["charger_count"] = 0
-        with patch.object(q, "get_charger_breakdown", return_value=breakdown):
-            self.app.run()
-        self.assert_ready()
-        for chart in self.app.get("vega_lite_chart"):
-            payload = chart.proto.datasets[0].data.data if chart.proto.datasets else chart.proto.data.data
-            data = pa.ipc.open_stream(payload).read_all().to_pandas()
-            self.assertFalse(data.is_highest.any())
-
-    def test_district_changes_keep_city_rank_and_replace_station_inventory(self):
-        for row in self.ranking.to_dict("records"):
-            with self.subTest(district=row["district_name"]):
-                self.app.selectbox(key="district_id").select(int(row["region_id"])).run()
-                self.assert_ready()
-                self.assertIn(row["district_name"], self.gauge()["title"])
-                self.assertIn(f"{int(row['charger_per_electric_vehicle_rank'])}위", self.gauge()["detail"])
-                self.assertEqual(len(self.table("충전소")), row["listed_station_count"])
-                selected = self.app.selectbox(key="charging_station").value
-                devices = q.get_charger_detail(int(row["region_id"]), limit=None)
-                self.assertIn(selected, devices.station_id.tolist())
-                self.assertFalse(self.gauge()["animate"])
-
-    def test_fast_and_free_filters_match_device_inventory(self):
-        self.app.segmented_control(key="charging_speed").set_value("fast").run()
-        self.app.toggle(key="charging_free_only").set_value(True).run()
-        self.assert_ready()
-        expected = q.get_charger_detail(self.ids["마포구"], speed="fast", limit=None)
-        expected = expected.loc[expected.parking_free.eq("Y")]
-        self.assertEqual(len(self.table("충전소")), expected.station_id.nunique())
-        self.assertTrue(self.table("기기 번호")["충전 속도"].eq("급속").all())
-        self.assertTrue(self.table("기기 번호")["주차 요금"].eq("무료로 수록").all())
-        selected = self.app.selectbox(key="charging_station").value
-        self.assertEqual(self.table("기기 번호")["기기 번호"].tolist(),
-                         expected.loc[expected.station_id.eq(selected)].source_charger_id.tolist())
-        points = q.get_place_points(self.ids["마포구"], kinds=("charger",), speed="fast")
-        points = points.loc[points.place_id.isin(expected.station_id)]
-        self.assertFalse(self.app.get("iframe"))
-        self.assertTrue(any("충전소 이용 정보" in item.value for item in self.app.subheader))
-        self.assertFalse(any("충전소 찾기" in item.value for item in self.app.subheader))
-        self.assertFalse(self.app.get("deck_gl_json_chart"))
-
-    def test_search_is_literal_and_empty_search_has_no_stale_map(self):
-        devices = q.get_charger_detail(self.ids["마포구"], limit=None).head(2).copy()
-        devices["station_name"] = "충전소 [확인]%_!"
-        with patch.object(q, "get_charger_detail", return_value=devices):
-            self.app.text_input(key="charging_keyword").set_value("[확인]%_!").run()
-        self.assert_ready()
-        self.assertEqual(len(self.table("충전소")), devices.station_id.nunique())
-        self.app.text_input(key="charging_keyword").set_value("없는충전소-충전검사-999999").run()
-        self.assert_ready()
-        self.assertFalse(self.app.get("deck_gl_json_chart"))
-        self.assertIn("현재 조건의 충전소 0곳", self.text())
-        self.assertFalse(self.app.get("iframe"))
-        self.assertFalse(any("충전소" in item.value for item in self.app.dataframe))
-
-    def test_stations_without_coordinates_stay_in_list(self):
-        devices = q.get_charger_detail(self.ids["마포구"], limit=None)
-        with patch.object(q, "get_place_points", return_value=pd.DataFrame()):
-            self.app.run()
-        self.assert_ready()
-        self.assertEqual(len(self.table("충전소")), devices.station_id.nunique())
-        self.assertTrue(self.table("충전소")["지도 안내"].eq("좌표 없음·범위 밖").all())
-        self.assertFalse(self.app.get("deck_gl_json_chart"))
-        self.assertFalse(self.app.get("iframe"))
-
-    def test_missing_source_preserves_missing_metrics_and_no_fabricated_points(self):
-        summary = q.get_summary_metrics(self.ids["마포구"]).copy()
-        for column in ("charger_per_electric_vehicle", "charger_per_electric_vehicle_rank", "listed_station_count",
-                       "listed_count", "fast_count", "slow_count", "unknown_count"):
-            summary[column] = pd.NA
-        with patch.object(q, "get_summary_metrics", return_value=summary), \
-                patch.object(q, "get_charger_breakdown", return_value=pd.DataFrame()), \
-                patch.object(q, "get_charger_detail", return_value=pd.DataFrame()), \
-                patch.object(q, "get_place_points", return_value=pd.DataFrame()):
-            self.app.run()
-        self.assert_ready()
-        self.assertTrue(all(item.value == "자료 없음" for item in self.app.metric))
-        self.assertEqual(self.gauge()["level"], 0)
-        self.assertFalse(self.app.get("deck_gl_json_chart"))
-        self.assertIn("충전소 목록과 지도는 자료 없음이에요", self.text())
-        self.assertNotIn("현재 조건의 충전소 0곳", self.text())
-
-    def test_removed_map_stays_absent_with_key_filters_and_district_changes(self):
-        with patch("parking_explorer.javascript_key", return_value="test-only"):
-            for district_name in ("마포구", "강남구"):
-                self.app.selectbox(key="district_id").select(self.ids[district_name]).run()
-                self.app.segmented_control(key="charging_speed").set_value("fast").run()
-                self.app.toggle(key="charging_free_only").set_value(True).run()
-                self.assert_ready()
-                devices = q.get_charger_detail(self.ids[district_name], speed="fast", limit=None)
-                devices = devices.loc[devices.parking_free.eq("Y")]
-                self.assertEqual(len(self.table("충전소")), devices.station_id.nunique())
-                self.assertFalse(self.app.get("iframe"))
-                self.assertFalse(any(item.proto.component_name == "chachacha_kakao_places"
-                                     for item in self.app.get("bidi_component")))
-            self.app.text_input(key="charging_keyword").set_value("없는충전소xyz987").run()
-            self.assert_ready()
-            self.assertFalse(self.app.get("iframe"))
+    def test_parking_still_shows_charging_summary_without_deleted_link(self):
+        app = AppTest.from_file(ROOT / 'app.py', default_timeout=30).run()
+        app.switch_page('app_pages/parking.py').run()
+        self.assertFalse(app.exception)
+        gauges = [x.proto for x in app.get('bidi_component')
+                  if x.proto.component_name == 'chachacha_charging_gauge']
+        self.assertEqual(len(gauges), 1)
+        self.assertFalse(any(x.proto.page == 'charging' for x in app.get('page_link')))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

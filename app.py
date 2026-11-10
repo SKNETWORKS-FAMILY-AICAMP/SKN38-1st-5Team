@@ -26,8 +26,6 @@ pages = [
             icon=":material/directions_car:", help="서울 25구의 차량 보유 현황을 지도로 살펴볼 수 있어요."),
     st.Page("app_pages/parking.py", title="주차·충전 찾기", url_path="parking",
             icon=":material/local_parking:", help="동네의 주차 여건과 주차장·충전소 위치를 찾을 수 있어요."),
-    st.Page("app_pages/charging.py", title="전기차 충전", url_path="charging",
-            icon=":material/ev_station:", help="충전기 구성과 충전소 위치를 살펴볼 수 있어요. 실시간 빈자리 정보는 아니에요."),
     st.Page("app_pages/transit.py", title="대중교통", url_path="transit",
             icon=":material/directions_bus:", help="차 없이 다닐 때의 좋은 점과 동네 대중교통 흐름을 살펴볼 수 있어요."),
     st.Page("app_pages/roads.py", title="도로와 날씨", url_path="roads",
