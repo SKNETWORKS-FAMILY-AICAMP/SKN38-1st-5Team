@@ -378,7 +378,7 @@ def brand() -> None:
 # 바로 가는 메뉴와, 이름을 붙인 묶음 메뉴. 묶음 이름은 README 주요 화면 표의 구분과 같다.
 PRIMARY_PATHS = ("", "finder")
 NAV_GROUPS = (
-    ("동네 살펴보기", ":material/directions_car:", ("ownership", "parking", "charging", "transit", "roads")),
+    ("동네 살펴보기", ":material/directions_car:", ("ownership", "parking", "transit", "roads")),
     ("비교·조회", ":material/compare_arrows:", ("ranking", "compare", "national")),
     ("도움말", ":material/help:", ("faq", "ask", "about")),
 )
@@ -553,7 +553,7 @@ def sitemap(pages: Sequence[st.Page]) -> None:
 
 # 통합검색에서 짧은 낱말로 바로 갈 수 있는 메뉴. 앞에 있는 낱말이 먼저 맞는다.
 SEARCH_WORDS = (
-    ("전기차", "charging"), ("충전", "charging"), ("주차", "parking"),
+    ("전기차", "parking"), ("충전", "parking"), ("주차", "parking"),
     ("버스", "transit"), ("지하철", "transit"), ("대중교통", "transit"),
     ("날씨", "roads"), ("도로", "roads"), ("교통량", "roads"),
     ("순위", "ranking"), ("비교", "compare"), ("전국", "national"),
@@ -617,7 +617,6 @@ def page_header(path: str) -> None:
     headings = {
         "finder": ("나에게 맞는 동네 찾기", "내 상황과 중요하게 보는 기준을 고르면, 서울 25구를 내 기준으로 순위를 매겨 추천해 드려요."),
         "ranking": ("서울 25구, 어디가 어떨까요?", "선택한 구의 세 판정과 서울 현황, 항목별 25구 순위를 한곳에서 볼 수 있어요."),
-        "charging": ("우리 동네 충전 여건은 어떨까요?", "전기차 대비 충전기 수와 충전소 위치를 살펴볼 수 있어요. 실시간 빈자리 정보는 아니에요."),
         "roads": ("어느 시간에 길이 붐빌까요?", "평일과 주말의 수록 교통량을 비교하고, 날씨 표본도 함께 살펴볼 수 있어요."),
         "about": ("차차차가 사용하는 자료", "자료 출처와 기준 시점, 세 가지 판정의 규칙과 한계를 확인할 수 있어요."),
         "compare": ("어느 동네가 더 잘 맞을까요?", "두 동네의 차량 보유, 주차 여건, 차 필요성을 나란히 비교해요."),

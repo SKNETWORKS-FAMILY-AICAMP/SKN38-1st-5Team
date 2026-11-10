@@ -108,28 +108,62 @@ if pd.notna(row.get("parking_rank")):
     parking_value += f" · 서울 25구 중 {int(row['parking_rank'])}위"
 
 st.html("""<style>
-.st-key-parking_page_hero {padding-bottom:20px;}
+.st-key-parking_page_hero {padding-bottom:0;height:100%;}
+.st-key-parking_top_row {margin-bottom:12px;}
 .st-key-parking_capacity [data-testid="stMetric"] {min-height:130px;box-sizing:border-box;}
 .st-key-parking_search_controls [data-testid="stWidgetLabel"],
 .st-key-parking_station_controls [data-testid="stWidgetLabel"] {min-height:36px;display:flex;align-items:end;}
 .st-key-parking_station_controls [data-testid="stTextInput"] input,
 .st-key-parking_station_controls [data-baseweb="select"] {min-height:44px;}
-.st-key-parking_search_controls {border:1px solid #DDE1F0;border-radius:16px;padding:18px;background:#F7F8FC;}
+.st-key-parking_search_controls {border:1px solid #DDE1F0;border-radius:16px;padding:12px 16px;background:#F7F8FC;}
 .st-key-parking_search_controls [data-testid="stWidgetLabel"] p {font-size:17px;font-weight:700;color:#27336B;}
 .st-key-parking_search_controls [data-testid="stCheckbox"] label {min-height:0;}
+.st-key-parking_pin_animation {margin-top:-10px;}
+.st-key-parking_pin_animation [data-testid="stWidgetLabel"] {min-height:0;display:block;}
+.st-key-parking_pin_animation [data-testid="stWidgetLabel"] p {font-size:15px;line-height:1.4;margin:0;}
+.st-key-parking_station_slot [data-testid="stVerticalBlock"],
+.st-key-parking_station_controls {gap:6px;}
+.st-key-parking_search_controls > [data-testid="stVerticalBlock"] {gap:12px;}
+.st-key-parking_search_controls [data-testid="stHorizontalBlock"] {align-items:flex-start;}
+.st-key-parking_search_controls [data-testid="stWidgetLabel"] {align-items:center;}
 .parking-side-detail {padding:16px 18px;border:1px solid #E7CD87;border-radius:14px;background:#FFF3D6;max-height:300px;overflow:auto;font-size:16px;line-height:1.6;}
 .parking-side-detail h3 {font-size:21px;margin:0 0 10px;color:#27336B;}
 .parking-side-detail p {margin:8px 0;}
 </style>""")
-hero_column, map_column = st.columns([1, 1.6], gap="large")
-with hero_column.container(key="parking_page_hero"):
+with st.container(key="parking_top_row"):
+    header_column, search_column = st.columns([1.15, 1.6], gap="large")
+with header_column.container(key="parking_page_hero", height="stretch"):
     parking_hero(
         district_id=region_id, district_name=district,
         parking_level=word(row.get("parking_level")), parking_value=parking_value,
         levels={topic: word(row.get(f"{topic}_level")) for topic in ("ownership", "parking", "need")},
-        active_topic="parking", hide_scene=True,
+        active_topic="parking", hide_scene=True, stretch=True,
     )
 
+
+with search_column:
+    with st.container(key="parking_search_controls", height="stretch"):
+        st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
+        facility_column, station_column = st.columns([1, 3], vertical_alignment="top")
+        station_slot = station_column.container(key="parking_station_slot")
+        facility = facility_column.segmented_control(
+            "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,
+            key="parking_facility", persist_state="session",
+        )
+        keyword_column, operation_column = st.columns([2, 1.4], vertical_alignment="bottom")
+        keyword = keyword_column.text_input(
+            "이름·주소 검색", placeholder="주차장·충전소 이름이나 주소", max_chars=500,
+            key="parking_keyword", width="stretch", persist_state="session",
+            help="지도는 시설 이름이나 주소로, 아래 수록 주차장 목록은 주소로 찾아요. 검색 기호도 글자 그대로 찾아요.",
+        ).strip()
+        if facility == "주차장":
+            operation = operation_column.segmented_control(
+                "주차장 운영", ["전체", "공영", "민영"], default="전체", required=True,
+                key="parking_operation", persist_state="session",
+            ) or "전체"
+
+
+hero_column, map_column = st.columns([1.15, 1.6], gap="large")
 with hero_column.container(key="parking_charging_card"):
     charging_summary(row, district)
 
@@ -145,27 +179,6 @@ with hero_column:
 
 detail_slot = hero_column.container(key="parking_detail_slot")
 
-
-with map_column:
-    st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
-    with st.container(key="parking_search_controls"):
-        facility_column, station_column = st.columns([1, 2.5], vertical_alignment="top")
-        station_slot = station_column.container(key="parking_station_slot")
-        facility = facility_column.segmented_control(
-            "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,
-            key="parking_facility", persist_state="session",
-        )
-        keyword_column, operation_column = st.columns([1.7, 1], vertical_alignment="bottom")
-        keyword = keyword_column.text_input(
-            "이름·주소 검색", placeholder="주차장·충전소 이름이나 주소", max_chars=500,
-            key="parking_keyword", width="stretch", persist_state="session",
-            help="지도는 시설 이름이나 주소로, 아래 수록 주차장 목록은 주소로 찾아요. 검색 기호도 글자 그대로 찾아요.",
-        ).strip()
-        if facility == "주차장":
-            operation = operation_column.segmented_control(
-                "주차장 운영", ["전체", "공영", "민영"], default="전체", required=True,
-                key="parking_operation", persist_state="session",
-            ) or "전체"
 
 # 지도·검색 줄 아래에, 이 구의 주차 여건을 서울 평균과 견준 카드를 넓게 보여 준다.
 _ranking = load_frame(q.get_district_ranking)

@@ -186,21 +186,21 @@ class AppTestCase(unittest.TestCase):
         at.switch_page("app_pages/compare.py").run()
         self.assertEqual(at.selectbox(key="compare_id").value, self.ids["마포구"])
 
-    def test_thirteen_pages_and_metric_page_links(self):
+    def test_twelve_pages_and_metric_page_links(self):
         at = self.app
-        expected = ["", "finder", "ownership", "parking", "charging", "transit", "roads",
+        expected = ["", "finder", "ownership", "parking", "transit", "roads",
                     "ranking", "compare", "national", "faq", "ask", "about"]
         expected_menu = expected
         menu = at.get_by_key("site_menu").page_link
         groups = [[link.proto.page for link in at.get_by_key(f"site_group_{number}").page_link]
                   for number in range(3)]
-        self.assertEqual(len(menu), 13)
-        self.assertEqual(groups, [["ownership", "parking", "charging", "transit", "roads"],
+        self.assertEqual(len(menu), 12)
+        self.assertEqual(groups, [["ownership", "parking", "transit", "roads"],
                                   ["ranking", "compare", "national"], ["faq", "ask", "about"]])
         self.assertEqual([link.proto.page for link in menu], expected_menu)
         labels = {link.proto.page: link.value for link in menu}
         for path, label in (("ranking", "25구 순위"), ("parking", "주차·충전 찾기"), ("faq", "기업 FAQ"),
-                            ("charging", "전기차 충전"), ("roads", "도로와 날씨"), ("about", "자료 안내")):
+                            ("roads", "도로와 날씨"), ("about", "자료 안내")):
             self.assertEqual(labels[path], label)
         at.switch_page("app_pages/ranking.py").run()
         self.assert_ready()
@@ -208,7 +208,7 @@ class AppTestCase(unittest.TestCase):
             links = at.get_by_key(f"judgment_{topic}").page_link
             self.assertEqual(len(links), 1)
             self.assertEqual(links[0].proto.page, target)
-        for page in ("ranking", "finder", "ownership", "parking", "charging", "transit", "roads", "compare",
+        for page in ("ranking", "finder", "ownership", "parking", "transit", "roads", "compare",
                      "national", "faq", "ask", "about", "home"):
             with self.subTest(page=page):
                 at.switch_page(f"app_pages/{page}.py").run()
@@ -221,7 +221,7 @@ class AppTestCase(unittest.TestCase):
         at = self.app
         for query, group, member in (("25구 순위", 1, 0), ("순위", 1, 0), ("주차·충전 찾기", 0, 1),
                                      ("주차 찾기", 0, 1), ("기업 FAQ", 2, 0),
-                                     ("전기차", 0, 2), ("충전", 0, 2), ("버스", 0, 3), ("날씨", 0, 4)):
+                                     ("전기차", 0, 1), ("충전", 0, 1), ("버스", 0, 2), ("날씨", 0, 3)):
             with self.subTest(query=query):
                 at.switch_page("app_pages/home.py").run()
                 tools = at.get_by_key("site_tools")
@@ -245,7 +245,7 @@ class AppTestCase(unittest.TestCase):
         self.assert_ready()
         self.assertEqual([[link.proto.page for link in at.get_by_key(f"sitemap_row_{number}").page_link]
                           for number in range(4)],
-                         [["", "finder"], ["ownership", "parking", "charging", "transit", "roads"],
+                         [["", "finder"], ["ownership", "parking", "transit", "roads"],
                           ["ranking", "compare", "national"], ["faq", "ask", "about"]])
         self.assertIn("25구 순위", at.get_by_key("sitemap_row_2").caption[0].value)
 

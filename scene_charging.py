@@ -23,10 +23,11 @@ _GAUGE = st.components.v2.component(
       justify-content: space-between; gap: 24px; padding: 24px 30px;
       border: 1px solid #C8CDE3; border-radius: var(--st-base-radius, 16px);
       background: #EEF0FA; color: #1B2340; font-family: var(--st-font, sans-serif); }
-    .scene.compact {padding:18px 20px;gap:16px;}
-    .scene.compact .district-name {font-size:28px;}
-    .scene.compact .title {font-size:21px;}
-    .scene.compact .battery {transform:scale(.8);transform-origin:right center;}
+    .scene.compact {padding:20px 24px;gap:18px;min-height:190px;}
+    .scene.compact .district-name {font-size:32px;}
+    .scene.compact .title {font-size:24px;}
+    .scene.compact .battery {transform:none;}
+    @media(max-width:480px){.scene.compact {padding:20px;min-height:0;}.scene.compact .district-name {font-size:32px;}}
     .copy { min-width: 0; }
     .eyebrow { color: #4A5270; font-size: 16px; margin: 0 0 8px; }
     .title { font-family: var(--st-heading-font, inherit); font-size: 27px;
@@ -101,4 +102,3 @@ def charging_summary(row: pd.Series, district: str) -> None:
                  "accessibleLabel": f"{district} 충전 여건 {level}, {cells}칸. {rank_label}. 실시간 빈자리가 아닌 수록 충전기 비율이에요."},
            key="parking_charging_summary", width="stretch", height="content")
     st.caption("전기차 대비 수록 충전기 비율이에요. 실시간 빈자리·배터리 잔량과는 달라요.")
-    st.page_link("app_pages/charging.py", label="전기차 충전 상세보기", icon=":material/ev_station:")

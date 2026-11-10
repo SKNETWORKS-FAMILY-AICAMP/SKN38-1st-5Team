@@ -48,7 +48,6 @@ QUICK_MENU = (
     ("app_pages/finder.py", "동네 찾기", ":material/travel_explore:"),
     ("app_pages/ownership.py", "차량 보유", ":material/directions_car:"),
     ("app_pages/parking.py", "주차 찾기", ":material/local_parking:"),
-    ("app_pages/charging.py", "전기차 충전", ":material/ev_station:"),
     ("app_pages/transit.py", "대중교통", ":material/directions_bus:"),
     ("app_pages/roads.py", "도로와 날씨", ":material/traffic:"),
     ("app_pages/ranking.py", "25구 순위", ":material/leaderboard:"),
