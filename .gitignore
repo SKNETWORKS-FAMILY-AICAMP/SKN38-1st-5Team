@@ -14,5 +14,9 @@ data/raw/**
 .pytest_cache/
 data/.api_request_budget.sqlite3*
 
+data/*
+!data/SOURCES.md
+chachacha*.sql
+chachacha*.zip
 data/processed/**/*.csv
 *.sql.gz
