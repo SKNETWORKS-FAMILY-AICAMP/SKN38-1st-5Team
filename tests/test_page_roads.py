@@ -1,6 +1,8 @@
+import ast
 from datetime import datetime
 import json
 from pathlib import Path
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -9,6 +11,7 @@ from streamlit.dataframe_util import convert_arrow_bytes_to_pandas_df
 from streamlit.testing.v1 import AppTest
 
 from tests import app_env
+import kakao_map
 from db import queries as q
 
 
@@ -32,6 +35,9 @@ class RoadsPageTests(unittest.TestCase):
         self.options_patch = patch.object(q, "get_filter_options", return_value=self.options)
         self.options_patch.start()
         self.addCleanup(self.options_patch.stop)
+        self.key_patch = patch.object(kakao_map, "javascript_key", return_value="")
+        self.key_patch.start()
+        self.addCleanup(self.key_patch.stop)
 
     def run_page(self):
         self.app.run()
@@ -231,6 +237,148 @@ class RoadsPageTests(unittest.TestCase):
             self.run_page()
         query.assert_not_called()
         self.assertIn("동네를 선택해 주세요", self.page_text())
+
+
+    def test_live_traffic_without_key_keeps_recorded_charts_without_boundary_query(self):
+        with patch.object(q, "get_region_boundaries") as boundaries:
+            self.run_page()
+        boundaries.assert_not_called()
+        self.assertFalse(self.app.get("bidi_component"))
+        self.assertEqual(len(self.app.get("vega_lite_chart")), 4)
+        for phrase in ("지금 교통 상황", "실시간 · 카카오 제공", "수록 교통량과 기준 시점이 달라요",
+                       "지금 교통 지도를 준비하지 못했어요", r"2026.09.01 \~ 2026.09.30"):
+            self.assertIn(phrase, self.page_text())
+
+    def test_live_traffic_uses_selected_boundary_and_only_javascript_key(self):
+        boundaries = q.get_region_boundaries().set_index("region_id")
+        component_ids = set()
+        with patch.object(kakao_map, "javascript_key", return_value="test-only"), \
+                patch.object(kakao_map, "rest_key", side_effect=AssertionError("REST 키는 지도에 필요하지 않음")):
+            for district in ("마포구", "강남구"):
+                region_id = self.ids[district]
+                self.app.session_state["district_id"] = region_id
+                self.run_page()
+                component = self.app.get("bidi_component")[0].proto
+                component_ids.add(component.id)
+                self.assertEqual(component.component_name, "chachacha_traffic_map")
+                self.assertEqual(json.loads(component.json), {
+                    "javascript_api_key": "test-only", "region_id": region_id, "district_name": district,
+                    "latitude": float(boundaries.loc[region_id, "centroid_latitude"]),
+                    "longitude": float(boundaries.loc[region_id, "centroid_longitude"]),
+                })
+                self.assertEqual(len(self.app.get("vega_lite_chart")), 4)
+        self.assertEqual(len(component_ids), 1)
+
+    def test_missing_or_invalid_center_keeps_existing_charts(self):
+        boundaries = q.get_region_boundaries()
+        invalid = boundaries.copy()
+        invalid.loc[invalid.region_id.eq(self.region_id), "centroid_latitude"] = float("nan")
+        for frame in (boundaries.iloc[:0], invalid):
+            with patch.object(kakao_map, "javascript_key", return_value="test-only"), \
+                    patch.object(q, "get_region_boundaries", return_value=frame):
+                self.run_page()
+            self.assertFalse(self.app.get("bidi_component"))
+            self.assertIn("지도 중심 자료가 없어요", self.page_text())
+            self.assertEqual(len(self.app.get("vega_lite_chart")), 4)
+
+
+class TrafficComponentTests(unittest.TestCase):
+    def run_javascript(self, scenario):
+        module = ast.parse((ROOT / "app_pages/roads.py").read_text())
+        script = next(ast.literal_eval(node.value) for node in module.body if isinstance(node, ast.Assign)
+                      and any(isinstance(target, ast.Name) and target.id == "TRAFFIC_JS" for target in node.targets))
+        harness = r"""
+import assert from 'node:assert/strict';
+const timers = new Map(); let timerId = 0;
+globalThis.setTimeout = (callback, ms) => { assert.equal(ms, 8000); timers.set(++timerId, callback); return timerId; };
+globalThis.clearTimeout = id => timers.delete(id);
+const created = [], observers = [];
+class MapStub {
+  constructor(canvas, options) { this.options = options; this.center = options.center; this.events = {}; this.overlays = []; created.push(this); }
+  addOverlayMapTypeId(value) { this.overlays.push(value); }
+  addControl() {}
+  getCenter() { return this.center; }
+  setCenter(value) { this.center = value; }
+  relayout() { this.resized = true; }
+}
+const kakao = {maps: {
+  Map: MapStub, LatLng: class { constructor(lat, lon) { this.lat = lat; this.lon = lon; } },
+  MapTypeId: {TRAFFIC: 'traffic'}, ControlPosition: {RIGHT: 'right'}, ZoomControl: class {},
+  event: {addListener: (map, name, fn) => { map.events[name] = fn; },
+          removeListener: (map, name) => { delete map.events[name]; }},
+}};
+globalThis.ResizeObserver = class {
+  constructor(fn) { this.fn = fn; observers.push(this); }
+  observe() {}
+  disconnect() { this.disconnected = true; }
+};
+let loads = 0, load = () => Promise.resolve(kakao);
+globalThis.window = {chachachaKakao: () => { loads++; return load(); }};
+const canvas = {hidden: false, setAttribute() {}, replaceChildren() { this.cleared = true; }};
+const status = {hidden: false, textContent: ''};
+const parentElement = {querySelector: name => name.endsWith('canvas') ? canvas : status};
+const data = {javascript_api_key: 'test-only', region_id: 1, district_name: '동네', latitude: 37.55, longitude: 126.95};
+const args = {parentElement, data, setStateValue() { throw new Error('unexpected rerun'); }, setTriggerValue() { throw new Error('unexpected rerun'); }};
+const flush = () => new Promise(resolve => setImmediate(resolve));
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module"],
+            input=harness + script.replace("export default function", "function render") + scenario,
+            text=True, capture_output=True, timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_map_reuses_instance_updates_center_and_cleans_up(self):
+        self.run_javascript(r"""
+let cleanup = render(args); await flush();
+assert.equal(created.length, 1); assert.equal(loads, 1);
+assert.deepEqual(created[0].overlays, ['traffic']);
+assert.equal(created[0].options.scrollwheel, false);
+assert.equal(created[0].options.keyboardShortcuts, true);
+created[0].events.tilesloaded(); assert.equal(timers.size, 0); assert.equal(status.hidden, true);
+const panned = {lat: 37.57, lon: 126.97}; created[0].setCenter(panned);
+cleanup = render(args); assert.equal(created[0].center, panned);
+cleanup = render({...args, data: {...data, region_id: 2, latitude: 37.6, longitude: 127.0}});
+assert.equal(created.length, 1); assert.equal(loads, 1);
+assert.equal(created[0].center.lat, 37.6); assert.equal(created[0].center.lon, 127.0);
+observers[0].fn(); assert.equal(created[0].resized, true);
+cleanup(); assert.equal(observers[0].disconnected, true);
+assert.deepEqual(created[0].events, {}); assert.equal(canvas.cleared, true);
+""")
+
+    def test_sdk_failure_shows_only_generic_message_and_can_retry(self):
+        self.run_javascript(r"""
+load = () => Promise.reject(new Error('private-request-detail'));
+render(args); await flush();
+assert.equal(created.length, 0); assert.equal(canvas.hidden, true);
+assert.match(status.textContent, /불러오지 못했어요/);
+assert.equal(status.textContent.includes('private-request-detail'), false);
+load = () => Promise.resolve(kakao);
+const cleanup = render(args); await flush();
+assert.equal(created.length, 1); assert.equal(canvas.hidden, false); cleanup();
+""")
+
+    def test_eight_second_timeout_ignores_late_sdk_and_tile_events(self):
+        self.run_javascript(r"""
+let resolve; load = () => new Promise(done => { resolve = done; });
+let cleanup = render(args); [...timers.values()][0]();
+assert.equal(canvas.hidden, true); resolve(kakao); await flush();
+assert.equal(created.length, 0); cleanup();
+load = () => Promise.resolve(kakao); cleanup = render(args); await flush();
+[...timers.values()][0](); created[0].events.tilesloaded();
+assert.equal(canvas.hidden, true); assert.equal(status.hidden, false); cleanup();
+""")
+
+    def test_pending_load_uses_latest_district_and_unmount_stops_late_work(self):
+        self.run_javascript(r"""
+let resolve; load = () => new Promise(done => { resolve = done; });
+render(args);
+let cleanup = render({...args, data: {...data, region_id: 2, latitude: 37.6, longitude: 127.0}});
+resolve(kakao); await flush(); assert.equal(loads, 1);
+assert.equal(created[0].center.lat, 37.6); assert.equal(created[0].center.lon, 127.0); cleanup();
+cleanup = render(args); cleanup(); resolve(kakao); await flush();
+assert.equal(created.length, 1); assert.equal(timers.size, 0);
+""")
 
 
 if __name__ == "__main__":

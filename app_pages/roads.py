@@ -1,7 +1,10 @@
+import math
+
 import altair as alt
 import pandas as pd
 import streamlit as st
 
+import kakao_map
 from db import queries as q
 from ui import date_text, district_row, load_frame, load_options, number, word
 
@@ -9,6 +12,112 @@ from ui import date_text, district_row, load_frame, load_options, number, word
 DAY_TYPES = ("평일", "주말")
 WEATHER_HOURS = pd.date_range("2026-10-30", periods=48, freq="h", name="observed_at")
 TRAFFIC_VALUES = ("avg_vehicles", "seoul_avg_vehicles")
+
+
+TRAFFIC_JS = r"""
+const instances = new WeakMap();
+export default function ({parentElement, data}) {
+  const canvas = parentElement.querySelector('.roads-traffic-canvas');
+  const status = parentElement.querySelector('.roads-traffic-status');
+  if (!canvas || !status) return;
+  canvas.setAttribute('aria-label', data.district_name + ' 실시간 교통 상황, 카카오 제공');
+  let state = instances.get(parentElement);
+  if (state && state.failed) { state.cleanup(); state = null; }
+  if (!state) {
+    state = {data, map: null, disposed: false, failed: false};
+    instances.set(parentElement, state);
+    canvas.hidden = false;
+    status.hidden = false;
+    status.textContent = '지금 교통 지도를 불러오고 있어요.';
+    const fail = () => {
+      if (state.disposed || state.failed) return;
+      state.failed = true;
+      clearTimeout(state.timer);
+      canvas.hidden = true;
+      status.hidden = false;
+      status.textContent = '지금 교통 지도를 불러오지 못했어요. 아래 수록 교통량과 날씨 자료를 확인해 주세요.';
+    };
+    state.cleanup = () => {
+      state.disposed = true;
+      clearTimeout(state.timer);
+      if (state.observer) state.observer.disconnect();
+      if (state.map && state.loaded) state.maps.event.removeListener(state.map, 'tilesloaded', state.loaded);
+      canvas.replaceChildren();
+      instances.delete(parentElement);
+    };
+    state.timer = setTimeout(fail, 8000);
+    window.chachachaKakao(data.javascript_api_key, '').then(kakao => {
+      if (state.disposed || state.failed) return;
+      const maps = state.maps = kakao.maps;
+      state.map = new maps.Map(canvas, {
+        center: new maps.LatLng(state.data.latitude, state.data.longitude),
+        level: 7, scrollwheel: false, keyboardShortcuts: true,
+      });
+      state.regionId = state.data.region_id;
+      state.loaded = () => {
+        if (state.disposed || state.failed) return;
+        clearTimeout(state.timer);
+        status.hidden = true;
+      };
+      maps.event.addListener(state.map, 'tilesloaded', state.loaded);
+      state.map.addOverlayMapTypeId(maps.MapTypeId.TRAFFIC);
+      state.map.addControl(new maps.ZoomControl(), maps.ControlPosition.RIGHT);
+      state.observer = new ResizeObserver(() => {
+        if (state.disposed || state.failed) return;
+        const center = state.map.getCenter();
+        state.map.relayout();
+        state.map.setCenter(center);
+      });
+      state.observer.observe(canvas);
+    }).catch(fail);
+  } else {
+    state.data = data;
+    if (state.map && state.regionId !== data.region_id) {
+      state.map.setCenter(new state.maps.LatLng(data.latitude, data.longitude));
+      state.regionId = data.region_id;
+    }
+  }
+  return state.cleanup;
+}
+"""
+
+_TRAFFIC_MAP = st.components.v2.component(
+    "chachacha_traffic_map",
+    html='<p class="roads-traffic-status" role="status" aria-live="polite"></p>'
+         '<div class="roads-traffic-canvas" role="region" tabindex="0"></div>',
+    css="""
+    .roads-traffic-canvas {width:100%; height:360px;}
+    .roads-traffic-canvas[hidden] {display:none;}
+    .roads-traffic-status {font:inherit; line-height:1.6; margin:0 0 .75rem;}
+    """,
+    js=kakao_map.SDK_LOADER_JS + TRAFFIC_JS, isolate_styles=False,
+)
+
+
+def _live_traffic(region_id: int, district_name: str) -> None:
+    with st.container(border=True, gap="small", key="roads_live_traffic"):
+        st.subheader(f"{district_name}, 지금 교통 상황", anchor=False)
+        st.caption("실시간 · 카카오 제공 · 아래 수록 교통량과 기준 시점이 달라요.")
+        key = kakao_map.javascript_key()
+        if not key:
+            st.info("지금 교통 지도를 준비하지 못했어요. 아래 수록 교통량과 날씨 자료를 확인해 주세요.")
+            return
+        boundary = district_row(load_frame(q.get_region_boundaries), region_id)
+        try:
+            latitude = float(boundary.get("centroid_latitude"))
+            longitude = float(boundary.get("centroid_longitude"))
+            valid = (math.isfinite(latitude) and math.isfinite(longitude)
+                     and -90 <= latitude <= 90 and -180 <= longitude <= 180)
+        except (TypeError, ValueError):
+            valid = False
+        if not valid:
+            st.info("선택한 구의 지도 중심 자료가 없어요. 아래 수록 교통량과 날씨 자료를 확인해 주세요.")
+            return
+        _TRAFFIC_MAP(
+            key="roads_traffic_map", width="stretch", height="content",
+            data={"javascript_api_key": key, "region_id": region_id, "district_name": district_name,
+                  "latitude": latitude, "longitude": longitude},
+        )
 
 
 def _polish(chart):
@@ -165,6 +274,8 @@ region_id = int(region_id)
 options = load_options()
 district_name = word(district_row(options.get("regions", pd.DataFrame()), region_id).get("district_name"),
                      "선택한 동네")
+
+_live_traffic(region_id, district_name)
 
 st.subheader(f"{district_name}, 언제 차량이 많을까요?", anchor=False)
 profile_query = getattr(q, "get_traffic_profile", None)
