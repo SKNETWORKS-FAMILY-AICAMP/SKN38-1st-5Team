@@ -21,6 +21,7 @@ class IdleNudgeTests(unittest.TestCase):
 
         self.assertEqual(len(paths), 12)
         self.assertEqual(set(MESSAGES), set(paths))
+        self.assertFalse(any("자세한 자료" in message for message in MESSAGES[""]))
         for path in paths:
             with self.subTest(page=path):
                 self.assertIsInstance(MESSAGES[path], tuple)

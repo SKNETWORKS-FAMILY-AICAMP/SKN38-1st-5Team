@@ -6,7 +6,7 @@ import streamlit as st
 
 from db import queries as q
 from scene_city3d import render_hero
-from ui import (RANK_HEIGHT, date_text, district_row, load_frame,
+from ui import (RANK_HEIGHT, date_text, display_table, district_row, load_frame,
                 number, rank_text, ranking_chart, select_rank_region, top_three, word)
 
 
@@ -46,6 +46,7 @@ def _vehicle_composition(frame: pd.DataFrame, scope: str, district_name: str) ->
     missing = rows.loc[rows.vehicle_count.isna(), "vehicle_type_name"].astype(str).tolist()
     if missing:
         st.caption(f"자료 없음: {', '.join(missing)}")
+    table = rows
     rows = rows.loc[rows.vehicle_count.notna()]
     if rows.empty:
         st.info("선택한 범위의 차종 구성은 자료 없음이에요.")
@@ -68,6 +69,10 @@ def _vehicle_composition(frame: pd.DataFrame, scope: str, district_name: str) ->
     chart = (bars + labels).properties(height=310, padding={"left": 5, "top": 5, "bottom": 5, "right": 16})
     st.altair_chart(_polish(chart), width="stretch", key="ownership_vehicle_types",
                     alt=f"{district_name} {'전체 차량' if scope == 'all' else '전기차'}의 차종별 등록 대수")
+    with st.expander("상세보기 · 차종별 전체 등록 대수"):
+        display_table(table, {"vehicle_type_name": "차종", "vehicle_count": "등록 대수"},
+                      f"{district_name} 차종별 등록 대수와 자료 없는 항목",
+                      column_config={"등록 대수": st.column_config.NumberColumn(format="localized")})
 
 
 def _fuel_composition(row: pd.Series, district_name: str) -> None:

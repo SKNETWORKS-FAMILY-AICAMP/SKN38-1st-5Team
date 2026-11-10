@@ -126,6 +126,19 @@ class OwnershipPageTest(unittest.TestCase):
                 self.assertAlmostEqual(float(fuel.share.sum()), 100)
         self.assertTrue(any("세부 연료별 자료는 없어요" in c.value for c in self.app.caption))
 
+    def test_vehicle_table_keeps_each_scope_as_sql_counts(self):
+        from db import queries as q
+        source = q.get_registration_breakdown(self.ids["마포구"])
+        for scope in ("all", "electric"):
+            with self.subTest(scope=scope):
+                self.app.segmented_control(key="ownership_scope").set_value(scope).run()
+                self.assert_ready()
+                table = self.app.dataframe[-1].value
+                expected = source.loc[source.fuel_scope_code == scope]
+                self.assertEqual(table["차종"].tolist(), expected.vehicle_type_name.astype(str).tolist())
+                self.assertEqual([int(value) for value in table["등록 대수"]],
+                                 [int(value) for value in expected.vehicle_count])
+
     def test_ranking_preserves_all_25_sql_ranks_and_values(self):
         rows = self.chart_data("세대당 차량 보유 순위")
         expected = self.ranking.sort_values(["ownership_rank", "district_name"])

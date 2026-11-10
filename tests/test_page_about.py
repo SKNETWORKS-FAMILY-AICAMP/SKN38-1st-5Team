@@ -55,16 +55,18 @@ class AboutFaqTest(unittest.TestCase):
             self.app.segmented_control(key="about_section").set_value(section).run()
         self.assert_ready()
 
-    def test_service_faq_is_default_and_needs_no_database(self):
-        self.assertEqual(self.app.segmented_control(key="faq_kind").value, "차차차 FAQ")
+    def test_company_faq_is_default_and_service_faq_needs_no_database(self):
+        self.assertEqual(self.app.segmented_control(key="faq_kind").value, "기업 FAQ")
+        self.options_query.reset_mock()
+        with patch.object(q, "search_faq") as query:
+            self.app.segmented_control(key="faq_kind").set_value("차차차 FAQ").run()
+            self.assert_ready()
+            query.assert_not_called()
         self.options_query.assert_not_called()
         self.assertGreaterEqual(len(self.app.expander), 10)
         self.assertLessEqual(len(self.app.expander), 13)
         self.assertEqual(len({item.key for item in self.app.expander}), len(self.app.expander))
         self.assertFalse(self.app.selectbox)
-        with patch.object(q, "search_faq") as query:
-            self.app.run()
-            query.assert_not_called()
         for phrase in ("차량 보유 현황", "주차하기 좋은 동네", "차가 꼭 필요한 동네",
                        "1위부터 8위", "9위부터 17위", "18위부터 25위", "절대 기준을 정할 근거 자료",
                        "2026.09", "2026.10.30~31", "2013년", "아파트", "관리번호",

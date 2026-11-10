@@ -1,7 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
-import json
 from typing import Any
 
 import altair as alt
@@ -30,9 +29,11 @@ TOPICS = {
     "need": Topic("차가 꼭 필요한 동네", "주민 1명당 하루 승객", "대중교통 이용 많은 순",
                   ("차가 필요한 편", "있으면 편함", "대중교통으로 충분")),
 }
+# 충전은 세 판정에 들지 않아 지도 기준이 아닌 순위 항목으로만 쓴다.
+RANKED_TOPICS = {**TOPICS, "charging": Topic("충전 여건", "전기차 1대당 충전기", "전기차 대비 수록 충전기 많은 순",
+                                             ("많은 편", "보통", "적은 편"))}
 COLORS = ["#27336B", "#8E98CF", "#EEF0FA", "#E4E7E6"]
 MISSING = "자료 없음"
-MAP_HEIGHT = 560
 MAP_PANEL_HEIGHT = 672
 RANK_HEIGHT = 550
 RANK_BAR_LEFT = 96
@@ -87,14 +88,14 @@ def district_row(frame: pd.DataFrame, region_id: int) -> pd.Series:
 
 
 def topic_value(row: pd.Series, topic: str, brief: bool = False) -> str:
-    spec = TOPICS[topic]
+    spec = RANKED_TOPICS[topic]
     raw = row.get(f"{topic}_value")
     if raw is None or pd.isna(raw):
         return MISSING
     scaled = float(raw) * spec.multiplier
     digits = 2 if topic == "parking" and 0 < scaled < 0.1 else spec.digits
     value = number(scaled, digits)
-    unit = {"ownership": "대", "parking": "면", "need": "명"}[topic]
+    unit = {"ownership": "대", "parking": "면", "need": "명", "charging": "기"}[topic]
     return f"{value}{unit}" if brief else f"{spec.unit} {value}{unit}"
 
 
@@ -121,15 +122,6 @@ def clear_rank_selection() -> None:
     st.session_state.rank_epoch = st.session_state.get("rank_epoch", 0) + 1
 
 
-def select_map_region(key: str) -> None:
-    event = st.session_state.get(key, {})
-    chosen = event.get("selection", {}).get("district", [])
-    if chosen and chosen[0].get("region_id") is not None:
-        st.session_state.district_id = int(chosen[0]["region_id"])
-        st.session_state.selected_region_id = int(st.session_state.district_id)
-        clear_rank_selection()
-
-
 def select_rank_region(key: str) -> None:
     event = st.session_state.get(key, {})
     chosen = event.get("selection", {}).get("rank", [])
@@ -151,7 +143,7 @@ def judgment_tabs(row: pd.Series) -> None:
                 with st.container(key=f"tab_{'active' if active else 'idle'}_{topic}"):
                     st.button(spec.title, key=f"tab_{topic}", width="stretch", icon=icons[topic],
                               type="primary" if active else "tertiary", on_click=set_topic, args=(topic,),
-                              help="누르면 지도와 25구 순위가 이 기준으로 바뀌어요.")
+                              help="누르면 우리 동네 지도의 색이 이 기준으로 바뀌어요.")
                 st.metric(label=spec.unit, value=topic_value(row, topic, brief=True), width="stretch")
                 st.caption(rank_text(row, topic))
                 page, label = pages[topic]
@@ -197,61 +189,6 @@ def incomplete_transit(row: pd.Series) -> bool:
             and pd.notna(complete) and pd.notna(observed) and complete < observed)
 
 
-def district_map(boundaries: pd.DataFrame, ranking: pd.DataFrame,
-                 topic: str, selected: int) -> alt.LayerChart:
-    spec = TOPICS[topic]
-    records = []
-    for _, boundary in boundaries.iterrows():
-        region_id = int(boundary.region_id)
-        row = district_row(ranking, region_id)
-        level = word(row.get(f"{topic}_level"))
-        geometry = json.loads(boundary.geometry_json)
-        records.append({
-            "type": "Feature",
-            "geometry": geometry,
-            "region_id": region_id,
-            "district_name": str(boundary.district_name),
-            "longitude": float(boundary.centroid_longitude),
-            "latitude": float(boundary.centroid_latitude),
-            "level": level, "value_label": topic_value(row, topic),
-            "rank_label": rank_text(row, topic), "selected": region_id == selected,
-        })
-    # GeoJSON이 Arrow 변환을 거치지 않도록 Feature를 최상위 레코드로 전달한다.
-    base = alt.Chart(alt.InlineData(values=records))
-    tooltip = [alt.Tooltip("district_name:N", title="동네"),
-               alt.Tooltip("level:N", title="판정"),
-               alt.Tooltip("value_label:N", title="근거"),
-               alt.Tooltip("rank_label:N", title="순위")]
-    shapes = base.mark_geoshape(cursor="pointer").encode(
-        color=alt.Color("level:N", scale=alt.Scale(domain=[*spec.levels, MISSING], range=COLORS),
-                        legend=alt.Legend(title=None, orient="bottom", direction="horizontal",
-                                          columns=2, labelFontSize=15, labelColor="#1B2340",
-                                          symbolType="square", symbolSize=180,
-                                          rowPadding=8, columnPadding=20, labelLimit=200)),
-        stroke=alt.condition("datum.selected", alt.value("#FF7A66"), alt.value("#FFFFFF")),
-        strokeWidth=alt.condition("datum.selected", alt.value(2.5), alt.value(1.2)),
-        order=alt.Order("selected:O"),
-        tooltip=tooltip,
-    )
-    label_data = base.encode(
-        longitude="longitude:Q", latitude="latitude:Q", text="district_name:N",
-        tooltip=tooltip,
-    )
-    # 구 이름이 경계를 넘어가도 읽히도록 글자에 외곽선을 입힌다.
-    dark_fill = alt.FieldEqualPredicate(field="level", equal=spec.levels[0])
-    halo_color = alt.condition(dark_fill, alt.value(COLORS[0]), alt.value("#FFFFFF"))
-    halo = label_data.mark_text(fontSize=13, fontWeight=600, cursor="pointer",
-                                color="#FFFFFF", stroke="#FFFFFF", strokeWidth=3.5).encode(
-                                    color=halo_color, stroke=halo_color)
-    labels = label_data.mark_text(fontSize=13, fontWeight=600, cursor="pointer").encode(
-        color=alt.condition(dark_fill, alt.value("#FFFFFF"), alt.value("#1B2340")))
-    selection = alt.selection_point(name="district", fields=["region_id"],
-                                    toggle=False, clear=False)
-    return ((shapes + halo + labels).add_params(selection).project(type="mercator")
-            .properties(height=MAP_HEIGHT)
-            .configure_view(stroke=None))
-
-
 def top_three(frame: pd.DataFrame, value: str, key: str) -> pd.DataFrame:
     """Show three largest observations, preserving the full result on demand."""
     full = st.toggle("상세보기 · 전체 자료", key=f"{key}_show_all")
@@ -262,7 +199,6 @@ def top_three(frame: pd.DataFrame, value: str, key: str) -> pd.DataFrame:
 
 
 def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.LayerChart:
-    spec = TOPICS[topic]
     ordered = ranking.copy()
     rank_col, value_col = f"{topic}_rank", f"{topic}_value"
     for column in (rank_col, value_col):
@@ -304,14 +240,19 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
 
 
 def ranking_list(ranking: pd.DataFrame, topic: str) -> None:
-    spec = TOPICS[topic]
-    st.caption(f"**서울 25구 순위** · {spec.order_label} · 순위는 반올림 전 값으로 정해요")
+    spec = RANKED_TOPICS[topic]
+    st.caption(spec.order_label)
     key = f"ranking_{topic}_{st.session_state.get('rank_epoch', 0)}"
-    shown = top_three(ranking, f"{topic}_value", f"ranking_{topic}")
+    rank_col = f"{topic}_rank"
+    shown = ranking
+    if (not st.toggle("전체 25구 보기", key=f"ranking_{topic}_show_all")
+            and rank_col in ranking and ranking[rank_col].notna().any()):
+        rank = ranking[rank_col]
+        shown = ranking.loc[rank.le(5) | rank.eq(rank.max())]
     st.altair_chart(ranking_chart(shown, topic, st.session_state.district_id), key=key,
                     on_select=partial(select_rank_region, key), selection_mode="rank",
                     width="stretch", height=max(120, len(shown) * 30),
-                    alt=f"서울 25구 {spec.order_label} 막대 순위. 행을 누르면 해당 구의 세 판정을 표시해요.")
+                    alt=f"서울 25구 {spec.order_label} 막대 순위. 행을 누르면 해당 구를 선택해요.")
 
 
 def display_table(frame: pd.DataFrame, columns: dict[str, str], alt_text: str,

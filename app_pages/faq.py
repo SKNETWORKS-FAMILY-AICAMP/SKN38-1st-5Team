@@ -23,7 +23,7 @@ def source_link(value: object) -> str | None:
 
 
 faq_kind = st.segmented_control(
-    "FAQ 종류", ["차차차 FAQ", "기업 FAQ"], default="차차차 FAQ",
+    "FAQ 종류", ["기업 FAQ", "차차차 FAQ"], default="기업 FAQ",
     required=True, key="faq_kind", label_visibility="collapsed",
 )
 

@@ -156,7 +156,6 @@ CSS = """
 .st-key-summary_signals { margin-top: 4px; }
 .st-key-summary_signals [class*="st-key-summary_level_"] { border-radius: 999px; padding: 4px 9px; }
 .st-key-summary_signals p { font-size: 16px; line-height: 1.5; }
-.st-key-b_details { margin-top: 10px; }
 .st-key-site_footer {
   position: relative; background: #1B2340; color: #fff; padding: 33px 0;
   box-shadow: 0 0 0 100vmax #1B2340;
@@ -424,7 +423,7 @@ def page_header(path: str) -> None:
         "about": ("차차차가 사용하는 자료", "자료 출처와 기준 시점, 세 가지 판정의 규칙과 한계를 확인할 수 있어요."),
         "compare": ("어느 동네가 더 잘 맞을까요?", "두 동네의 차량 보유, 주차 여건, 차 필요성을 나란히 비교해요."),
         "national": ("전국에는 차가 얼마나 있을까요?", "시도와 차종, 용도를 선택해 자동차 등록 현황을 조회할 수 있어요."),
-        "faq": ("자주 묻는 질문", "차차차 이용 안내와 기업이 안내한 자동차 질문을 확인할 수 있어요."),
+        "faq": ("자주 묻는 질문", "기업이 안내한 자동차 질문과 차차차 이용 안내를 확인할 수 있어요."),
         "ask": ("차차차에게 물어보세요", "우리 동네 자동차 생활, 차차차 자료에서 답을 찾아 드려요."),
     }
     title, description = headings[path]
