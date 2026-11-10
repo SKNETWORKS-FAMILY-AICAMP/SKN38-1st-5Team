@@ -247,18 +247,18 @@ function reconcile(state) {
     label.textContent = `역 · ${data.station.name}`;
     state.layers.push(circle, new state.maps.CustomOverlay({map: state.map, position: center,
       content: label, xAnchor: .5, yAnchor: .5, zIndex: 6}));
-    state.map.setBounds(circle.getBounds(), 40, 40, 40, 40);
-  } else if (data.boundary?.polygons?.length) {
-    state.map.setBounds(bounds, 40, 40, 40, 40);
+    state.fit = () => state.map.setBounds(circle.getBounds(), 40, 40, 40, 40);
+  } else if (data.boundary?.polygons?.length || data.places.length > 1) {
+    state.fit = () => state.map.setBounds(bounds, 40, 40, 40, 40);
   } else if (data.places.length === 1) {
-    state.map.setCenter(position(state, data.places[0]));
-    state.map.setLevel(3);
-  } else if (data.places.length) {
-    state.map.setBounds(bounds, 40, 40, 40, 40);
+    state.fit = () => { state.map.setCenter(position(state, data.places[0])); state.map.setLevel(3); };
   } else {
-    state.map.setCenter(new state.maps.LatLng(37.55, 126.98));
-    state.map.setLevel(7);
+    state.fit = () => { state.map.setCenter(new state.maps.LatLng(37.55, 126.98)); state.map.setLevel(7); };
   }
+  // 화면이 다시 그려지는 동안 지도 영역이 0x0이 되면 범위가 전국으로 잡힌다.
+  // 크기를 다시 잰 뒤 맞추고, 아직 0이면 ResizeObserver가 크기를 되찾을 때 맞춘다.
+  if (state.canvas.clientWidth) { state.map.relayout(); state.fit(); }
+  else state.refit = true;
   state.status.textContent = data.places.length ? `${data.district} · 지도에 표시한 시설 ${data.places.length.toLocaleString()}곳` :
     '이 조건에서 지도에 표시할 위치 자료가 없어요. 아래 목록에서 주소로 확인해 주세요.';
   state.choice.disabled = !data.places.length;
@@ -287,9 +287,11 @@ function load(state) {
       state.maps.event.addListener(state.map, 'click', state.onMapClick);
       state.observer = new ResizeObserver(() => {
         if (state.disposed) return;
+        if (!state.canvas.clientWidth) { state.refit = true; return; }
         const center = state.map.getCenter();
         state.map.relayout();
-        state.map.setCenter(center);
+        if (state.refit) { state.refit = false; state.fit?.(); }
+        else state.map.setCenter(center);
       });
       state.observer.observe(state.canvas);
     }
