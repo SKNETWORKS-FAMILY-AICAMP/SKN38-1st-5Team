@@ -171,7 +171,7 @@ class ChargingPageTest(unittest.TestCase):
         self.assertFalse(self.app.error, [item.value for item in self.app.error])
 
     def text(self):
-        return "\n".join(str(item.value) for group in (self.app.caption, self.app.markdown, self.app.info) for item in group)
+        return "\n".join(str(item.value) for group in (self.app.caption, self.app.markdown, self.app.info, self.app.warning) for item in group)
 
     def gauge(self):
         components = [item.proto for item in self.app.get("bidi_component")
@@ -192,6 +192,9 @@ class ChargingPageTest(unittest.TestCase):
         self.assertEqual(len(self.table("충전소")), row.listed_station_count)
         self.assertIn("실시간 빈자리 정보가 아니에요", self.text())
         self.assertIn("충전 요금 무료를 뜻하지 않아요", self.text())
+        self.assertIn("실제 배터리 충전량이나 주차 여건을 뜻하지 않아요", self.text())
+        self.assertEqual(self.gauge()["district_name"], "마포구")
+        self.assertTrue(any("실시간 빈자리" in item.value for item in self.app.warning))
         self.assertIn("2026.09", self.text())
         self.assertIn("2026.11.06", self.text())
         self.assertTrue(self.gauge()["animate"])
@@ -207,21 +210,26 @@ class ChargingPageTest(unittest.TestCase):
                 self.app.run()
             self.assert_ready()
             self.assertEqual(self.gauge()["level"], level)
+            self.assertEqual(self.gauge()["color"], {1: "#DC2626", 2: "#EAB308", 3: "#15803D"}[level])
             self.assertFalse(self.gauge()["animate"])
         changed = summary.assign(charger_per_electric_vehicle=pd.NA)
         with patch.object(q, "get_summary_metrics", return_value=changed):
             self.app.run()
         self.assert_ready()
         self.assertEqual(self.gauge()["level"], 0)
+        self.assertEqual(self.gauge()["color"], "#64748B")
         self.assertIn("자료 없음", self.gauge()["title"])
         self.assertEqual(self.app.metric[0].value, "자료 없음")
 
     def test_connector_and_operator_charts_keep_labels_and_room_between_bars(self):
         item_counts = []
+        heights = []
         for chart in self.app.get("vega_lite_chart"):
             spec = json.loads(chart.proto.spec)
+            heights.append(spec["height"])
             payload = chart.proto.datasets[0].data.data if chart.proto.datasets else chart.proto.data.data
-            count = pa.ipc.open_stream(payload).read_all().num_rows
+            data = pa.ipc.open_stream(payload).read_all().to_pandas()
+            count = len(data)
             item_counts.append(count)
             with self.subTest(item_count=count):
                 # Streamlit fit은 전체 높이에서 축·제목 공간을 먼저 뺀다.
@@ -230,7 +238,23 @@ class ChargingPageTest(unittest.TestCase):
                 self.assertEqual(spec["mark"]["size"], 19)
                 self.assertGreater(row_spacing, spec["mark"]["size"])
                 self.assertIs(spec["encoding"]["y"]["axis"]["labelOverlap"], False)
+                self.assertEqual(data.is_highest.tolist(), data.charger_count.eq(data.charger_count.max()).tolist())
+                self.assertEqual(spec["encoding"]["color"]["condition"]["value"], "#FF7A66")
+                self.assertEqual(spec["encoding"]["color"]["value"], "#8E98CF")
+                self.assertIn("800", spec["encoding"]["y"]["axis"]["labelFontWeight"]["expr"])
         self.assertCountEqual(item_counts, [7, 10])
+        self.assertEqual(len(set(heights)), 1)
+
+    def test_zero_breakdown_has_no_invented_leader(self):
+        breakdown = q.get_charger_breakdown(self.ids["마포구"]).copy()
+        breakdown["charger_count"] = 0
+        with patch.object(q, "get_charger_breakdown", return_value=breakdown):
+            self.app.run()
+        self.assert_ready()
+        for chart in self.app.get("vega_lite_chart"):
+            payload = chart.proto.datasets[0].data.data if chart.proto.datasets else chart.proto.data.data
+            data = pa.ipc.open_stream(payload).read_all().to_pandas()
+            self.assertFalse(data.is_highest.any())
 
     def test_district_changes_keep_city_rank_and_replace_station_inventory(self):
         for row in self.ranking.to_dict("records"):

@@ -64,7 +64,7 @@
 | 언어·데이터 처리 | Python 3.14, Pandas |
 | 데이터베이스 | MySQL 8, ERDCloud, DBeaver |
 | 웹·시각화 | Streamlit 1.67.0, Altair 5.3.0, Kakao Maps JavaScript SDK |
-| 수집 | 공공데이터 포털 API 2종, BeautifulSoup |
+| 수집 | 공공데이터 포털 API 2종, Selenium, BeautifulSoup |
 | 협업 | Git, GitHub |
 
 ## 프로젝트 구조
@@ -112,6 +112,49 @@ SKN38-1st-5Team/
 
 > DB 덤프·정제 CSV·원본 데이터와 기업 FAQ 원문은 재배포 조건 때문에 레포에 포함하지 않습니다.
 > 
+
+개발 환경의 MySQL 연결과 실행 방법은 [실행 안내](docs/runbook.md)를 참고하세요.
+
+## FAQ 수집 재현
+
+기존 `etl.crawl_faq`는 저장 HTML을 BeautifulSoup으로 파싱하며 네트워크를 사용하지 않습니다. `--fetched-on`은 파싱 실행일이 아닌 HTML을 실제 확보한 날짜입니다. 생략하면 기존 보관본의 `2026-11-05`를 유지합니다.
+
+```bash
+python -m etl.crawl_faq --input path/to/captured.html --fetched-on 2026-11-10 --output data/preview/faq.csv
+```
+
+아래 명령을 명시적으로 실행하면 Selenium Chrome으로 고정된 현대 EV 원문을 열고 FAQ 영역을 기다린 뒤 BeautifulSoup으로 추출합니다. Chrome과 Selenium이 사용할 드라이버가 필요하며, Selenium Manager가 드라이버를 준비할 때 네트워크를 사용할 수 있습니다.
+
+```bash
+python -m etl.fetch_faq --timeout 30 --output data/preview/faq_live.csv
+python -m unittest tests.test_fetch_faq
+```
+
+실제 수집일은 `fetched_on`, 한국 시각의 정확한 수집시각은 `collected_at` 열에 기록합니다. 시간 초과·FAQ 구조 변경·중복 질문·출력 실패 시 기존 CSV를 교체하지 않고 브라우저를 종료합니다. 새 수집 CSV는 검토용이며 기존 검산된 수집본이나 DB를 자동 갱신하지 않습니다. 원본·CSV는 Git에 추가하지 않습니다. 위 테스트는 가상 HTML과 모의 브라우저를 사용하여 외부 수집 없이 실행합니다.
+
+## 검사 실행과 제출 자료
+
+테스트는 Python 3.14 환경과 Node.js가 필요합니다. MySQL 통합 테스트에는 팀에서 전달받은 데이터가 적재된 로컬 `chachacha` DB가 필요합니다. 원본 데이터와 실제 접속정보를 Git에 추가하지 않습니다.
+
+```bash
+# 의존성 설치: 프로젝트의 고정 목록 사용
+python -m pip install -r requirements.lock.txt
+
+# 공개 경계 파일 복원: 고정 커밋과 SHA-256 검증, data/raw 아래에 저장
+python scripts/fetch_boundary.py
+
+# DB·외부 브라우저 없이 실행하는 보안·수집 단위 테스트
+python -m unittest tests.test_fetch_boundary tests.test_fetch_faq tests.test_db_phase5 tests.test_kakao_routes tests.test_security
+
+# DB와 Node.js가 준비된 환경에서 전체 검사
+node --version
+python -m unittest discover -s tests
+python scripts/check_before_push.py
+```
+
+`fetch_boundary.py`는 기존 파일이 수집 기록의 해시와 일치하면 네트워크를 호출하지 않습니다. 다운로드 크기·해시·25구 형식을 검증한 뒤에만 파일을 교체합니다. 경계 원본은 계속 Git에서 제외됩니다. macOS에서 Homebrew의 `node@24`를 사용한다면 실행 전 `export PATH="$(brew --prefix node@24)/bin:$PATH"`로 경로를 추가할 수 있습니다.
+
+과제의 **DB 설계 문서·수집 데이터·조회 프로그램** 제출 범위와 공개/비공개 구분은 [제출 산출물 점검표](docs/submission_checklist.md)를 참고하세요.
 
 ## 앞으로의 계획
 

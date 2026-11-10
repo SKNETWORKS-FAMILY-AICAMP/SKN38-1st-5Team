@@ -83,6 +83,7 @@ def parking_records(rows):
             "address": text(row.get("new_juso") or row.get("address")),
             **position, "positions": positions,
             "operation": operation, "kind": "주차장", "price": fee(row),
+            "fee_status": {"N": "free", "Y": "paid"}.get(row.get("pay_yn"), "unknown"),
             "hours": " / ".join(f"{day} {hours(row.get(a), row.get(b))}" for day, a, b in (
                 ("평일", "weekday_begin_time", "weekday_end_time"),
                 ("토요일", "weekend_begin_time", "weekend_end_time"),
@@ -202,6 +203,7 @@ def charger_records(points, details):
         result.append({
             "id": f"charger-{point.place_id}", "name": text(point.place_name, "충전소"),
             "address": text(point.address), "latitude": float(point.latitude), "longitude": float(point.longitude),
+            "fee_status": {"Y": "free", "N": "paid"}.get(values("parking_free"), "unknown"),
             "kind": "충전소", "operation": "충전소", "price": parking + " / 충전요금: 금액 정보 미제공 (운영사·회원·출력별 확인)",
             "hours": values("operating_time_text"), "note": restriction_label(devices),
             "capacity": f"충전기 {len(devices) if not devices.empty else int(point.charger_count)}기", "operator": text(point.operator_name),
@@ -229,6 +231,7 @@ def map_payload(records, station=None, radius=500, animate=True):
         place = {name: text(record.get(name)) for name in
                  ("name", "address", "kind", "operation", "price", "hours", "note", "capacity", "operator", "updated")}
         place["id"] = text(record.get("id"), f"place-{index}")
+        place["fee_status"] = record.get("fee_status") if record.get("fee_status") in ("free", "paid") else "unknown"
         place["positions"] = [{"latitude": float(p["latitude"]), "longitude": float(p["longitude"])} for p in positions]
         point = nearest_position(station, place) if station else positions[0]
         place.update(latitude=float(point["latitude"]), longitude=float(point["longitude"]))
@@ -320,7 +323,7 @@ def render_map(records, district, station=None, radius=500, animate=True, *, key
     else:
         st.session_state.pop(f"{key}_walking", None)
         if records or station:
-            st.iframe(map_html(records, station, radius, animate), height=570,
+            st.iframe(map_html(records, station, radius, animate), height=750,
                       alt="주차장·충전소 지도. 핀을 누르면 이용시간과 요금 상세 안내를 볼 수 있어요.")
         else:
             st.info("이 조건에서 지도에 표시할 위치 자료가 없어요. 좌표가 없는 곳도 아래 목록에서 확인할 수 있어요.")
@@ -347,7 +350,7 @@ def explorer(records, district, facility, *, region_id=None):
         st.caption(f"{station['name']} 기준 직선거리 {radius:,}m 안 {facility} {len(nearby)}곳 · 현재 동네·검색·운영 조건에 맞는 시설만 강조해요.")
         if not nearby:
             st.info("선택한 반경에 표시할 시설이 없어요. 반경을 늘리거나 동네·검색 조건을 바꿔 주세요.")
-    st.caption("핀에 마우스를 올리면 요약, 클릭하면 상세 안내를 볼 수 있어요. P는 주차장, ⚡는 충전소예요.")
+    st.caption("핀에 마우스를 올리면 요약, 클릭하면 상세 안내를 볼 수 있어요. P는 주차장, ⚡는 충전소예요. 핀은 주차 요금 기준으로 무료 초록·유료 주황·미확인 회색이며 충전요금과는 별개예요.")
     render_map(records, district, station, radius, animate, region_id=region_id)
     if nearby:
         with st.expander(f"역에서 가까운 {facility} 목록 · {len(nearby)}곳"):

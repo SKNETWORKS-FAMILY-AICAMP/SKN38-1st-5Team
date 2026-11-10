@@ -96,7 +96,7 @@ _TRAFFIC_MAP = st.components.v2.component(
 
 def _live_traffic(region_id: int, district_name: str) -> None:
     with st.container(border=True, gap="small", key="roads_live_traffic"):
-        st.subheader(f"{district_name}, 지금 교통 상황", anchor=False)
+        st.subheader(f":orange[**{district_name}**], 지금 교통 상황", anchor=False)
         st.caption("실시간 · 카카오 제공 · 아래 수록 교통량과 기준 시점이 달라요.")
         key = kakao_map.javascript_key()
         if not key:
@@ -277,7 +277,13 @@ district_name = word(district_row(options.get("regions", pd.DataFrame()), region
 
 _live_traffic(region_id, district_name)
 
-st.subheader(f"{district_name}, 언제 차량이 많을까요?", anchor=False)
+st.subheader(f":orange[**{district_name}**], 언제 차량이 많을까요?", anchor=False)
+st.html("""<style>
+[class*="st-key-roads_busy_"] {padding:14px 18px;background:#FFF1F2;border:1px solid #FECDD3;border-radius:12px;min-height:126px;}
+[class*="st-key-roads_quiet_"] {padding:14px 18px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;min-height:126px;}
+[class*="st-key-roads_busy_"] strong {font-size:26px;font-weight:800;color:#B91C1C;}
+[class*="st-key-roads_quiet_"] strong {font-size:26px;font-weight:800;color:#166534;}
+</style>""")
 profile_query = getattr(q, "get_traffic_profile", None)
 profile = load_frame(profile_query, region_id) if callable(profile_query) else pd.DataFrame()
 st.caption(f"{_traffic_period(profile, options)} · 평일은 월요일부터 금요일, 주말은 토·일이에요. 공휴일은 따로 나누지 않았어요.")
@@ -304,8 +310,12 @@ else:
                         st.caption("서울 구 평균은 자료 없음이에요.")
                 else:
                     st.info(f"{day} 교통량은 자료 없음이에요.")
-                st.markdown(f"**가장 붐비는 시간 · 수록량 기준**  \n{_time_text(frame, busiest=True)}")
-                st.markdown(f"**차량이 가장 적은 시간 · 수록량 기준**  \n{_time_text(frame, busiest=False)}")
+                with st.container(key=f"roads_busy_{day}"):
+                    st.markdown("가장 붐비는 시간 · 수록량 기준")
+                    st.markdown(_time_text(frame, busiest=True))
+                with st.container(key=f"roads_quiet_{day}"):
+                    st.markdown("차량이 가장 적은 시간 · 수록량 기준")
+                    st.markdown(_time_text(frame, busiest=False))
                 if _partial_coverage(frame):
                     st.caption("일부 관측 지점이 빠진 때가 있어요. 같은 구에서도 관측 범위가 달라 시간대 차이가 왜곡될 수 있어요.")
     count_text = ""

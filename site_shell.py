@@ -20,6 +20,26 @@ CSS = """
 .st-key-site_root [data-testid="stCaptionContainer"] {
   color: #4A5270; font-size: 16px; line-height: 1.5; opacity: 1;
 }
+.st-key-site_root [data-testid="stCaptionContainer"] p {
+  font-size: inherit; line-height: inherit; color: inherit;
+}
+.st-key-site_content h3 strong { font-size: 1.12em; line-height: 1.35; }
+/* 공유 카드와 출처 문구만 스타일링한다. 일반 본문 색은 유지한다. */
+.st-key-site_content [data-testid="stVerticalBlockBorderWrapper"] {
+  border-color: #DCE1ED; border-radius: 16px;
+}
+.st-key-site_content [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stCaptionContainer"] {
+  margin-block: 4px; line-height: 1.5;
+}
+.st-key-site_root .site-reference {
+  color: #4A5270; font-size: 16px; font-weight: 400; line-height: 1.5;
+}
+/* st.text의 인쇄용 고정폭 클래스에도 화면에서 읽을 수 있는 글꼴과 줄바꿈을 적용한다. */
+.st-key-site_content .stPrintFixedWidth,
+.st-key-site_content [data-testid="stText"] pre {
+  font-family: 'Noto Sans KR', sans-serif; font-size: 16px; line-height: 1.6;
+  color: #1B2340; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%;
+}
 .st-key-site_root { --site-navy: #27336B; --site-ink: #1B2340; }
 .st-key-site_root h1, .st-key-site_root h2, .st-key-site_root h3,
 .st-key-site_root p { word-break: keep-all; overflow-wrap: anywhere; }
@@ -82,18 +102,36 @@ CSS = """
 .st-key-site_picker { flex: 0 0 auto; }
 /* 자주 찾는 메뉴: 오른쪽에 고정돼 스크롤을 따라온다. 좁은 화면에서는 본문을 가리지 않게 숨긴다. */
 .st-key-site_dock {
-  position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 990; width: 92px;
-  background: #fff; border: 1px solid #E2E5F0; border-radius: 20px; padding: 12px 6px;
-  box-shadow: 0 12px 30px rgba(27,35,64,.14);
+  position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 990; width: 96px;
+  background: #fff; border: 1px solid #E2E5F0; border-radius: 20px; padding: 12px 8px;
+  box-shadow: 0 12px 30px rgba(27,35,64,.14); gap: 4px !important; align-items: stretch;
 }
-.st-key-site_dock .dock-title { margin: 0 0 4px; text-align: center; font-size: 12px; font-weight: 800; color: #27336B; }
+/* 모든 칸을 같은 크기로 만들고 아이콘·글자를 가운데 한 줄 축에 맞춘다. */
+.st-key-site_dock > div, .st-key-site_dock [class*="st-key-dock_"], .st-key-site_dock [data-testid="stPageLink"],
+.st-key-site_dock [data-testid="stPageLink"] div, .st-key-site_dock [data-testid="stElementContainer"],
+.st-key-site_dock [data-testid="stTooltipIcon"], .st-key-site_dock [data-testid="stTooltipHoverTarget"] {
+  width: 100% !important; max-width: 100% !important; margin: 0 !important;
+}
+.st-key-site_dock .dock-title {
+  margin: 0 0 6px; padding-bottom: 8px; border-bottom: 1px solid #E2E5F0;
+  text-align: center; font-size: 12px; font-weight: 800; line-height: 1.3; color: #27336B; word-break: keep-all;
+}
 .st-key-site_dock a {
-  flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 58px;
-  padding: 6px 2px; border-radius: 14px; color: #1B2340;
+  width: 100%; height: 62px; box-sizing: border-box; margin: 0 !important;
+  display: flex !important; flex-direction: column; align-items: center !important; justify-content: center !important;
+  gap: 4px; padding: 0 2px !important; border-radius: 14px; color: #1B2340; text-align: center;
 }
+.st-key-site_dock a > * { margin: 0 !important; padding: 0 !important; }
+.st-key-site_dock a > div, .st-key-site_dock a [data-testid="stMarkdownContainer"] { width: 100%; display: flex; justify-content: center; }
 .st-key-site_dock a:hover { background: #EEF0FA; }
-.st-key-site_dock a p { font-size: 12px; font-weight: 700; text-align: center; line-height: 1.25; white-space: normal; }
-.st-key-site_dock [data-testid="stIconMaterial"] { font-size: 24px; color: #27336B; }
+.st-key-site_dock a p {
+  margin: 0; font-size: 12px; font-weight: 700; text-align: center; line-height: 1.2;
+  white-space: nowrap; letter-spacing: -0.3px;
+}
+.st-key-site_dock [data-testid="stIconMaterial"] {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  font-size: 24px; line-height: 1; color: #27336B;
+}
 .st-key-site_dock [class*="st-key-dock_current_"] a { background: #EEF0FA; }
 /* 떠 있는 메뉴가 본문을 가리지 않게 본문(머리말 제외)에만 오른쪽 여백을 준다. */
 @media (min-width: 1361px) { .st-key-site_content { padding-right: 112px; } }
@@ -415,7 +453,7 @@ DOCK_PATHS = (("", "우리 동네"), ("finder", "동네 찾기"), ("ranking", "2
 def quick_dock(pages: Sequence[st.Page], current: st.Page) -> None:
     by_path = {page.url_path: page for page in pages}
     with st.container(gap="xxsmall", key="site_dock"):
-        st.html('<p class="dock-title">자주 찾는 메뉴</p>')
+        st.html('<p class="dock-title">자주 찾는<br>메뉴</p>')
         for path, label in DOCK_PATHS:
             page = by_path.get(path)
             if page is None:

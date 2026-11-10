@@ -78,6 +78,26 @@ if ranking is None or ranking.empty:
     st.info("비교할 동네 자료가 없어요. 잠시 후 다시 시도해 주세요.")
     st.stop()
 
+st.html("""<style>
+.st-key-finder_form [data-testid="stWidgetLabel"] p {
+  font-size:22px;font-weight:800;color:#27336B;line-height:1.5;
+}
+.st-key-finder_cards [data-testid="stColumn"] {display:flex;align-items:stretch;}
+.st-key-finder_cards [data-testid="stColumn"] > div {width:100%;height:100%;}
+.st-key-finder_cards [class*="st-key-finder_pick_"] {
+  height:100%;min-height:460px;box-sizing:border-box;padding:22px;
+  display:flex;flex-direction:column;background:#FFFFFF;
+}
+.st-key-finder_cards .st-key-finder_pick_0 {background:#DCFCE7;border-color:#86EFAC;}
+.st-key-finder_cards .st-key-finder_pick_0 h3 {color:#166534;}
+.st-key-finder_cards [class*="st-key-finder_reasons_"] {min-height:142px;}
+.st-key-finder_cards [class*="st-key-finder_note_"] {min-height:62px;}
+.st-key-finder_cards [data-testid="stButton"] {margin-top:auto;}
+@media(max-width:700px) {
+  .st-key-finder_cards [class*="st-key-finder_pick_"] {min-height:0;}
+}
+</style>""")
+
 with st.container(border=True, gap="small", key="finder_form"):
     st.markdown("**내 상황을 알려주세요**")
     first, second, third = st.columns(3)
@@ -103,20 +123,25 @@ READABLE_KEYS = {"parking": "park", "transit": "need", "charging": "charger"}
 AVERAGES = {key: float(pd.to_numeric(table[key], errors="coerce").mean()) for key in METRICS}
 
 st.subheader("내 기준 추천 동네", anchor=False)
-cards = st.columns(3)
-for index, column in enumerate(cards):
-    row = table.iloc[index]
-    with column.container(border=True, gap="small", key=f"finder_pick_{index}"):
-        st.caption(f"{index + 1}위")
-        st.markdown(f"### {row.district_name}")
-        st.metric("내 기준 점수", f"{int(row.score)}점" if pd.notna(row.score) else "자료 없음")
-        for line in reason_lines(row, weight):
-            st.markdown(f"- {line}")
-        note = caution(row, weight)
-        if note:
-            st.caption(f"참고: {note}")
-        st.button("이 동네 자세히 보기", key=f"finder_open_{index}", width="stretch",
-                  on_click=open_district, args=(int(row.region_id), "app_pages/home.py"))
+with st.container(key="finder_cards"):
+    cards = st.columns(3)
+    for index, column in enumerate(cards):
+        row = table.iloc[index]
+        with column.container(border=True, gap="small", key=f"finder_pick_{index}"):
+            st.caption(f"{index + 1}위")
+            st.markdown(f"### {row.district_name}")
+            st.metric("내 기준 점수", f"{int(row.score)}점" if pd.notna(row.score) else "자료 없음")
+            with st.container(key=f"finder_reasons_{index}"):
+                for line in reason_lines(row, weight):
+                    st.markdown(f"- {line}")
+            with st.container(key=f"finder_note_{index}"):
+                note = caution(row, weight)
+                if note:
+                    st.caption(f"참고: {note}")
+                else:
+                    st.html('<span aria-hidden="true">&nbsp;</span>')
+            st.button("이 동네 자세히 보기", key=f"finder_open_{index}", width="stretch",
+                      on_click=open_district, args=(int(row.region_id), "app_pages/home.py"))
 
 if len(table) >= 2:
     top, runner = table.iloc[0], table.iloc[1]
@@ -139,8 +164,16 @@ view = pd.DataFrame({
     "전기차 1대당 충전기": table.charging.round(2),
     "세대당 차량": pd.to_numeric(table.vehicle_per_household, errors="coerce").round(2),
 })
+def highlight_top_three(row):
+    rank = row["순위"]
+    color = "#DCFCE7" if rank == 1 else "#FEF9C3"
+    ink = "#166534" if rank == 1 else "#854D0E"
+    style = f"background-color:{color};color:{ink};font-weight:bold" if rank <= 3 else ""
+    return [style] * len(row)
+
+
 st.dataframe(
-    view, hide_index=True, width="stretch", height=560,
+    view.style.apply(highlight_top_three, axis=1), hide_index=True, width="stretch", height=560,
     column_config={
         "내 기준 점수": st.column_config.ProgressColumn("내 기준 점수", min_value=0, max_value=100, format="%d점"),
         "차 100대당 주차면": st.column_config.NumberColumn(format="%.1f면"),

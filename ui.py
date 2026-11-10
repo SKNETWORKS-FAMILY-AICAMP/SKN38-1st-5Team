@@ -152,19 +152,51 @@ def judgment_tabs(row: pd.Series) -> None:
 
 def neighborhood_sentence(row: pd.Series) -> str:
     ownership = {
-        "많은 편": "차가 많은 편이고", "보통": "차량 보유는 보통이고",
-        "적은 편": "차가 적은 편이고",
+        "많은 편": "차량 보유가 많은 편이고", "보통": "차량 보유는 보통이고",
+        "적은 편": "차량 보유가 적은 편이고",
     }.get(word(row.get("ownership_level")), "차량 보유 자료는 없고")
     parking = {
-        "좋음": "주차 여건은 좋고", "보통": "주차 여건은 보통이고",
-        "빠듯함": "주차는 빠듯하고",
-    }.get(word(row.get("parking_level")), "주차 자료는 없고")
-    need = {
-        "대중교통으로 충분": "대중교통으로 충분해요.",
-        "있으면 편함": "차가 있으면 편해요.",
-        "차가 필요한 편": "차가 필요한 편이에요.",
-    }.get(word(row.get("need_level")), "차 필요성 자료는 없어요.")
-    return f"{ownership}, {parking}, {need}"
+        "좋음": "수록 주차면은 차량 대비 여유 있는 편이에요.",
+        "보통": "수록 주차면은 차량 대비 보통이에요.",
+        "빠듯함": "수록 주차면은 차량 대비 빠듯해요.",
+    }.get(word(row.get("parking_level")), "주차 여건 자료는 없어요.")
+    need = word(row.get("need_level"))
+    usage = {
+        "대중교통으로 충분": "주민 대비 대중교통 이용 지표는 높은 편이에요.",
+        "있으면 편함": "주민 대비 대중교통 이용 지표는 보통이에요.",
+        "차가 필요한 편": "주민 대비 대중교통 이용 지표는 낮은 편이에요.",
+    }.get(need, "대중교통 이용 지표 자료는 없어요.")
+    # The DB's need labels describe passenger usage, not personal purchase need
+    # or route availability. Parking advice therefore depends on both indicators.
+    advice = {
+        ("좋음", "대중교통으로 충분"): "대중교통을 먼저 살펴보고, 운전할 때는 목적지 주차 조건을 확인해 보세요.",
+        ("보통", "대중교통으로 충분"): "대중교통을 먼저 살펴보고, 운전할 때는 목적지 주차 가능 여부를 확인해 보세요.",
+        ("빠듯함", "대중교통으로 충분"): "주차가 빠듯하니 대중교통 경로를 먼저 살펴보고, 운전한다면 주차 공간을 미리 확인해 보세요.",
+        ("좋음", "있으면 편함"): "이동 경로에 맞춰 교통수단을 비교하고, 운전할 때는 목적지 주차 조건을 확인해 보세요.",
+        ("보통", "있으면 편함"): "대중교통 경로와 목적지 주차 가능 여부를 함께 확인해 보세요.",
+        ("빠듯함", "있으면 편함"): "운전 전 주차 공간을 미리 확인하고 대중교통 경로도 함께 비교해 보세요.",
+        ("좋음", "차가 필요한 편"): "실제 대중교통 경로와 목적지 주차 조건을 확인해 보세요.",
+        ("보통", "차가 필요한 편"): "실제 이동 경로와 주차 가능 여부를 함께 확인해 보세요.",
+        ("빠듯함", "차가 필요한 편"): "주차 공간부터 확인하고 실제 대중교통 경로도 비교해 보세요.",
+    }.get((word(row.get("parking_level")), need),
+          "실제 이동 경로와 목적지 주차 조건을 확인해 보세요.")
+    return f"{ownership} {parking} {usage} {advice}"
+
+
+def mobility_mood(row: pd.Series) -> str:
+    """Illustrate mobility context; ownership prevalence is not a benefit/penalty.
+
+    High transit usage is a positive proxy, never an inverted need score.
+    Missing indicators stay neutral rather than implying a poor neighborhood.
+    """
+    if any(word(row.get(f"{topic}_level")) not in TOPICS[topic].levels for topic in TOPICS):
+        return "smile"
+    parking, need = word(row.get("parking_level")), word(row.get("need_level"))
+    if need == "대중교통으로 충분":
+        return "smile" if parking == "빠듯함" else "happy"
+    if parking == "빠듯함":
+        return "crying"
+    return "happy" if parking == "좋음" and need == "있으면 편함" else "smile"
 
 
 def neighborhood_summary(row: pd.Series) -> None:
@@ -205,6 +237,18 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
         if column not in ordered:
             ordered[column] = pd.NA
     ordered = ordered.sort_values([rank_col, "district_name"], na_position="last")
+    def tier(row):
+        rank = row[rank_col]
+        if pd.isna(rank):
+            return 'unknown'
+        if rank == 1:
+            return 'first'
+        if rank <= 3:
+            return 'podium'
+        level = word(row.get(f"{topic}_level"))
+        if level in {'많은 편', '빠듯함', '차가 필요한 편', '적은 편' if topic == 'charging' else ''} or rank == ordered[rank_col].max():
+            return 'caution'
+        return 'neutral'
     records = [{
         "region_id": int(row.region_id),
         "rank_label": number(row[rank_col]) if pd.notna(row[rank_col]) else "-",
@@ -213,29 +257,34 @@ def ranking_chart(ranking: pd.DataFrame, topic: str, selected: int) -> alt.Layer
         "value": float(row[value_col]) if pd.notna(row[value_col]) else 0.0,
         "level": word(row.get(f"{topic}_level")),
         "selected": int(row.region_id) == selected,
+        "tier": tier(row),
         "highest": pd.notna(row[value_col]) and row[value_col] == ordered[value_col].max(),
     } for _, row in ordered.iterrows()]
     top = max((record["value"] for record in records), default=0) or 1
     base = alt.Chart(alt.InlineData(values=records)).encode(y=alt.Y("name:N", sort=None, axis=None))
     x = alt.X("value:Q", axis=None,
               scale=alt.Scale(domain=[0, top], range=[RANK_BAR_LEFT, alt.expr("width - 62")]))
-    row_area = base.mark_rect(x=0, x2="width", fillOpacity=0.001, cursor="pointer")
+    tiers = ['first', 'podium', 'caution', 'neutral', 'unknown']
+    inks = ['#166534', '#854D0E', '#B91C1C', '#1B2340', '#64748B']
+    row_area = base.mark_rect(x=0, x2="width", cornerRadius=6, cursor="pointer").encode(
+        color=alt.Color('tier:N', legend=None, scale=alt.Scale(domain=tiers,
+            range=['#DCFCE7', '#FEF9C3', '#FEE2E2', '#F8FAFC', '#F1F5F9'])))
     highlight = base.transform_filter("datum.selected").mark_rect(
-        x=0, x2="width", color="#FFF2CC", cornerRadius=6)
+        x=0, x2="width", fillOpacity=0, stroke="#27336B", strokeWidth=1.5, cornerRadius=6)
     bars = base.mark_bar(height=11, cornerRadiusEnd=5, stroke="#C8CDE3", strokeWidth=0.6, cursor="pointer").encode(
         x=x, x2=alt.datum(0),
-        color=alt.condition("datum.highest", alt.value("#E76F51"), alt.value("#8E98CF")))
-    weight = alt.expr("datum.selected ? 700 : 400")
-    label_color = alt.condition("datum.selected", alt.value("#684C00"), alt.value("#1B2340"))
+        color=alt.Color('tier:N', legend=None, scale=alt.Scale(domain=tiers, range=['#15803D', '#CA8A04', '#DC2626', '#8E98CF', '#94A3B8'])))
+    weight = alt.expr("datum.selected || datum.highest ? 800 : 500")
+    label_color = alt.Color("tier:N", legend=None, scale=alt.Scale(domain=tiers, range=inks))
     ranks = base.mark_text(align="right", x=20, fontSize=15, cursor="pointer").encode(
         text="rank_label:N",
-        color=alt.condition("datum.selected", alt.value("#684C00"), alt.value("#4A5270")))
+        color=label_color)
     names = base.mark_text(align="left", x=26, fontSize=15, fontWeight=weight,
                            cursor="pointer").encode(text="name:N", color=label_color)
     values = base.mark_text(align="left", dx=4, fontSize=15, fontWeight=weight,
                             cursor="pointer").encode(x=x, text="label:N", color=label_color)
     selection = alt.selection_point(name="rank", fields=["region_id"], toggle=False, clear=False)
-    return (alt.layer(row_area, highlight, bars, ranks, names, values).add_params(selection)
+    return (alt.layer(row_area, highlight, bars, ranks, names, values).add_params(selection).resolve_scale(color="independent")
             .properties(height=max(120, len(records) * 30)).configure_view(stroke=None))
 
 

@@ -22,7 +22,7 @@ def _comparison(row: pd.Series, field: str, digits: int, unit: str) -> tuple[str
 
 def _metric(row: pd.Series, field: str, label: str, digits: int, unit: str) -> None:
     delta, arrow = _comparison(row, field, digits, "%p" if field == "electric_share_pct" else unit)
-    with st.container(border=True, height="stretch", gap="xsmall"):
+    with st.container(border=True, height="stretch", gap="xsmall", key=f"ownership_metric_{field}"):
         st.metric(label, number(row.get(field), digits, unit), delta=delta,
                   delta_color="off", delta_arrow=arrow, delta_description="서울 평균 대비")
         average = number(row.get(f"{field}_seoul_avg"), digits, unit)
@@ -114,6 +114,22 @@ district_name = word(row.get("district_name"), word(rank_row.get("district_name"
 render_hero(district_name, ranking=ranking)
 
 st.html("""<style>
+.st-key-ownership_content [class*="st-key-ownership_metric_"] {
+  min-height: 190px; border-radius: 16px; border-color: #DCE1ED;
+}
+.st-key-ownership_content [class*="st-key-ownership_metric_"] [data-testid="stMetricLabel"] {
+  min-height: 48px; color: #1B2340;
+}
+.st-key-ownership_content [class*="st-key-ownership_metric_"] [data-testid="stMetricValue"] {
+  color: #27336B; font-variant-numeric: tabular-nums;
+}
+.st-key-ownership_content [class*="st-key-ownership_metric_"] [data-testid="stCaptionContainer"] {
+  margin-top: auto;
+}
+.st-key-ownership_vehicle_panel, .st-key-ownership_fuel_panel {
+  min-height: 540px; border-radius: 16px; border-color: #DCE1ED;
+}
+.st-key-ownership_vehicle_header, .st-key-ownership_fuel_header { min-height: 132px; }
 .st-key-ownership_content [data-testid="stMetricDelta"]:has([data-testid="stMetricDeltaIcon-Up"]) { color: #C81E1E; background-color: #FEE2E2; }
 .st-key-ownership_content [data-testid="stMetricDelta"]:has([data-testid="stMetricDeltaIcon-Down"]) { color: #1D4ED8; background-color: #DBEAFE; }
 </style>""")
@@ -134,16 +150,18 @@ with st.container(gap="small", key="ownership_content"):
     st.subheader("어떤 차가 등록되어 있을까요?", anchor=False)
     breakdown = load_frame(q.get_registration_breakdown, region_id)
     vehicle_column, fuel_column = st.columns(2, gap="medium")
-    with vehicle_column.container(border=True, height="stretch", gap="small"):
-        st.markdown("**차종 구성**")
-        scope = st.segmented_control(
-            "차종 구성 범위", ["all", "electric"], default="all", key="ownership_scope",
-            format_func=lambda value: "전체 차량" if value == "all" else "전기차",
-        ) or "all"
+    with vehicle_column.container(border=True, height="stretch", gap="small", key="ownership_vehicle_panel"):
+        with st.container(gap="small", key="ownership_vehicle_header"):
+            st.markdown("**차종 구성**")
+            scope = st.segmented_control(
+                "차종 구성 범위", ["all", "electric"], default="all", key="ownership_scope",
+                format_func=lambda value: "전체 차량" if value == "all" else "전기차",
+            ) or "all"
         _vehicle_composition(breakdown, scope, district_name)
-    with fuel_column.container(border=True, height="stretch", gap="small"):
-        st.markdown("**연료 구성**")
-        st.caption("전기차는 전체 등록 차량에 포함돼요. 휘발유·경유 등 세부 연료별 자료는 없어요.")
+    with fuel_column.container(border=True, height="stretch", gap="small", key="ownership_fuel_panel"):
+        with st.container(gap="small", key="ownership_fuel_header"):
+            st.markdown("**연료 구성**")
+            st.caption("전기차는 전체 등록 차량에 포함돼요. 휘발유·경유 등 세부 연료별 자료는 없어요.")
         _fuel_composition(row, district_name)
 
     st.subheader("서울 25구, 세대당 차량은 얼마나 될까요?", anchor=False)

@@ -1,8 +1,8 @@
 const instances = new WeakMap();
 const esc = value => String(value ?? '정보 미제공').replace(/[&<>"']/g,
   char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char]));
-const color = place => place.kind === '충전소' ? '#5665AB' :
-  place.operation === '공영' ? '#27336B' : place.operation === '민영' ? '#D95744' : '#727CAD';
+const color = place => ({free:'#15803D',paid:'#C65D0A'}[place.fee_status] || '#64748B');
+const feeLabel = place => ({free:'주차 무료',paid:'주차 유료'}[place.fee_status] || '주차 요금 미확인');
 const symbol = place => place.kind === '충전소' ? '⚡' : 'P';
 const position = (state, place) => new state.maps.LatLng(place.latitude, place.longitude);
 
@@ -95,7 +95,7 @@ function details(state, place, popup = false) {
     `<span class="kp-tag">${esc(state.data.station.name)}에서 직선 ${Math.round(place.distance_m).toLocaleString()}m${place.near ? ' · 반경 안' : ''}</span>`;
   const coords = `${place.latitude},${place.longitude}`;
   node.innerHTML = `<span class="kp-tag">${esc(place.kind)} · ${esc(place.operation)}</span>${distance}<br>
-    <strong>${esc(place.name)}</strong><br>${esc(place.address)}<br>
+    <strong>${esc(place.name)}</strong><br><span class="kp-fee kp-fee-${['free','paid'].includes(place.fee_status) ? place.fee_status : 'unknown'}">${feeLabel(place)}</span><br>${esc(place.address)}<br>
     <b>이용시간</b> ${esc(place.hours)}<br><b>요금</b> ${esc(place.price)}<br>
     <b>이용 안내</b> ${esc(place.note)}<br><b>규모</b> ${esc(place.capacity)} · ${esc(place.operator)}<br>
     자료 갱신: ${esc(place.updated)} · 방문 전 현장 확인
@@ -218,7 +218,7 @@ function reconcile(state) {
       pin.className = 'kp-pin';
       pin.style.setProperty('--pin', color(place));
       pin.textContent = symbol(place);
-      pin.setAttribute('aria-label', `${place.name} · ${place.operation} · 반경 안`);
+      pin.setAttribute('aria-label', `${place.name} · ${place.operation} · ${feeLabel(place)} · 반경 안`);
       pin.onclick = () => selectPlace(state, place);
       pin.onmouseenter = pin.onfocus = () => showTooltip(state, place);
       pin.onmouseleave = pin.onblur = () => state.tooltip.setMap(null);
@@ -227,7 +227,7 @@ function reconcile(state) {
         content: pin, xAnchor: .5, yAnchor: .5, zIndex: 5, clickable: true}));
     } else {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"><circle cx="18" cy="18" r="16" fill="${color(place)}" stroke="white" stroke-width="2"/><text x="18" y="24" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="20" fill="white">${symbol(place)}</text></svg>`;
-      const marker = new state.maps.Marker({position: point, title: `${place.name} · ${place.operation}`,
+      const marker = new state.maps.Marker({position: point, title: `${place.name} · ${place.operation} · ${feeLabel(place)}`,
         image: new state.maps.MarkerImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
           new state.maps.Size(36, 36), {offset: new state.maps.Point(18, 18)})});
       listen(state, marker, 'click', () => selectPlace(state, place));

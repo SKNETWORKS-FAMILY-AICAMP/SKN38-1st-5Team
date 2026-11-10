@@ -34,7 +34,16 @@ class BoundaryTest(unittest.TestCase):
         original = {f['properties']['name']: f['geometry'] for f in json.loads(RAW.read_text())['features']}
         for row in rows.to_dict("records"):
             geometry = json.loads(row["geometry_json"])
-            self.assertEqual(geometry, original[row["district_name"]])
+            source = original[row["district_name"]]
+            self.assertEqual(geometry["type"], source["type"])
+            self.assertEqual(len(geometry["coordinates"]), len(source["coordinates"]))
+            for ring, original_ring in zip(geometry["coordinates"], source["coordinates"]):
+                self.assertEqual(len(ring), len(original_ring))
+                for point, original_point in zip(ring, original_ring):
+                    self.assertEqual(len(point), len(original_point))
+                    for value, original_value in zip(point, original_point):
+                        # MySQL JSON의 double 직렬화 오차만 허용한다(지도 정밀도보다 훨씬 작음).
+                        self.assertAlmostEqual(value, original_value, places=12)
             self.assertEqual(row["boundary_year"], 2013)
             for name, value in geometry_metrics(geometry).items():
                 self.assertAlmostEqual(float(row[name]), value, places=7)
