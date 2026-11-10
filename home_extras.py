@@ -50,8 +50,12 @@ QUICK_MENU = (
     ("app_pages/parking.py", "주차 찾기", ":material/local_parking:"),
     ("app_pages/charging.py", "전기차 충전", ":material/ev_station:"),
     ("app_pages/transit.py", "대중교통", ":material/directions_bus:"),
+    ("app_pages/roads.py", "도로와 날씨", ":material/traffic:"),
+    ("app_pages/ranking.py", "25구 순위", ":material/leaderboard:"),
     ("app_pages/compare.py", "두 동네 비교", ":material/compare_arrows:"),
+    ("app_pages/national.py", "전국 등록 조회", ":material/bar_chart:"),
     ("app_pages/ask.py", "물어보기", ":material/chat_bubble:"),
+    ("app_pages/about.py", "자료 안내", ":material/info:"),
 )
 RANKS = (
     ("차가 많은 구", "세대당 차량 (대)", "vehicle_per_household", 1, 2),
@@ -77,15 +81,45 @@ CSS = """
 .next-desc { display: block; margin-top: 4px; font-size: 15px; line-height: 1.55; color: #3D4560; }
 .next-src { display: block; margin-top: 10px; font-size: 13px; color: #4A5270; }
 .home-ext { font-size: 14px; color: #4A5270; }
-.st-key-home_quick { gap: 12px; }
-.st-key-home_quick [data-testid="stPageLink"] { flex: 1 1 0; min-width: 104px; }
+/* 자주 찾는 메뉴: 한 줄 폭을 6칸으로 나눠 꽉 채운다(12개 = 두 줄). */
+.st-key-home_quick { display: grid !important; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; width: 100%; }
+.st-key-home_quick > div { width: 100% !important; min-width: 0; }
+.st-key-home_quick [data-testid="stPageLink"], .st-key-home_quick [data-testid="stPageLink"] > div { width: 100%; }
 .st-key-home_quick a {
-  flex-direction: column; justify-content: center; gap: 10px; min-height: 120px; border-radius: 20px;
-  background: #EEF0FA; color: #1B2340;
+  width: 100%; flex-direction: column; justify-content: center; align-items: center; gap: 12px;
+  min-height: 132px; border-radius: 22px; background: #EEF0FA; color: #1B2340;
+  transition: background .15s, transform .15s;
 }
-.st-key-home_quick a:hover { background: #E1E5F6; }
-.st-key-home_quick a [data-testid="stIconMaterial"] { font-size: 34px; color: #27336B; }
-.st-key-home_quick a p { font-size: 16px; font-weight: 700; }
+.st-key-home_quick a:hover { background: #E1E5F6; transform: translateY(-2px); }
+.st-key-home_quick a [data-testid="stIconMaterial"] { font-size: 40px; color: #27336B; }
+.st-key-home_quick a p { font-size: 17px; font-weight: 700; }
+/* 한눈에 읽기 */
+.st-key-home_glance h2 span { color: #C24C38; }
+.glance-head { font-size: 20px; line-height: 1.6; color: #1B2340; margin: -4px 0 6px; }
+.glance-head b { color: #27336B; }
+.glance { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.glance > div { border: 1px solid #E2E5F0; border-radius: 18px; padding: 20px; background: #fff;
+  display: flex; flex-direction: column; gap: 8px; }
+.glance .k { font-size: 14px; color: #4A5270; }
+.glance .say { font-size: 21px; font-weight: 800; line-height: 1.35; }
+.glance .say.good { color: #16803C; } .glance .say.mid { color: #A16207; } .glance .say.bad { color: #DC2626; }
+.glance .fact { font-size: 14px; color: #4A5270; }
+.glance .pos { position: relative; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #EEF0FA, #8E98CF); margin-top: 6px; }
+.glance .pos i { position: absolute; top: -4px; width: 16px; height: 16px; border-radius: 50%; background: #FF7A66;
+  border: 3px solid #fff; box-shadow: 0 1px 3px rgba(27,35,64,.3); transform: translateX(-50%); }
+.glance .ends { display: flex; justify-content: space-between; font-size: 12px; color: #4A5270; }
+.glance .vs { margin-top: 4px; padding-top: 8px; border-top: 1px dashed #E2E5F0; font-size: 14px; color: #27336B; font-weight: 700; }
+.glance-note { font-size: 13px; color: #4A5270; }
+.st-key-home_saved_hint, .st-key-home_finder_cta { border-radius: 16px; background: #F4F5FB; padding: 14px 18px; }
+.st-key-home_finder_cta button p { font-size: 15px; font-weight: 700; }
+@media (max-width: 1100px) {
+  .st-key-home_quick { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .st-key-home_quick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .glance { grid-template-columns: 1fr; }
+}
 .home-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid #E2E5F0;
   border-radius: 18px; overflow: hidden; }
 .home-stats > div { padding: 22px 20px; border-right: 1px solid #E2E5F0; }
@@ -169,7 +203,7 @@ def next_steps(row: pd.Series, ranking: pd.DataFrame) -> None:
 
 def quick_menu() -> None:
     st.subheader("자주 찾는 메뉴", anchor=False)
-    with st.container(horizontal=True, gap="small", key="home_quick"):
+    with st.container(gap="small", width="stretch", key="home_quick"):
         for page, label, icon in QUICK_MENU:
             st.page_link(page, label=label, icon=icon)
 
@@ -242,9 +276,127 @@ def top_ranks(ranking: pd.DataFrame) -> None:
     st.caption("* 중구·종로구는 출퇴근 인구가 몰려 주민 기준 값이 체감보다 크게 나와요.")
 
 
+# 한눈에 읽기: 숫자 대신 '서울 평균과 비교한 말'로 보여 준다.
+# (제목, 열, 배율, 소수, 단위, 큰 값이 좋은지, 큰 값일 때 말, 작은 값일 때 말)
+GLANCE = (
+    ("차 보유", "vehicle_per_household", 1, 2, "대", None, "차가 많은 동네", "차가 적은 동네"),
+    ("주차", "parking_value", 100, 1, "면", True, "주차가 넉넉한 편", "주차가 빠듯한 편"),
+    ("대중교통", "need_value", 1, 2, "명", True, "대중교통을 많이 타요", "대중교통 이용이 적어요"),
+    ("전기차 충전", "charger_per_electric_vehicle", 1, 2, "기", True, "충전기가 넉넉한 편", "충전기가 부족한 편"),
+)
+GLANCE_UNIT = {"vehicle_per_household": "세대당", "parking_value": "차 100대당",
+               "need_value": "주민 1명당 하루", "charger_per_electric_vehicle": "전기차 1대당"}
+
+
+def _compare_text(value: float, average: float, high: str, low: str) -> tuple[str, int]:
+    """서울 평균과의 차이를 말로 바꾸고, 좋고 나쁨 방향(1·0·-1)을 돌려준다."""
+    if not average:
+        return "비교 자료 없음", 0
+    ratio = value / average
+    if ratio >= 1.5:
+        return f"{high} · 서울 평균의 {ratio:.1f}배", 1
+    if ratio >= 1.15:
+        return f"{high} · 평균보다 조금 많아요", 1
+    if ratio > 0.87:
+        return "서울 평균과 비슷해요", 0
+    if ratio > 0.6:
+        return f"{low} · 평균보다 조금 적어요", -1
+    return f"{low} · 평균의 {ratio * 100:.0f}% 수준", -1
+
+
+def _versus(value: float, other: float, label: str) -> str:
+    if not other:
+        return ""
+    ratio = value / other
+    if 0.9 < ratio < 1.1:
+        return f"{label}와 비슷해요"
+    return f"{label}보다 {ratio:.1f}배" if ratio > 1 else f"{label}의 {ratio * 100:.0f}% 수준"
+
+
+def glance(row: pd.Series, ranking: pd.DataFrame) -> None:
+    name = str(row.get("district_name"))
+    home = st.session_state.get("home_district")
+    home_row = None
+    if home and home != name and "district_name" in ranking:
+        matches = ranking.loc[ranking.district_name.astype(str) == home]
+        home_row = matches.iloc[0] if not matches.empty else None
+    need = str(row.get("need_level"))
+    park = str(row.get("parking_level"))
+    lifestyle = {"대중교통으로 충분": "차 없이도 살기 편한 동네", "있으면 편함": "차가 있으면 편한 동네",
+                 "차가 필요한 편": "차가 있어야 편한 동네"}.get(need, "자료를 살펴볼 동네")
+    parking = {"좋음": "주차는 넉넉한 편", "보통": "주차는 보통", "빠듯함": "주차는 빠듯한 편"}.get(park, "주차 자료는 부족해요")
+    cards = []
+    for title, column, scale, digits, unit, higher_good, high, low in GLANCE:
+        if column not in ranking:
+            continue
+        values = pd.to_numeric(ranking[column], errors="coerce") * scale
+        value = _value(row, column)
+        if value is None or values.dropna().empty:
+            continue
+        value *= scale
+        average = float(values.mean())
+        text, direction = _compare_text(value, average, high, low)
+        tone = "mid" if higher_good is None or direction == 0 else ("good" if direction > 0 else "bad")
+        low_v, high_v = float(values.min()), float(values.max())
+        position = 50.0 if high_v == low_v else 100 * (value - low_v) / (high_v - low_v)
+        vs = ""
+        if home_row is not None:
+            other = _value(home_row, column)
+            if other is not None:
+                vs = f'<span class="vs">{escape(_versus(value, other * scale, f"내 동네({home})"))}</span>'
+        cards.append(
+            f'<div><span class="k">{title}</span><span class="say {tone}">{escape(text)}</span>'
+            f'<span class="fact">{GLANCE_UNIT[column]} {value:.{digits}f}{unit} · 서울 평균 {average:.{digits}f}{unit}</span>'
+            f'<span class="pos"><i style="left:{position:.1f}%"></i></span>'
+            f'<span class="ends"><span>25구 중 적음</span><span>많음</span></span>{vs}</div>')
+    if not cards:
+        return
+    with st.container(gap="small", key="home_glance"):
+        star = " ★ 내 동네" if home == name else ""
+        st.html(f'<h2 style="margin:0;font-family:Jua,sans-serif;font-weight:400;color:#27336B;font-size:30px">'
+                f'<span>{escape(name)}</span> 한눈에 읽기{star}</h2>')
+        st.html(f'<p class="glance-head"><b>{escape(name)}</b>{_subject(name)} {lifestyle}이고, {parking}이에요.</p>')
+        st.html('<div class="glance">' + "".join(cards) + "</div>")
+        if name in COMMUTER_DISTRICTS:
+            st.html('<p class="glance-note">* 출퇴근 인구가 몰리는 구라 주민 기준 대중교통·주차 값이 체감보다 크게 나와요.</p>')
+        if not home:
+            with st.container(horizontal=True, vertical_alignment="center", gap="small", key="home_saved_hint"):
+                st.markdown(f"**여기 사시나요?** 위쪽 **☆ 내 동네로 저장**을 눌러 두면 다음에 들어올 때 {name}가 바로 열려요.")
+
+
+def _subject(word: str) -> str:
+    last = word[-1] if word else ""
+    has_final = "가" <= last <= "힣" and (ord(last) - 0xAC00) % 28 != 0
+    return "은" if has_final else "는"
+
+
+FINDER_PRESETS = (
+    ("차 없이 살 동네", ":material/directions_bus:", {"finder_car": "없어요", "finder_ev": "아니요", "finder_focus": "대중교통"}),
+    ("차 1대, 주차가 중요해요", ":material/local_parking:", {"finder_car": "있어요", "finder_ev": "아니요", "finder_focus": "주차"}),
+    ("전기차 타요", ":material/ev_station:", {"finder_car": "있어요", "finder_ev": "예", "finder_focus": "균형 있게"}),
+)
+
+
+def _open_finder(values: dict[str, str]) -> None:
+    for key, value in values.items():
+        st.session_state[key] = value
+    st.session_state.home_open_finder = True
+
+
+def finder_shortcut() -> None:
+    with st.container(horizontal=True, vertical_alignment="center", gap="small", key="home_finder_cta"):
+        st.markdown("**아직 동네를 고르는 중인가요?** 내 상황을 고르면 25구를 내 기준으로 추천해 드려요.")
+        for index, (label, icon, values) in enumerate(FINDER_PRESETS):
+            st.button(label, icon=icon, key=f"home_finder_{index}", on_click=_open_finder, args=(values,))
+    if st.session_state.pop("home_open_finder", False):
+        st.switch_page("app_pages/finder.py")
+
+
 def render(row: pd.Series, ranking: pd.DataFrame) -> None:
     st.html(CSS)
     with st.container(gap="large", key="home_extras"):
+        glance(row, ranking)
+        finder_shortcut()
         next_steps(row, ranking)
         quick_menu()
         seoul_overview(ranking)

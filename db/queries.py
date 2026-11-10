@@ -184,7 +184,7 @@ _CHARGING_CTE = """
 """
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_filter_options() -> dict:
     with get_engine().connect() as conn:
         def read(sql):
@@ -222,7 +222,7 @@ def get_filter_options() -> dict:
             "weather_observed_at": weather.observed_at.tolist(), "snapshots": snapshots}
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_parking_summary(region_ids=None) -> pd.DataFrame:
     """주차면 수 집계에서 식별번호가 충돌하는 행은 제외한다."""
     return _read_query(_SNAPSHOT_CTE + _PARKING_CTE + """
@@ -241,7 +241,7 @@ def get_parking_summary(region_ids=None) -> pd.DataFrame:
     """, _region_param(region_ids))
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_charger_summary(region_ids=None, speed="all") -> pd.DataFrame:
     """환경공단 자료만 집계하며 다른 출처와 합산하지 않는다."""
     return _read_query(_SNAPSHOT_CTE + _CHARGING_CTE + """
@@ -259,7 +259,7 @@ def get_charger_summary(region_ids=None, speed="all") -> pd.DataFrame:
     """, {**_region_param(region_ids), "speed_code": _speed_value(speed), "charger_source": DEFAULT_CHARGER_SOURCE})
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_region_boundaries() -> pd.DataFrame:
     """2013년 서울 25구 경계. 지도 표시 전용."""
     return _read_query(_SNAPSHOT_CTE + """
@@ -272,7 +272,7 @@ def get_region_boundaries() -> pd.DataFrame:
     """)
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_registration_breakdown(region_id, stat_month=None) -> pd.DataFrame:
     """전기차는 전체 등록 대수에 포함되므로 두 범위를 더하지 않는다."""
     return _read_query(_SNAPSHOT_CTE + _MONTH_CTE + """
@@ -288,7 +288,7 @@ def get_registration_breakdown(region_id, stat_month=None) -> pd.DataFrame:
     """, {**_one_region(region_id, optional=True), "stat_month": _month_value(stat_month)})
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_national_registrations(stat_month=None, province_name=None, vehicle_type_code=None, usage_code=None) -> pd.DataFrame:
     if vehicle_type_code is not None and vehicle_type_code not in VEHICLE:
         raise ValueError("차종이 올바르지 않습니다.")
@@ -312,7 +312,7 @@ def get_national_registrations(stat_month=None, province_name=None, vehicle_type
           "vehicle_type": vehicle_type_code, "usage_code": usage_code})
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def search_faq(keyword="", company_id=None, category=None, limit=50) -> pd.DataFrame:
     pattern = _like_pattern(keyword, limit)
     if company_id is not None:
@@ -711,14 +711,14 @@ def _metrics_sql():
     return _SNAPSHOT_CTE + _MONTH_CTE + _PARKING_CTE + _CHARGING_CTE + _METRICS_CTE + _METRICS_SELECT
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_summary_metrics(region_id, stat_month=None) -> pd.DataFrame:
     _one_region(region_id)
     return _read_query(_metrics_sql() + " WHERE region_id IN :region_ids ORDER BY district_name",
                        _metrics_params(stat_month, [region_id]))
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_district_ranking(stat_month=None) -> pd.DataFrame:
     """순위는 서울 25개 구 전체를 기준으로 계산한다."""
     params = _metrics_params(stat_month, None)
@@ -727,7 +727,7 @@ def get_district_ranking(stat_month=None) -> pd.DataFrame:
     return _read_query(_metrics_sql() + " ORDER BY district_name", params)
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_compare_metrics(region_id_a, region_id_b, stat_month=None) -> pd.DataFrame:
     """같은 구 번호를 두 번 지정하면 한 행만 반환한다."""
     _one_region(region_id_a)
@@ -802,7 +802,7 @@ def _place_params(region_id, kinds, speed):
             "include_parking": int("parking" in kinds)}
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_place_points(region_id, kinds=("parking", "charger"), speed="all", limit=None) -> pd.DataFrame:
     """지도에서 제외한 시설 수는 DataFrame.attrs['coverage']에서 확인한다."""
     params = _place_params(region_id, kinds, speed)
@@ -830,7 +830,7 @@ def get_place_points(region_id, kinds=("parking", "charger"), speed="all", limit
     return points
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def search_places(keyword, region_id=None, limit=50) -> pd.DataFrame:
     """좌표가 없는 시설도 검색한다. %, _, !는 문자 그대로 찾는다."""
     params = {**_place_params(region_id, ("parking", "charger"), "all"),
@@ -841,7 +841,7 @@ def search_places(keyword, region_id=None, limit=50) -> pd.DataFrame:
     """, params)
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_charger_breakdown(region_id) -> pd.DataFrame:
     return _read_query(_SNAPSHOT_CTE + """
         , devices AS (
@@ -897,7 +897,7 @@ def get_charger_breakdown(region_id) -> pd.DataFrame:
     """, {**_one_region(region_id), "charger_source": DEFAULT_CHARGER_SOURCE})
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_charger_detail(region_id, speed="all", limit=200) -> pd.DataFrame:
     """충전기 상태는 수집 당시 값이며 실시간 빈자리가 아니다."""
     params = {**_one_region(region_id, optional=True), "charger_source": DEFAULT_CHARGER_SOURCE,
@@ -922,7 +922,7 @@ def get_charger_detail(region_id, speed="all", limit=200) -> pd.DataFrame:
     return _read_query(sql, params)
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_traffic_profile(region_id) -> pd.DataFrame:
     """교통량 관측 지점 수는 구마다 다르다."""
     return _read_query(_SNAPSHOT_CTE + """
@@ -962,7 +962,7 @@ def get_traffic_profile(region_id) -> pd.DataFrame:
     """, _one_region(region_id))
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_weather(observed_at=None) -> pd.DataFrame:
     if observed_at is not None and (not isinstance(observed_at, datetime) or observed_at.tzinfo is not None
                                    or observed_at.minute or observed_at.second or observed_at.microsecond):
@@ -981,7 +981,7 @@ def get_weather(observed_at=None) -> pd.DataFrame:
     """, {"observed_at": observed_at})
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=21600, show_spinner=False)
 def get_trend_data(region_id, stat_date=None, analysis_type=None) -> pd.DataFrame:
     """날짜를 생략하면 출처별 최신 날짜가 서로 다를 수 있다."""
     if stat_date is not None and (not isinstance(stat_date, date) or isinstance(stat_date, datetime)):

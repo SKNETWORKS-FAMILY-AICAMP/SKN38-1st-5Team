@@ -476,7 +476,7 @@ JS = FACE_JS + JS
 _HERO = st.components.v2.component("h3_seoul_drawing", html=HTML, css=CSS, js=JS)
 
 
-@st.cache_data(ttl=600, max_entries=4, show_spinner=False)
+@st.cache_data(ttl=21600, max_entries=4, show_spinner=False)
 def _project_boundaries(frame: pd.DataFrame) -> list[dict]:
     if frame.empty:
         return []

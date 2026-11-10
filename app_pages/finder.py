@@ -77,11 +77,15 @@ if ranking is None or ranking.empty:
 with st.container(border=True, gap="small", key="finder_form"):
     st.markdown("**내 상황을 알려주세요**")
     first, second, third = st.columns(3)
-    car = first.segmented_control("차가 있나요?", CAR_OPTIONS, default="있어요",
+    # 홈의 '내 상황으로 찾기'에서 고른 값이 있으면 그 값을 쓰고, 없을 때만 기본값을 준다.
+    def preset(key: str, fallback: str) -> str | None:
+        return None if key in st.session_state else fallback
+
+    car = first.segmented_control("차가 있나요?", CAR_OPTIONS, default=preset("finder_car", "있어요"),
                                   key="finder_car", required=True, persist_state="session")
-    ev = second.segmented_control("전기차인가요?", EV_OPTIONS, default="아니요", key="finder_ev",
+    ev = second.segmented_control("전기차인가요?", EV_OPTIONS, default=preset("finder_ev", "아니요"), key="finder_ev",
                                   required=True, persist_state="session", disabled=car == "없어요")
-    focus = third.segmented_control("가장 중요하게 보는 것", FOCUS_OPTIONS, default="균형 있게",
+    focus = third.segmented_control("가장 중요하게 보는 것", FOCUS_OPTIONS, default=preset("finder_focus", "균형 있게"),
                                     key="finder_focus", required=True, persist_state="session")
 
 weight = weights(car, ev, focus)
