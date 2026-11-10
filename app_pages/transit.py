@@ -5,6 +5,8 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+import readable
+
 from db import queries as q
 from scene_drive import render_hero
 from ui import (date_text, district_row, incomplete_transit, load_frame,
@@ -100,6 +102,7 @@ with st.container(key="transit_hero"):
     render_hero(ranking, region_id, district_name)
 
 st.subheader(f":orange[**{district_name}**], 차 없이 다니기 어떨까요?", anchor=False)
+readable.cards(row, ranking, ("need", "own"), title="서울 평균과 견주면")
 with st.container(border=True, gap="small", key="transit_judgment"):
     value = row.get("need_value")
     valid_need = value is not None and pd.notna(value) and isfinite(float(value))

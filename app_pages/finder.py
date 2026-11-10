@@ -1,6 +1,8 @@
 import pandas as pd
 import streamlit as st
 
+import readable
+
 from db import queries as q
 
 
@@ -52,7 +54,9 @@ def reason_lines(row: pd.Series, weight: dict[str, int]) -> list[str]:
         if pd.isna(value):
             lines.append(f"{label}: 자료 없음")
             continue
-        lines.append(f"{label} {value * scale:.{digits}f}{unit} · 서울 {int(row[f'{key}_rank'])}위")
+        phrase, _tone = readable.compare_phrase(value * scale, AVERAGES.get(key, 0) * scale,
+                                                readable.METRICS[READABLE_KEYS[key]])
+        lines.append(f"{label} {value * scale:.{digits}f}{unit} · {phrase} (서울 {int(row[f'{key}_rank'])}위)")
     return lines
 
 
@@ -94,6 +98,9 @@ st.caption("반영 비율 · " + " · ".join(f"{METRICS[key][1]} {value}%" for k
            + " — 서울 25구 안에서의 상대 순위로 계산한 참고 점수예요.")
 
 table = score_table(ranking, weight)
+# 추천 이유를 숫자 대신 서울 평균과 견준 말로 보여 주기 위한 평균값
+READABLE_KEYS = {"parking": "park", "transit": "need", "charging": "charger"}
+AVERAGES = {key: float(pd.to_numeric(table[key], errors="coerce").mean()) for key in METRICS}
 
 st.subheader("내 기준 추천 동네", anchor=False)
 cards = st.columns(3)

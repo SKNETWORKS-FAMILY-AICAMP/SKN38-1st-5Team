@@ -5,6 +5,8 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+import readable
+
 from db import queries as q
 from ui import (
     TOPICS, date_text, district_row, incomplete_transit, load_frame,
@@ -186,6 +188,9 @@ if comparison.empty:
     st.stop()
 
 left_row, right_row = district_row(comparison, left_id), district_row(comparison, right_id)
+_ranking = load_frame(q.get_district_ranking)
+st.markdown("**한눈에 비교**")
+readable.duel(district_row(_ranking, left_id), district_row(_ranking, right_id), names[left_id], names[right_id])
 st.caption("‘더 많음’은 표시 단위 이상 차이가 나는 수치에 붙어요. 좋고 나쁨을 뜻하지 않아요. 순위는 값이 많은 순서예요.")
 st.html(COMPARE_STYLE + comparison_table(left_row, right_row, names[left_id], names[right_id]))
 st.caption("주민당 승객 수가 적은 쪽을 차 필요성이 더 높은 동네로 추정해요.")

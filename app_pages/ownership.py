@@ -4,6 +4,8 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+import readable
+
 from db import queries as q
 from scene_city3d import render_hero
 from ui import (RANK_HEIGHT, date_text, display_table, district_row, load_frame,
@@ -121,6 +123,7 @@ with st.container(gap="small", key="ownership_content"):
     level = word(row.get("ownership_level"))
     st.markdown(f"**차량 보유 {level}** · {rank_text(row, 'ownership')}")
     st.caption(f"등록 기준 {date_text(row.get('stat_month'), month=True)} · 같은 달의 등록 차량과 세대수로 비교해요.")
+    readable.cards(rank_row, ranking, ("own", "ev"), title="서울 평균과 견주면")
     with st.grid(4, min_column_width=225, gap="small"):
         _metric(row, "vehicle_count", "등록 차량", 0, "대")
         _metric(row, "vehicle_per_household", "세대당 차량", 2, "대")

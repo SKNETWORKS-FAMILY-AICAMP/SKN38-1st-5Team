@@ -110,7 +110,13 @@ CSS = """
 .glance .ends { display: flex; justify-content: space-between; font-size: 12px; color: #4A5270; }
 .glance .vs { margin-top: 4px; padding-top: 8px; border-top: 1px dashed #E2E5F0; font-size: 14px; color: #27336B; font-weight: 700; }
 .glance-note { font-size: 13px; color: #4A5270; }
-.st-key-home_saved_hint, .st-key-home_finder_cta { border-radius: 16px; background: #F4F5FB; padding: 14px 18px; }
+.st-key-home_saved_hint { border-radius: 16px; background: #F4F5FB; padding: 14px 18px; }
+/* 지도 바로 아래 띠: 화면 폭 끝까지 흰 띠로 깔고 버튼은 알약 모양으로 */
+.st-key-home_finder_cta { padding: 18px 0; border-top: 1px solid #E2E5F0; border-bottom: 1px solid #E2E5F0;
+  background: #fff; box-shadow: 0 0 0 100vmax #fff; clip-path: inset(0 -100vmax); flex-wrap: wrap; }
+.st-key-home_finder_cta p { font-size: 17px; margin: 0; }
+.st-key-home_finder_cta button { border-radius: 999px; min-height: 44px; padding: 0 18px; border-color: #C8CDE3; }
+.st-key-home_finder_cta button:hover { border-color: #27336B; color: #27336B; }
 .st-key-home_finder_cta button p { font-size: 15px; font-weight: 700; }
 @media (max-width: 1100px) {
   .st-key-home_quick { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -384,8 +390,9 @@ def _open_finder(values: dict[str, str]) -> None:
 
 
 def finder_shortcut() -> None:
+    # 지도 바로 아래 띠: 지도를 보고 '그럼 나는 어디?'가 떠오르는 자리에 둔다.
     with st.container(horizontal=True, vertical_alignment="center", gap="small", key="home_finder_cta"):
-        st.markdown("**아직 동네를 고르는 중인가요?** 내 상황을 고르면 25구를 내 기준으로 추천해 드려요.")
+        st.markdown("**어느 동네가 나에게 맞을지 고민되시나요?** 내 상황을 고르면 25구를 내 기준으로 추천해 드려요.")
         for index, (label, icon, values) in enumerate(FINDER_PRESETS):
             st.button(label, icon=icon, key=f"home_finder_{index}", on_click=_open_finder, args=(values,))
     if st.session_state.pop("home_open_finder", False):
@@ -394,10 +401,8 @@ def finder_shortcut() -> None:
 
 def render(row: pd.Series, ranking: pd.DataFrame) -> None:
     st.html(CSS)
+    finder_shortcut()
     with st.container(gap="large", key="home_extras"):
-        glance(row, ranking)
-        finder_shortcut()
         next_steps(row, ranking)
-        quick_menu()
         seoul_overview(ranking)
         top_ranks(ranking)

@@ -3,6 +3,8 @@ from urllib.parse import quote
 import pandas as pd
 import streamlit as st
 
+import readable
+
 from db import queries as q
 from scene_parking import parking_hero
 from parking_explorer import charger_records, explorer, fallback_parking, seoul_parking
@@ -113,6 +115,8 @@ with st.container(key="parking_page_hero"):
         active_topic="parking",
     )
 
+_ranking = load_frame(q.get_district_ranking)
+readable.cards(district_row(_ranking, region_id), _ranking, ("park", "own"), title="서울 평균과 견주면")
 capacity = district_row(load_frame(q.get_parking_summary, [region_id]), region_id)
 with st.grid(2, min_column_width=160, gap="small"):
     st.metric("공영 주차면", number(capacity.get("public_space_count"), suffix="면"), border=True)

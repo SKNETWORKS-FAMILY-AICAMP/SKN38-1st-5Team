@@ -2,6 +2,8 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+import readable
+
 from db import queries as q
 from parking_explorer import charger_records, render_map
 from ui import date_text, display_table, district_row, load_frame, load_options, number, word
@@ -163,6 +165,8 @@ if gauge_level:
 st.caption("게이지는 서울 25구 순위의 세 구간이에요. 1위부터 8위는 많은 편, 9위부터 17위는 보통, 18위부터 25위는 적은 편이에요.")
 st.info("실시간 빈자리 정보가 아니에요. 수집 당시 등록된 충전기이며, 이용 제한과 운영시간을 방문 전에 확인해 주세요.", icon=":material/info:")
 
+_ranking = load_frame(q.get_district_ranking)
+readable.cards(district_row(_ranking, region_id), _ranking, ("charger", "ev"), title="서울 평균과 견주면")
 with st.grid(3, min_column_width=185, gap="small"):
     st.metric("전기차 한 대당 충전기", number(ratio, 2, "기"), border=True)
     st.metric("서울 순위 · 충전기 비율", f"{int(rank)}위 / 25구" if gauge_level else "자료 없음", border=True)

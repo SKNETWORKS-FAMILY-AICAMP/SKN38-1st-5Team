@@ -80,8 +80,32 @@ CSS = """
   text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px;
 }
 .st-key-site_picker { flex: 0 0 auto; }
+/* 자주 찾는 메뉴: 오른쪽에 고정돼 스크롤을 따라온다. 좁은 화면에서는 본문을 가리지 않게 숨긴다. */
+.st-key-site_dock {
+  position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 990; width: 92px;
+  background: #fff; border: 1px solid #E2E5F0; border-radius: 20px; padding: 12px 6px;
+  box-shadow: 0 12px 30px rgba(27,35,64,.14);
+}
+.st-key-site_dock .dock-title { margin: 0 0 4px; text-align: center; font-size: 12px; font-weight: 800; color: #27336B; }
+.st-key-site_dock a {
+  flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 58px;
+  padding: 6px 2px; border-radius: 14px; color: #1B2340;
+}
+.st-key-site_dock a:hover { background: #EEF0FA; }
+.st-key-site_dock a p { font-size: 12px; font-weight: 700; text-align: center; line-height: 1.25; white-space: normal; }
+.st-key-site_dock [data-testid="stIconMaterial"] { font-size: 24px; color: #27336B; }
+.st-key-site_dock [class*="st-key-dock_current_"] a { background: #EEF0FA; }
+/* 떠 있는 메뉴가 본문을 가리지 않게 본문(머리말 제외)에만 오른쪽 여백을 준다. */
+@media (min-width: 1361px) { .st-key-site_content { padding-right: 112px; } }
+@media (max-width: 1360px) { .st-key-site_dock { display: none; } }
 .st-key-site_home { flex: 0 0 auto; }
-.st-key-site_home button { min-height: 44px; border-radius: 999px; white-space: nowrap; }
+.st-key-site_home button { min-height: 44px; min-width: 44px; padding: 0 10px; border-radius: 999px; white-space: nowrap; }
+.st-key-site_home [data-testid="stIconMaterial"] { font-size: 22px; }
+/* 메뉴가 옆 요소에 눌려 겹치지 않게 내용 폭만큼은 꼭 차지하게 한다. */
+.st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_menu) { flex: 0 0 auto; width: auto; }
+.st-key-site_menu { width: max-content !important; }
+.st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_picker) { margin-left: auto; }
+.st-key-site_menu a, .st-key-site_menu button { padding-left: 8px !important; padding-right: 8px !important; }
 .st-key-site_home button p { font-size: 15px; font-weight: 700; }
 .st-key-site_home iframe { display: none; }
 .st-key-site_tools { flex: 0 0 auto; }
@@ -349,7 +373,7 @@ def navbar(pages: Sequence[st.Page], current: st.Page,
                                 selected = "current" if page.url_path == current.url_path else "other"
                                 with st.container(key=f"more_{selected}_{number}_{index}"):
                                     st.page_link(page, label=page.title, icon=page.icon, width="stretch")
-        with st.container(width=164, key="site_picker"):
+        with st.container(width=140, key="site_picker"):
             regions = options.get("regions")
             if regions is not None and not regions.empty:
                 names = dict(zip(regions.region_id.astype(int), regions.district_name.astype(str)))
@@ -380,6 +404,25 @@ def navbar(pages: Sequence[st.Page], current: st.Page,
             site_search(pages, options)
             if st.button("전체메뉴", icon=":material/menu:", key="site_sitemap_open", type="tertiary"):
                 sitemap(pages)
+    quick_dock(pages, current)
+
+
+# 화면 오른쪽에 떠서 스크롤해도 따라오는 자주 찾는 메뉴
+DOCK_PATHS = (("", "우리 동네"), ("finder", "동네 찾기"), ("ranking", "25구 순위"), ("parking", "주차·충전"),
+              ("transit", "대중교통"), ("compare", "두 동네 비교"), ("ask", "물어보기"))
+
+
+def quick_dock(pages: Sequence[st.Page], current: st.Page) -> None:
+    by_path = {page.url_path: page for page in pages}
+    with st.container(gap="xxsmall", key="site_dock"):
+        st.html('<p class="dock-title">자주 찾는 메뉴</p>')
+        for path, label in DOCK_PATHS:
+            page = by_path.get(path)
+            if page is None:
+                continue
+            active = "current" if page.url_path == current.url_path else "other"
+            with st.container(key=f"dock_{active}_{path or 'home'}"):
+                st.page_link(page, label=label, icon=page.icon)
 
 
 HOME_COOKIE = "chachacha_home_gu"
@@ -416,15 +459,16 @@ def _toggle_home_district(name: str) -> None:
 
 def home_district_button(current: str) -> None:
     saved = st.session_state.get("home_district")
+    # 머리말이 붐비지 않게 별 아이콘만 두고, 뜻은 마우스를 올리면 보이는 도움말로 알린다.
     if saved == current:
-        st.button("내 동네", icon=":material/star:", key="home_district_toggle", type="primary",
+        st.button("", icon=":material/star:", key="home_district_toggle", type="primary",
                   on_click=_toggle_home_district, args=(current,),
-                  help="내 동네로 저장돼 있어요. 다시 누르면 저장을 해제해요.")
+                  help=f"{current}가 내 동네로 저장돼 있어요. 다시 누르면 저장을 해제해요.")
     else:
-        st.button("내 동네로 저장", icon=":material/star_outline:", key="home_district_toggle",
+        st.button("", icon=":material/star_outline:", key="home_district_toggle",
                   type="secondary", on_click=_toggle_home_district, args=(current,),
-                  help=(f"지금은 {saved}가 내 동네예요. 누르면 {current}로 바꿔요." if saved
-                        else "저장해 두면 다음에 들어올 때 이 동네가 바로 열려요. 이 브라우저에만 저장돼요."))
+                  help=(f"내 동네로 저장 · 지금은 {saved}가 내 동네예요. 누르면 {current}로 바꿔요." if saved
+                        else "내 동네로 저장 · 다음에 들어올 때 이 동네가 바로 열려요. 이 브라우저에만 저장돼요."))
     pending = st.session_state.pop("home_cookie_pending", None)
     if pending is not None:
         _write_home_cookie(pending[1])
