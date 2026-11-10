@@ -22,21 +22,22 @@ DB 덤프·정제 CSV·수집 원본은 팀 내부에서 관리하고 **공개 �
 
 ### 정식 앱과 조회의 연결
 
-시작점은 [app.py](../app.py)이며 `app_pages/`의 12개 화면을 연결한다. 상단 메뉴는 우리 동네·25구 순위·주차·충전 찾기·두 동네 비교·전국 등록 조회·기업 FAQ이고, 더 보기에는 차량 보유·대중교통·전기차 충전·도로와 날씨·물어보기·자료 안내가 있다. [site_shell.py](../site_shell.py)는 공통 메뉴·동네 선택, 홈 지도 영역과 페이지 머리말, footer의 메뉴 링크를 맡는다. 홈은 지도만 표시하며, 세 판정 카드·25구 막대 순위·판정 기준과 출처는 [25구 순위](../app_pages/ranking.py)에 있다. [ui.py](../ui.py)는 이 화면에서 사용하는 판정·순위·출처 안내와 공통 표시 단위를 제공한다.
+시작점은 [app.py](../app.py)이며 `app_pages/`의 13개 화면을 연결한다. 상단 메뉴는 바로 가는 우리 동네·동네 찾기와 묶음 메뉴 세 개다. 동네 살펴보기에는 차량 보유·주차·충전 찾기·전기차 충전·대중교통·도로와 날씨, 비교·조회에는 25구 순위·두 동네 비교·전국 등록 조회, 도움말에는 기업 FAQ·물어보기·자료 안내가 있다. [site_shell.py](../site_shell.py)는 공통 메뉴·동네 선택·통합검색·전체메뉴, 홈 지도 영역과 페이지 머리말, footer의 메뉴 링크를 맡는다. 홈은 지도 아래에 [home_extras.py](../home_extras.py)의 공공 사이트 연결·바로가기·서울 현황·항목별 상위 구를 표시하며, 세 판정 카드·25구 막대 순위·판정 기준과 출처는 [25구 순위](../app_pages/ranking.py)에 있다. [ui.py](../ui.py)는 이 화면에서 사용하는 판정·순위·출처 안내와 공통 표시 단위를 제공한다.
 
 | 화면 | 입력 → 결과 | 주요 조회·테이블 |
 | --- | --- | --- |
-| [우리 동네](screens/01_home.png), [모바일](screens/05_home_mobile.png) | Navbar·지도에서 구 선택, 주제 선택 → 서울 지도 색과 선택 구 표시 | `get_district_ranking`, `get_region_boundaries`; 등록·인구·주차·승객 집계와 `region_boundary` |
+| [우리 동네](screens/01_home.png), [모바일](screens/05_home_mobile.png) | Navbar·지도에서 구 선택, 주제 선택 → 서울 지도 색과 선택 구 표시, 공공 사이트 연결·바로가기·서울 현황·항목별 상위 구 | `get_district_ranking`, `get_region_boundaries`; 등록·인구·주차·승객 집계와 `region_boundary` |
+| [동네 찾기](../app_pages/finder.py) | 차 보유·전기차 여부·중요 기준 선택 → 내 기준 추천 3구와 25구 전체 순위표 | `get_district_ranking`; 같은 지표 CTE |
 | [25구 순위](../app_pages/ranking.py) | 선택한 구의 세 판정 카드·근거값·서울 현황, 항목별 25구 순위와 판정 기준·출처 | `get_district_ranking`, `get_filter_options`; 같은 지표 CTE와 `source_snapshot` |
 | [주차·충전 찾기](../app_pages/parking.py) | 구·시설 조건 선택 → 수록 주차 여건, 주차장·충전소 지도와 목록 | `get_parking_summary`, `get_place_points`, `search_places`, `get_charger_detail`; `parking_site`, `charging_station`, `charger` |
 | [두 동네 비교](screens/02_compare.png) | 두 구 선택 → 나란한 둥근 카드의 세 판정·근거값 차이·서울 전체 순위 | `get_compare_metrics`, `get_registration_breakdown`; 같은 지표 CTE와 `registration` |
 | [전국 등록 조회](screens/03_national.png) | 시도·차종·용도 선택 → 등록 지표·시도별 용도/차종 누적 막대·등록표 | `get_national_registrations`; `province_registration`, `vehicle_type` |
 | [기업 FAQ](screens/04_faq.png) | 검색어·기업·분류 선택 → 둥근 질문 상자, 펼친 원문 답변·원문 링크·수집일 | `search_faq`; `company`, `faq`, `source_snapshot` |
-| 공통 navbar·footer, 자료 안내 | 상단 6개 메뉴와 더 보기 6개 메뉴·현재 메뉴·동네 선택. 자료 안내에서 출처·기준 기간·수집일과 한계 확인 | `get_filter_options`; `region`, 유효한 `source_snapshot`의 `snapshots` |
+| 공통 navbar·footer, 자료 안내 | 바로가기 2개와 묶음 메뉴 3개·현재 메뉴·동네 선택·통합검색·전체메뉴. 자료 안내에서 출처·기준 기간·수집일과 한계 확인 | `get_filter_options`; `region`, 유효한 `source_snapshot`의 `snapshots` |
 
 차량 구성은 차량 보유와 두 동네 비교에서 `get_summary_metrics`·`get_registration_breakdown`으로 조회한다. 주차·충전 찾기와 전기차 충전의 시설 지도·목록은 `get_place_points`·`search_places`·`get_charger_detail`을 사용하며, 전기차 충전의 구성은 `get_charger_breakdown`으로 읽는다. 시간대별 승객은 대중교통에서 `get_trend_data`로, 수록 교통량과 날씨는 도로와 날씨에서 `get_traffic_profile`·`get_weather`로 읽는다.
 
-세 판정과 서울 전체 순위는 SQL에서 계산한다. 전국 화면의 선택 합계·시도별 막대용 합계는 SQL로 필터링한 결과를 Python에서 더하며 결측이 있으면 확정하지 않는다. 홈 외 지도는 Kakao 지도를 사용하고, 도로와 날씨에는 실시간 교통 지도가 있다. 카카오 응답은 DB에 저장하지 않으며 MySQL의 공공데이터를 지도에 표시한다. 실시간 교통 지도와 DB에 보존한 교통량·날씨 표본은 구분해 표시하고, 서울 공통 날씨를 구별 날씨나 승객과 같은 관측 시각으로 간주하지 않는다.
+세 판정과 서울 전체 순위는 SQL에서 계산한다. 홈의 항목별 상위 구와 동네 찾기의 내 기준 점수는 이 조회 결과를 Python에서 정렬·계산한다. 전국 화면의 선택 합계·시도별 막대용 합계는 SQL로 필터링한 결과를 Python에서 더하며 결측이 있으면 확정하지 않는다. 홈 외 지도는 Kakao 지도를 사용하고, 도로와 날씨에는 실시간 교통 지도가 있다. 카카오 응답은 DB에 저장하지 않으며 MySQL의 공공데이터를 지도에 표시한다. 실시간 교통 지도와 DB에 보존한 교통량·날씨 표본은 구분해 표시하고, 서울 공통 날씨를 구별 날씨나 승객과 같은 관측 시각으로 간주하지 않는다.
 
 ## 2. 원본 보존과 2NF 정규화
 

@@ -18,7 +18,7 @@ DBeaver에서 `chachacha` DB를 선택하고 각 SQL 블록을 처음부터 세�
 
 | 번호 | 현재 함수 | 예시 조건 | 연결할 화면·근거 |
 | --- | --- | --- | --- |
-| 1 | `get_district_ranking` | 2026-09, 25구 전체 | [우리 동네](screens/01_home.png)의 지도 색, [25구 순위](../app_pages/ranking.py)의 세 판정 카드·클릭하는 25구 막대 순위. 비교와 요약 함수도 같은 지표 CTE 사용 |
+| 1 | `get_district_ranking` | 2026-09, 25구 전체 | [우리 동네](screens/01_home.png)의 지도 색·서울 현황·항목별 상위 구, [동네 찾기](../app_pages/finder.py)의 내 기준 추천, [25구 순위](../app_pages/ranking.py)의 세 판정 카드·클릭하는 25구 막대 순위. 비교와 요약 함수도 같은 지표 CTE 사용 |
 | 2 | `get_registration_breakdown` | 마포구, 2026-09 | 차량 보유의 차종별 구성, 두 동네 비교의 차종·전기차 상세 |
 | 3 | `get_charger_summary` | 마포구, `speed='all'` | 전기차 충전의 충전기 요약과 대조할 집계 예시. 화면은 `get_summary_metrics`·`get_charger_breakdown` 사용 |
 | 4 | `get_parking_summary` | 마포구 | 주차·충전 찾기의 수록 주차면 요약. 25구 순위의 주차 판정도 같은 주차 집계 CTE 사용 |
@@ -26,7 +26,7 @@ DBeaver에서 `chachacha` DB를 선택하고 각 SQL 블록을 처음부터 세�
 | 6 | `search_faq` | 검색어 `충전`, 기업·분류 전체, 최대 50건 | [기업 FAQ](screens/04_faq.png)의 질문·답변 검색 |
 | 7 | `get_region_boundaries` | 최신 유효 경계 수집본 | 홈 지도의 구 모양·구 선택, 차량 보유와 주차·충전 지도의 구 경계, 실시간 교통 지도의 선택 구 중심 |
 
-홈 지도·25구 순위·차량 보유·두 동네 비교·전국 등록 조회는 기준월을 생략해 최신 유효 등록월을 조회하며 현재는 2026-09다. 아래 예시는 같은 월을 명시해 재현한다. SQL 4의 함수는 주차·충전 찾기의 면수 요약에 쓰이며, 주차 지도와 목록은 `get_place_points`와 `search_places`를 사용한다. 전국 화면은 SQL 5의 필터 결과를 Python에서 조건별·시도별로 합산하며, SQL 5 자체는 시도·차종·용도별 행을 반환한다.
+홈·동네 찾기·25구 순위·차량 보유·두 동네 비교·전국 등록 조회는 기준월을 생략해 최신 유효 등록월을 조회하며 현재는 2026-09다. 아래 예시는 같은 월을 명시해 재현한다. SQL 4의 함수는 주차·충전 찾기의 면수 요약에 쓰이며, 주차 지도와 목록은 `get_place_points`와 `search_places`를 사용한다. 전국 화면은 SQL 5의 필터 결과를 Python에서 조건별·시도별로 합산하며, SQL 5 자체는 시도·차종·용도별 행을 반환한다.
 
 25구 순위의 `판정 기준과 출처`와 자료 안내에 표시하는 자료 출처·기준 기간·수집일은 `get_filter_options()`가 반환한 `snapshots`를 사용한다.
 

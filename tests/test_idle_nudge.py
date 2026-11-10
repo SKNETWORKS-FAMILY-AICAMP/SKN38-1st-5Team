@@ -19,7 +19,7 @@ class IdleNudgeTests(unittest.TestCase):
             is_default = "default" in keywords and ast.literal_eval(keywords["default"])
             paths.append("" if is_default else ast.literal_eval(keywords["url_path"]))
 
-        self.assertEqual(len(paths), 12)
+        self.assertEqual(len(paths), 13)
         self.assertEqual(set(MESSAGES), set(paths))
         self.assertFalse(any("자세한 자료" in message for message in MESSAGES[""]))
         for path in paths:

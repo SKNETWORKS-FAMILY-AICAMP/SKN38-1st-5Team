@@ -228,13 +228,20 @@ CSS = """
   .st-key-site_root * { transition: none !important; }
   .st-key-judgment_ownership:hover, .st-key-judgment_parking:hover, .st-key-judgment_need:hover { transform: none; }
 }
-@media (max-width: 1100px) {
+/* 메뉴와 동네 선택, 도구가 한 줄에 들어가도록 이 폭에서는 앞쪽 아이콘을 뺀다. */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .st-key-site_menu a > span:has(> [data-testid="stIconMaterial"]),
+  .st-key-site_menu [data-has-shortcut] > span:has(> [data-testid="stIconMaterial"]) { display: none; }
+}
+@media (max-width: 1279px) {
   /* 가로 배치의 flex 항목은 key 블록 바깥의 래퍼다. */
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_brand) { flex: 1 1 145px; order: 0; }
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_picker) { flex: 0 0 164px; order: 1; }
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_menu) { flex: 1 0 100%; order: 2; }
   .st-key-site_menu { justify-content: space-between; }
   .st-key-site_menu a { padding: 9px 8px; }
+}
+@media (max-width: 1100px) {
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-hero_copy) { flex-basis: 480px; }
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-hero_art) { flex-basis: 230px; }
   .st-key-hero_copy h1 { font-size: 36px; }
@@ -246,8 +253,7 @@ CSS = """
   .st-key-site_brand .brand-home { font-size: 29px; }
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_picker) { flex: 0 0 148px; order: 1; }
   .st-key-site_root [data-testid="stLayoutWrapper"]:has(> .st-key-site_menu) { flex: 1 0 100%; order: 2; }
-  .st-key-site_menu { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: minmax(44px, auto); gap: 2px; overflow: visible; }
-  .st-key-site_menu > * { width: 100%; min-width: 0; }
+  .st-key-site_menu { flex-wrap: wrap; justify-content: flex-start; gap: 2px; overflow: visible; }
   .st-key-site_menu a { padding: 5px 3px; font-size: 12px; min-height: 44px; justify-content: center; flex-direction: column; gap: 1px; }
   .st-key-site_menu a p { font-size: 14px; white-space: normal; overflow: visible; text-overflow: clip; }
   .st-key-site_menu button { padding: 7px 3px; width: 100%; }
@@ -292,7 +298,7 @@ def brand() -> None:
 PRIMARY_PATHS = ("", "finder")
 NAV_GROUPS = (
     ("동네 살펴보기", ":material/directions_car:", ("ownership", "parking", "charging", "transit", "roads")),
-    ("비교·조회", ":material/compare_arrows:", ("compare", "national")),
+    ("비교·조회", ":material/compare_arrows:", ("ranking", "compare", "national")),
     ("도움말", ":material/help:", ("faq", "ask", "about")),
 )
 
@@ -359,7 +365,7 @@ def navbar(pages: Sequence[st.Page], current: st.Page,
 SITEMAP_NOTES = {
     "": "서울 25구에서 나에게 맞는 동네",
     "동네 살펴보기": "구별 자동차 생활 자료",
-    "비교·조회": "두 동네와 전국 통계",
+    "비교·조회": "25구 순위와 두 동네, 전국 통계",
     "도움말": "묻고, 찾고, 확인하기",
 }
 
@@ -388,7 +394,7 @@ def site_search(pages: Sequence[st.Page], options: dict[str, Any]) -> None:
             query = st.text_input("통합검색", placeholder="구 이름, 메뉴, 궁금한 점", max_chars=200,
                                   label_visibility="collapsed")
             submitted = st.form_submit_button("검색", icon=":material/search:", type="primary", width="stretch")
-        st.caption("예: 마포구 · 주차 찾기 · 차 없어도 살 만한 동네")
+        st.caption("예: 마포구 · 25구 순위 · 차 없어도 살 만한 동네")
     text = (query or "").strip() if submitted else ""
     if not text:
         return
@@ -401,7 +407,9 @@ def site_search(pages: Sequence[st.Page], options: dict[str, Any]) -> None:
                 st.switch_page("app_pages/home.py")
     compact = text.replace(" ", "")
     for page in pages:
-        if compact and compact in page.title.replace(" ", ""):
+        # "주차 찾기"처럼 메뉴 이름 사이가 줄어도 단어가 모두 맞으면 그 메뉴로 보낸다.
+        if compact and (compact in page.title.replace(" ", "")
+                        or all(word in page.title for word in text.split())):
             st.switch_page(page)
     # 구나 메뉴가 아니면 질문으로 보고 물어보기로 넘긴다.
     st.session_state.ask_prefill = text
@@ -418,6 +426,7 @@ def hero(district_name: str) -> None:
 def page_header(path: str) -> None:
     headings = {
         "finder": ("나에게 맞는 동네 찾기", "내 상황과 중요하게 보는 기준을 고르면, 서울 25구를 내 기준으로 순위를 매겨 추천해 드려요."),
+        "ranking": ("서울 25구, 어디가 어떨까요?", "선택한 구의 세 판정과 서울 현황, 항목별 25구 순위를 한곳에서 볼 수 있어요."),
         "charging": ("우리 동네 충전 여건은 어떨까요?", "전기차 대비 충전기 수와 충전소 위치를 살펴볼 수 있어요. 실시간 빈자리 정보는 아니에요."),
         "roads": ("어느 시간에 길이 붐빌까요?", "평일과 주말의 수록 교통량을 비교하고, 날씨 표본도 함께 살펴볼 수 있어요."),
         "about": ("차차차가 사용하는 자료", "자료 출처와 기준 시점, 세 가지 판정의 규칙과 한계를 확인할 수 있어요."),

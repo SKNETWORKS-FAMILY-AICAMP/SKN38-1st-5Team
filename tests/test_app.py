@@ -186,36 +186,29 @@ class AppTestCase(unittest.TestCase):
         at.switch_page("app_pages/compare.py").run()
         self.assertEqual(at.selectbox(key="compare_id").value, self.ids["마포구"])
 
-    def test_twelve_pages_and_metric_page_links(self):
+    def test_thirteen_pages_and_metric_page_links(self):
         at = self.app
         expected = ["", "finder", "ownership", "parking", "charging", "transit", "roads",
-                    "compare", "national", "faq", "ask", "about"]
+                    "ranking", "compare", "national", "faq", "ask", "about"]
         expected_menu = expected
         menu = at.get_by_key("site_menu").page_link
         groups = [[link.proto.page for link in at.get_by_key(f"site_group_{number}").page_link]
                   for number in range(3)]
-        self.assertEqual(len(menu), 12)
+        self.assertEqual(len(menu), 13)
         self.assertEqual(groups, [["ownership", "parking", "charging", "transit", "roads"],
-                                  ["compare", "national"], ["faq", "ask", "about"]])
+                                  ["ranking", "compare", "national"], ["faq", "ask", "about"]])
         self.assertEqual([link.proto.page for link in menu], expected_menu)
         labels = {link.proto.page: link.value for link in menu}
         for path, label in (("ranking", "25구 순위"), ("parking", "주차·충전 찾기"), ("faq", "기업 FAQ"),
                             ("charging", "전기차 충전"), ("roads", "도로와 날씨"), ("about", "자료 안내")):
             self.assertEqual(labels[path], label)
-        for page in ("ranking", "ownership", "parking", "charging", "transit", "roads", "compare",
-                     "national", "faq", "ask", "about"):
-            with self.subTest(page=page):
-                at.switch_page(f"app_pages/{page}.py").run()
-                self.assert_ready()
-                self.assertEqual([link.proto.page for link in at.get_by_key("site_menu").page_link], expected)
-                self.assertEqual([link.proto.page for link in at.get_by_key("footer_menu").page_link], expected)
-                self.assertEqual(at.selectbox(key="district_id").value, self.ids["마포구"])
         at.switch_page("app_pages/ranking.py").run()
+        self.assert_ready()
         for topic, target in (("ownership", "ownership"), ("parking", "parking"), ("need", "transit")):
             links = at.get_by_key(f"judgment_{topic}").page_link
             self.assertEqual(len(links), 1)
             self.assertEqual(links[0].proto.page, target)
-        for page in ("finder", "ownership", "parking", "charging", "transit", "roads", "compare",
+        for page in ("ranking", "finder", "ownership", "parking", "charging", "transit", "roads", "compare",
                      "national", "faq", "ask", "about", "home"):
             with self.subTest(page=page):
                 at.switch_page(f"app_pages/{page}.py").run()
@@ -224,15 +217,60 @@ class AppTestCase(unittest.TestCase):
                 self.assertEqual([link.proto.page for link in at.get_by_key("footer_menu").page_link], expected)
                 self.assertEqual(at.selectbox(key="district_id").value, self.ids["마포구"])
 
-    def test_home_draws_only_the_map_without_footer(self):
+    def test_site_search_reaches_ranking_and_renamed_pages(self):
         at = self.app
+        for query, group, member in (("25구 순위", 1, 0), ("순위", 1, 0), ("주차·충전 찾기", 0, 1),
+                                     ("주차 찾기", 0, 1), ("기업 FAQ", 2, 0)):
+            with self.subTest(query=query):
+                at.switch_page("app_pages/home.py").run()
+                tools = at.get_by_key("site_tools")
+                tools.text_input[0].set_value(query)
+                tools.button[0].click().run()
+                self.assert_ready()
+                at.get_by_key(f"more_current_{group}_{member}")
+
+    def test_site_search_sends_questions_to_ask(self):
+        at = self.app
+        tools = at.get_by_key("site_tools")
+        tools.text_input[0].set_value("차 없어도 살 만한 동네")
+        with patch("ask_service.resolve_api_key", return_value=None):
+            tools.button[0].click().run()
+        self.assert_ready()
+        at.get_by_key("more_current_2_1")
+
+    def test_sitemap_lists_every_group_with_ranking(self):
+        at = self.app
+        at.button(key="site_sitemap_open").click().run()
+        self.assert_ready()
+        self.assertEqual([[link.proto.page for link in at.get_by_key(f"sitemap_row_{number}").page_link]
+                          for number in range(4)],
+                         [["", "finder"], ["ownership", "parking", "charging", "transit", "roads"],
+                          ["ranking", "compare", "national"], ["faq", "ask", "about"]])
+        self.assertIn("25구 순위", at.get_by_key("sitemap_row_2").caption[0].value)
+
+    def test_home_has_map_extras_and_footer_without_judgment_sections(self):
+        at = self.app
+        content = at.get_by_key("site_content")
         self.assertEqual(len(at.get("bidi_component")), 1)
-        for element in ("metric", "caption", "expander", "dataframe", "vega_lite_chart"):
+        self.assertEqual([item.value for item in content.subheader],
+                         ["마포구라면 이렇게 알아보세요", "자주 찾는 메뉴", "서울 자동차 현황", "25구 순위"])
+        at.get_by_key("site_footer")
+        for element in ("metric", "expander", "dataframe", "vega_lite_chart"):
             with self.subTest(element=element):
                 self.assertFalse(at.get(element))
-        for key in ("site_footer", "footer_menu", "judgment_deck"):
-            with self.subTest(key=key), self.assertRaises(KeyError):
-                at.get_by_key(key)
+        self.assertNotIn("popover", {getattr(node, "type", "") for node in content})
+        self.assertNotIn("두 동네 비교하기", [link.value for link in content.page_link])
+        with self.assertRaises(KeyError):
+            at.get_by_key("judgment_deck")
+
+    def test_home_without_judgment_data_keeps_notice_and_footer(self):
+        with patch("db.queries.get_district_ranking", return_value=pd.DataFrame()):
+            self.app.run()
+        self.assert_ready()
+        self.assertTrue(any("동네 판정 자료가 없어요" in item.value for item in self.app.info))
+        self.app.get_by_key("site_footer")
+        with self.assertRaises(KeyError):
+            self.app.get_by_key("home_extras")
 
     def test_partial_observation_notice_follows_the_selected_district(self):
         at = self.app
