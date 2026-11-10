@@ -115,7 +115,7 @@ st.html("""<style>
 .st-key-transit_judgment [data-testid="stMetric"] {min-height:120px;box-sizing:border-box;}
 .st-key-transit_reference {min-height:110px;}
 .st-key-transit_chart_bus, .st-key-transit_chart_subway {height:100%;}
-[class*="st-key-transit_time_"] {min-height:166px;box-sizing:border-box;}
+[class*="st-key-transit_time_"] {min-height:156px;box-sizing:border-box;}
 [class*="st-key-transit_time_"] strong {display:inline-block;font-size:26px;font-weight:800;padding:3px 7px;border-radius:6px;line-height:1.6;overflow-wrap:anywhere;}
 [class*="st-key-transit_time_peak_"] strong {color:#991B1B;background:#FEE2E2;}
 [class*="st-key-transit_time_quiet_"] strong {color:#166534;background:#DCFCE7;}
@@ -155,11 +155,6 @@ for column, (mode, label) in zip(st.columns(2, gap="medium"), MODES.items()):
         if combined.known_passenger_sum.notna().any():
             st.altair_chart(_passenger_chart(combined), width="stretch", key=f"transit_{mode}",
                             alt=f"{district_name} {label} 시간대별 수록 승객. 2026년 10월 30일 평일과 31일 토요일 비교.")
-            coverage = combined.dropna(subset=["valid_dong_count", "expected_dong_count"])
-            if (coverage.valid_dong_count < coverage.expected_dong_count).any():
-                st.caption(PARTIAL_NOTICE)
-            if combined.known_passenger_sum.isna().any():
-                st.caption("승객 자료가 없는 시간은 선을 잇지 않았어요. 가장 붐비는 시간도 수록된 시간 안에서만 비교해요.")
         else:
             st.info(f"{label} 시간대별 승객은 자료 없음")
         for day, frame in series.items():
@@ -173,6 +168,12 @@ for column, (mode, label) in zip(st.columns(2, gap="medium"), MODES.items()):
                     text = _peak_text(frame, busiest=busiest)
                     # 0명·자료 없음도 같은 카드 안에서 강조한다.
                     st.markdown(text if "**" in text else f"**{text}**")
+        # 안내 문구는 시간 카드 아래에 두어, 버스와 지하철 칸의 날짜·카드 줄이 같은 높이에 서게 한다.
+        coverage = combined.dropna(subset=["valid_dong_count", "expected_dong_count"])
+        if (coverage.valid_dong_count < coverage.expected_dong_count).any():
+            st.caption(PARTIAL_NOTICE)
+        if combined.known_passenger_sum.notna().any() and combined.known_passenger_sum.isna().any():
+            st.caption("승객 자료가 없는 시간은 선을 잇지 않았어요. 가장 붐비는 시간도 수록된 시간 안에서만 비교해요.")
 
 st.caption("버스와 지하철은 각 수단의 수록 승객 수예요. 전체 승객과 중복해서 더하지 않아요. 가장 붐비는 시간과 한산한 시간은 수록 승객 수가 가장 많거나 적었던 때이며, 차량 안 혼잡도나 평소 이용량을 뜻하지 않아요.")
 
