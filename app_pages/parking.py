@@ -113,8 +113,12 @@ st.html("""<style>
 .st-key-parking_station_controls [data-testid="stWidgetLabel"] {min-height:48px;display:flex;align-items:end;}
 .st-key-parking_station_controls [data-testid="stTextInput"] input,
 .st-key-parking_station_controls [data-baseweb="select"] {min-height:44px;}
+.parking-side-detail {padding:16px 18px;border:1px solid #E7CD87;border-radius:14px;background:#FFF3D6;max-height:300px;overflow:auto;font-size:16px;line-height:1.6;}
+.parking-side-detail h3 {font-size:21px;margin:0 0 10px;color:#27336B;}
+.parking-side-detail p {margin:8px 0;}
 </style>""")
 hero_column, map_column = st.columns([1, 1.6], gap="large")
+station_slot = hero_column.container(key="parking_station_slot")
 with hero_column.container(key="parking_page_hero"):
     parking_hero(
         district_id=region_id, district_name=district,
@@ -133,15 +137,18 @@ with hero_column:
         "관리번호가 겹치는 항목은 면수 합계와 지도에서 제외하며, 면수 자료가 빠지면 자료 없음으로 표시해요."
     )
 
+detail_slot = hero_column.container(key="parking_detail_slot")
+
 
 with map_column:
     st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
     with st.container(key="parking_search_controls"):
-        facility = st.segmented_control(
+        facility_column, keyword_column = st.columns([1, 1.7], vertical_alignment="bottom")
+        facility = facility_column.segmented_control(
             "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,
             key="parking_facility", persist_state="session",
         )
-        keyword = st.text_input(
+        keyword = keyword_column.text_input(
             "이름·주소 검색", placeholder="주차장·충전소 이름이나 주소", max_chars=500,
             key="parking_keyword", width="stretch", persist_state="session",
             help="지도는 시설 이름이나 주소로, 아래 수록 주차장 목록은 주소로 찾아요. 검색 기호도 글자 그대로 찾아요.",
@@ -175,7 +182,7 @@ if facility == "주차장":
                            if (not keyword or keyword.casefold() in (p["name"] + " " + p["address"]).casefold())
                            and (operation == "전체" or p["operation"] == operation)]
             st.caption(f"서울시 위치·이용 안내 {len(map_records):,}곳 · 아래 수록 주차장 통계·목록과 제공 범위가 달라요.")
-        explorer(map_records, district, "주차장", region_id=region_id, controls_container=hero_column)
+        explorer(map_records, district, "주차장", region_id=region_id, controls_container=station_slot, detail_container=detail_slot)
         st.caption("지도 상세 출처: 서울시 주차정보안내시스템 · 제공기관의 운영시간·요금이며 방문 전 확인해 주세요. 부설·기타는 공영·민영 필터에서 제외해요.")
     st.markdown("**주소로 보는 주차장 목록**")
     st.caption("주차장 이름 자료가 없어 주소로 보여 드려요. 좌표가 없거나 관리번호가 겹쳐 지도에서 빠진 항목도 남겨 두었어요.")
@@ -203,7 +210,7 @@ else:
     chargers = chargers.loc[_contains(chargers, keyword, ("address", "station_name"))].copy()
     st.caption(f"현재 조건의 충전기 목록 {len(chargers):,}기 · 지도에 표시한 충전소 {len(visible_points):,}곳")
     with map_column.container(border=True, gap="small", key="parking_map_panel"):
-        explorer(charger_records(visible_points, chargers), district, "충전소", region_id=region_id, controls_container=hero_column)
+        explorer(charger_records(visible_points, chargers), district, "충전소", region_id=region_id, controls_container=station_slot, detail_container=detail_slot)
         st.caption("주차 무료 여부와 충전요금은 별개예요. 충전 단가는 운영사·회원 여부·출력에 따라 달라 현장 안내를 확인해 주세요.")
     st.markdown("**충전기별 이용 안내**")
     st.caption(

@@ -2,6 +2,7 @@
 import json
 import math
 import re
+from html import escape
 from pathlib import Path
 
 import pandas as pd
@@ -21,6 +22,11 @@ _PLACES = st.components.v2.component(
     css=(ROOT / "assets/kakao_places.css").read_text(),
     js=SDK_LOADER_JS + "\n" + (ROOT / "assets/kakao_places.js").read_text(),
     isolate_styles=False,
+)
+
+_FRAME = st.components.v2.component(
+    "chachacha_parking_frame", html="", js=(ROOT / "assets/parking_frame.js").read_text(),
+    isolate_styles=True,
 )
 
 
@@ -307,15 +313,16 @@ def _walking_result(payload, district, key, enabled):
     return saved["display"] if saved else None
 
 
-def render_map(records, district, station=None, radius=500, animate=True, *, key="parking_places_map", region_id=None):
+def render_map(records, district, station=None, radius=500, animate=True, *, key="parking_places_map", region_id=None, detail_container=None):
     appkey = javascript_key()
+    payload = map_payload(records, station, radius, animate)
     if appkey:
         boundary = region_boundary(region_id)
         payload = map_payload(records, station, radius, animate)
         walk_enabled = bool(station and rest_key())
         walking = _walking_result(payload, district, key, walk_enabled)
         _PLACES(data={**payload, "appkey": appkey, "district": district, "boundary": boundary,
-                      "walk_enabled": walk_enabled, "walking": walking},
+                      "walk_enabled": walk_enabled, "walking": walking, "external_detail": detail_container is not None},
                 key=key, width="stretch", height="content",
                 on_selected_place_change=lambda: None, on_walk_request_change=lambda: None)
         if boundary:
@@ -323,13 +330,35 @@ def render_map(records, district, station=None, radius=500, animate=True, *, key
     else:
         st.session_state.pop(f"{key}_walking", None)
         if records or station:
-            st.iframe(map_html(records, station, radius, animate), height=750,
+            if detail_container is not None:
+                html = map_html(records, station, radius, animate)
+                html = html.replace("</style></head>", "#detail{display:none}\n</style></head>")
+                html = html.replace("document.getElementById('detail').innerHTML=detail(p,distance)",
+                                    "parent.postMessage({type:'chachacha-place',id:p.id},'*')")
+                _FRAME(data={"html": html, "ids": [p["id"] for p in payload["places"]]},
+                       key=key, height="content", width="stretch", on_selected_place_change=lambda: None)
+            else:
+                st.iframe(map_html(records, station, radius, animate), height=750,
                       alt="주차장·충전소 지도. 핀을 누르면 이용시간과 요금 상세 안내를 볼 수 있어요.")
         else:
             st.info("이 조건에서 지도에 표시할 위치 자료가 없어요. 좌표가 없는 곳도 아래 목록에서 확인할 수 있어요.")
 
+    if detail_container is not None:
+        component = st.session_state.get(key, {})
+        selection = component.get("selected_place") if isinstance(component, dict) else None
+        selected_id = selection.get("id") if isinstance(selection, dict) else None
+        place = next((p for p in payload["places"] if p["id"] == selected_id), None)
+        with detail_container:
+            if place is None:
+                body = '<h3>장소 상세정보</h3><p>지도 핀을 누르면 이용시간·요금·주소를 여기에 표시해요.</p>'
+            else:
+                body = f'<h3>{escape(place["name"])}</h3>' + ''.join(
+                    f'<p><b>{label}</b><br>{escape(place[field])}</p>' for label, field in (
+                        ("주소", "address"), ("이용시간", "hours"), ("요금", "price"), ("이용 안내", "note")))
+            st.html('<section id="detail" class="parking-side-detail" aria-live="polite">' + body + '</section>')
 
-def explorer(records, district, facility, *, region_id=None, controls_container=None):
+
+def explorer(records, district, facility, *, region_id=None, controls_container=None, detail_container=None):
     with controls_container if controls_container is not None else st.container():
         with st.container(key="parking_station_controls"):
             control_columns = st.columns(3)
@@ -353,7 +382,7 @@ def explorer(records, district, facility, *, region_id=None, controls_container=
         if not nearby:
             st.info("선택한 반경에 표시할 시설이 없어요. 반경을 늘리거나 동네·검색 조건을 바꿔 주세요.")
     st.caption("핀에 마우스를 올리면 요약, 클릭하면 상세 안내를 볼 수 있어요. P는 주차장, ⚡는 충전소예요. 핀은 주차 요금 기준으로 무료 초록·유료 주황·미확인 회색이며 충전요금과는 별개예요.")
-    render_map(records, district, station, radius, animate, region_id=region_id)
+    render_map(records, district, station, radius, animate, region_id=region_id, detail_container=detail_container)
     if nearby:
         with st.expander(f"역에서 가까운 {facility} 목록 · {len(nearby)}곳"):
             st.dataframe(pd.DataFrame([{"장소": p["name"], "역에서 직선거리": f"{d:,.0f}m", "요금": p["price"],

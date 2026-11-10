@@ -64,7 +64,7 @@ function selectWalkingPlace(state, place) {
   if (state.selection?.id === place?.id) return;
   state.selection = place ? {id: place.id, revision: ++state.selectionRevision, requested: false} : null;
   state.walkRequested = state.walkPending = false;
-  if (state.data.walk_enabled) state.setStateValue('selected_place', state.selection);
+  if (state.data.walk_enabled || state.data.external_detail) state.setStateValue('selected_place', state.selection);
 }
 
 function updateWalking(state) {
@@ -337,6 +337,7 @@ export default function ({data, parentElement, setStateValue, setTriggerValue}) 
   }
   state.data = data;
   state.setStateValue = setStateValue;
+  parentElement.querySelector('.kp-detail').hidden = Boolean(data.external_detail);
   state.setTriggerValue = setTriggerValue;
   if (state.map) reconcile(state);
   else load(state);

@@ -62,12 +62,13 @@ class ParkingPageTest(unittest.TestCase):
         return components[0]
 
     def assert_map_matches(self, expected):
-        maps = self.app.get("iframe")
+        maps = [item for item in self.app.get("bidi_component")
+                if item.proto.component_name == "chachacha_parking_frame"]
         if expected.empty:
             self.assertEqual(len(maps), 0)
             return
         self.assertEqual(len(maps), 1)
-        html = maps[0].proto.srcdoc
+        html = json.loads(maps[0].proto.json)["html"]
         payload = json.loads(re.search(r"const data=(.*?);\nconst esc", html, re.S).group(1))
         points = payload["places"]
         self.assertCountEqual(

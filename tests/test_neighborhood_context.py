@@ -98,7 +98,8 @@ class NeighborhoodContextTest(unittest.TestCase):
                         patch.object(scene_seoul, '_HERO') as hero:
                     scene_seoul.render_hero('테스트구')
                 data = hero.call_args.kwargs['data']
-                self.assertEqual(data['selected']['sentence'], neighborhood_sentence(row))
+                self.assertIn(neighborhood_sentence(row), data['selected']['context_note'])
+                self.assertLess(len(data['selected']['sentence']), 65)
                 self.assertEqual(data['selected']['mobility_mood'], 'smile')
                 verdicts = data['selected']['verdicts']
                 self.assertEqual([v['level'] for v in verdicts], list(levels))

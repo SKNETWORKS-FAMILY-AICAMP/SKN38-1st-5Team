@@ -70,7 +70,7 @@ HTML = """
     <p class="summary-caption">한눈에 읽는 우리 동네</p>
     <p class="arrival-title" aria-hidden="true"><span class="typed"></span><span class="cursor">|</span></p>
     <p class="sentence"></p>
-    <p class="context-note"></p>
+    <details class="context-more"><summary>더보기</summary><p class="context-note"></p></details>
     <div class="verdicts" aria-label="선택한 동네의 세 가지 판정">__VERDICTS__</div>
     <p class="guide">세 기준을 누르면 지도가 바뀌어요.<br>서울 25구 안에서 비교한 참고 판정이에요. 대중교통은 주민 대비 수록 승객 수로, 개인의 차량 구매 필요를 뜻하지 않아요.</p>
     <span class="sr-only announcement" role="status" aria-live="polite" aria-atomic="true"></span>
@@ -122,6 +122,9 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
   background: #fff; color: #27336B; border: 1px solid #8E98CF; border-radius: 14px;
   padding: 9px 14px; font-size: 13px; line-height: 1.6; pointer-events: none; }
 .arrival { grid-column: 1; grid-row: 2; align-self: center; padding: 18px 0 6px; min-width: 0; }
+.context-more {margin-top:10px;}
+.context-more summary {cursor:pointer;font-size:15px;font-weight:700;color:#27336B;}
+.context-more summary:focus-visible {outline:3px solid #27336B;outline-offset:3px;}
 .context-note {font-size:14px;line-height:1.6;color:#4A5270;padding:12px;border-radius:12px;background:#FFFFFFB8;}
 .summary-caption { font-size: 13px; color: #4A5270; margin-bottom: 5px; }
 .arrival-title { font: 29px/1.3 'Jua', var(--st-heading-font), sans-serif; min-height: 38px; color: #27336B; }
@@ -586,9 +589,9 @@ def render_hero(district_name: str) -> None:
                 "id": int(region_id) if region_id is not None else None,
                 "name": word(row.get("district_name"), district_name),
                 "count": f"등록 {count} · {date_text(row.get('stat_month'), month=True)}",
-                "sentence": neighborhood_sentence(row),
+                "sentence": f"차량 보유 {word(row.get('ownership_level'))} · 주차 {word(row.get('parking_level'))} · 대중교통 이용 " + {"차가 필요한 편":"적은 편", "있으면 편함":"보통", "대중교통으로 충분":"많은 편"}.get(word(row.get("need_level")), "자료 없음"),
                 "mobility_mood": mood,
-                "context_note": context_note,
+                "context_note": neighborhood_sentence(row) + " " + context_note,
                 "verdicts": _verdicts(row),
             },
         },
