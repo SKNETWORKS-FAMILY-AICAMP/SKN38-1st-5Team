@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+from urllib.parse import unquote
 
 import pandas as pd
 from streamlit.testing.v1 import AppTest
@@ -22,6 +23,9 @@ class ParkingPageTest(unittest.TestCase):
         cls.ids = dict(zip(cls.ranking.district_name.astype(str), cls.ranking.region_id.astype(int)))
 
     def setUp(self):
+        key_patch = patch("parking_explorer.javascript_key", return_value="")
+        key_patch.start()
+        self.addCleanup(key_patch.stop)
         # Keep DB coverage regressions deterministic and test the offline fallback.
         # Streamlit runs pages outside their module name; patch the imported provider instead.
         self.source_patch = patch("parking_explorer.seoul_parking", return_value=None)
@@ -82,7 +86,9 @@ class ParkingPageTest(unittest.TestCase):
                          [("공영 주차면", "3,080면"), ("민영 주차면", "0면")])
         table = self.table()
         self.assertEqual(len(table), 31)
-        self.assertEqual(table.columns.tolist(), ["주소", "운영", "유형", "주차면", "지도 안내"])
+        self.assertEqual(table.columns.tolist(), ["주소", "운영", "유형", "주차면", "지도 안내", "카카오맵에서 주소 찾기"])
+        self.assertEqual([unquote(url.removeprefix("https://map.kakao.com/link/search/"))
+                          for url in table["카카오맵에서 주소 찾기"]], table["주소"].tolist())
         self.assertTrue(table["지도 안내"].eq("좌표 없음·범위 밖").all())
         self.assertFalse(table["주소"].str.contains("주차장 ", regex=False).any())
         self.assertIn("지도 제외 31건", self.text())
@@ -185,6 +191,7 @@ class ParkingPageTest(unittest.TestCase):
         self.assertEqual(self.app.metric[1].value, "0면")
         self.assertEqual(self.table().iloc[0]["주소"], "자료 없음")
         self.assertEqual(self.table().iloc[0]["주차면"], "자료 없음")
+        self.assertEqual(self.table().iloc[0]["카카오맵에서 주소 찾기"], "")
         hero = json.loads(self.hero().json)
         self.assertEqual(hero["parkingLevel"], "자료 없음")
         self.assertEqual(hero["parkingValue"], "자료 없음")
@@ -248,6 +255,37 @@ class ParkingPageTest(unittest.TestCase):
         self.assertNotIn("internal-connection-details", self.text())
         self.assertEqual(len(self.table()), 31)
         self.assertIn("지도 제외 자료 없음", self.text())
+
+    def test_kakao_map_survives_district_filters_and_facility_changes(self):
+        def component():
+            return next(item.proto for item in self.app.get("bidi_component")
+                        if item.proto.component_name == "chachacha_kakao_places")
+        with patch("parking_explorer.javascript_key", return_value="test-only"):
+            self.app.run()
+            self.assert_ready()
+            identity = component().id
+            self.assertEqual(json.loads(component().json)["places"], [])
+            self.assertEqual(len(self.table()), 31)
+            self.assertTrue(json.loads(component().json)["boundary"]["polygons"])
+            self.select_district("강남구")
+            self.app.segmented_control(key="parking_operation").set_value("민영").run()
+            self.assert_ready()
+            expected = q.get_place_points(self.ids["강남구"], kinds=("parking",), limit=None)
+            expected = expected.loc[expected.parking_operation.eq("민영")]
+            self.assertCountEqual([place["id"] for place in json.loads(component().json)["places"]],
+                                  [f"db-{value}" for value in expected.place_id])
+            self.assertEqual(component().id, identity)
+            self.app.segmented_control(key="parking_facility").set_value("충전소").run()
+            self.assert_ready()
+            expected = q.get_place_points(self.ids["강남구"], kinds=("charger",), limit=None)
+            self.assertCountEqual([place["id"] for place in json.loads(component().json)["places"]],
+                                  [f"charger-{value}" for value in expected.place_id])
+            self.assertEqual(component().id, identity)
+            self.assertFalse(self.app.get("iframe"))
+            self.app.text_input(key="parking_keyword").set_value("없는시설xyz987").run()
+            self.assert_ready()
+            self.assertEqual(json.loads(component().json)["places"], [])
+            self.assertEqual(component().id, identity)
 
 
 if __name__ == "__main__":

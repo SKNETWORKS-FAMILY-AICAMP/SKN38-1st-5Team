@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 import pandas as pd
 import streamlit as st
 
@@ -156,18 +158,24 @@ if facility == "주차장":
                            if (not keyword or keyword.casefold() in (p["name"] + " " + p["address"]).casefold())
                            and (operation == "전체" or p["operation"] == operation)]
             st.caption(f"서울시 위치·이용 안내 {len(map_records):,}곳 · 아래 수록 주차장 통계·목록과 제공 범위가 달라요.")
-        explorer(map_records, district, "주차장")
+        explorer(map_records, district, "주차장", region_id=region_id)
         st.caption("지도 상세 출처: 서울시 주차정보안내시스템 · 제공기관의 운영시간·요금이며 방문 전 확인해 주세요. 부설·기타는 공영·민영 필터에서 제외해요.")
     st.markdown("**주소로 보는 주차장 목록**")
     st.caption("주차장 이름 자료가 없어 주소로 보여 드려요. 좌표가 없거나 관리번호가 겹쳐 지도에서 빠진 항목도 남겨 두었어요.")
     if not parking.empty:
         parking["space_label"] = parking.space_count.map(lambda value: number(value, suffix="면"))
         parking["map_note"] = parking.apply(_map_note, axis=1)
+        parking["address_link"] = [
+            "https://map.kakao.com/link/search/" + quote(str(address), safe="")
+            if note == "좌표 없음·범위 밖" and pd.notna(address) and str(address).strip() else ""
+            for address, note in zip(parking.address, parking.map_note)
+        ]
     display_table(
         parking,
         {"address": "주소", "parking_operation": "운영", "parking_type": "유형",
-         "space_label": "주차면", "map_note": "지도 안내"},
+         "space_label": "주차면", "map_note": "지도 안내", "address_link": "카카오맵에서 주소 찾기"},
         "선택한 동네와 주소, 공영·민영 조건에 맞는 주차장 목록. 지도에서 제외된 항목도 포함해요.",
+        column_config={"카카오맵에서 주소 찾기": st.column_config.LinkColumn(display_text="주소 찾기")},
     )
     _source_caption(options, "parking_standard", "수록 주차장")
 else:
@@ -178,7 +186,7 @@ else:
     chargers = chargers.loc[_contains(chargers, keyword, ("address", "station_name"))].copy()
     st.caption(f"현재 조건의 충전기 목록 {len(chargers):,}기 · 지도에 표시한 충전소 {len(visible_points):,}곳")
     with st.container(border=True, gap="small", key="parking_map_panel"):
-        explorer(charger_records(visible_points, chargers), district, "충전소")
+        explorer(charger_records(visible_points, chargers), district, "충전소", region_id=region_id)
         st.caption("주차 무료 여부와 충전요금은 별개예요. 충전 단가는 운영사·회원 여부·출력에 따라 달라 현장 안내를 확인해 주세요.")
     st.markdown("**충전기별 이용 안내**")
     st.caption(

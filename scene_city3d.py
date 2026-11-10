@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from db import queries as q
+from kakao_map import SDK_LOADER_JS, javascript_key
 from ui import date_text, load_frame, remember_region, word
 
 
@@ -51,6 +52,7 @@ HTML = """
         <text class="h2-pin-name" text-anchor="middle" y="-37" fill="#1B2340" font-size="13" font-weight="700"></text>
       </g>
     </svg>
+    <div class="h2-kakao" role="group" aria-label="서울 구별 자동차 등록 대수 지도. 구 이름을 눌러 동네를 선택하세요."></div>
     <div class="h2-readout" aria-hidden="true"><span class="h2-readout-name"></span><strong class="h2-readout-count"></strong><span class="h2-readout-hint">등록 자동차</span></div>
     <p class="h2-empty" hidden>지도 경계 자료가 없어요.<br>위에서 동네를 선택해 주세요.</p>
     <div class="h2-map-bottom"><span class="h2-legend"><i></i>높이 = 등록 대수 <span class="h2-month"></span></span><span class="h2-map-instruction">궁금한 구를 눌러 주세요 <b>↗</b></span></div>
@@ -95,6 +97,23 @@ CSS = """
 .h2-hero .h2-map-heading { position: absolute; left: 14px; right: 0; top: 3px; display: flex; justify-content: space-between; color: var(--h2-muted); font-size: 13px; letter-spacing: .03em; }
 .h2-hero .h2-count { color: #EEF0FA; }
 .h2-hero .h2-city { display: block; width: 100%; height: calc(100% - 29px); overflow: hidden; }
+.h2-hero[data-map="kakao"] .h2-city, .h2-hero:not([data-map="kakao"]) .h2-kakao { display: none; }
+.h2-hero[data-map="kakao"] .h2-scene { height: 560px; }
+.h2-hero[data-map="kakao"] .h2-readout { top: 36px; left: 10px; right: auto; z-index: 1; padding: 8px 12px; border-radius: 12px; background: #27336BE6; text-align: left; }
+.h2-hero[data-map="kakao"] .h2-map-bottom { margin-top: 8px; }
+.h2-hero .h2-kakao { position: relative; isolation: isolate; width: 100%; height: calc(100% - 55px); margin-top: 26px; border-radius: 16px; overflow: hidden; background: #EEF0FA; }
+/* 고정 지도가 터치를 잡고 있으면 지도 위에서 페이지를 내릴 수 없다. */
+.h2-hero .h2-kakao * { touch-action: auto !important; }
+.h2-hero .h2-bar { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: #1B2340; font: 700 13px/1.2 'Noto Sans KR', var(--st-font, sans-serif); cursor: pointer; white-space: nowrap; transform: translate(-50%, -100%); }
+.h2-hero .h2-bar-stem { display: block; width: 12px; height: 0; border-radius: 4px 4px 0 0; background: #27336B; box-shadow: inset -4px 0 0 #00000026; transition: height .7s cubic-bezier(.2,.7,.2,1); }
+.h2-hero .h2-bar-name { padding: 1px 4px; border-radius: 6px; background: #FFFFFFE6; }
+.h2-hero .h2-kakao[data-compact="true"] .h2-bar { gap: 2px; font-size: 12px; line-height: 15px; }
+.h2-hero .h2-kakao[data-compact="true"] .h2-bar-stem { width: 6px; box-shadow: none; }
+.h2-hero .h2-kakao[data-compact="true"] .h2-bar-name { padding: 0 2px; }
+.h2-hero .h2-bar[aria-pressed="true"] .h2-bar-stem { background: #FF7A66; }
+.h2-hero .h2-bar[aria-pressed="true"] .h2-bar-name { background: #27336B; color: #FFF; }
+.h2-hero .h2-bar[data-missing="true"] .h2-bar-stem { background: none; border: 1px dashed #4A5270; }
+.h2-hero .h2-bar:focus-visible { outline: 3px solid #27336B; outline-offset: 2px; border-radius: 6px; }
 .h2-hero .h2-grid { fill: none; stroke: #8E98CF; stroke-width: .65; opacity: .13; }
 .h2-hero .h2-footprints { fill: #36416A; stroke: #7884B3; stroke-width: .7; opacity: .55; }
 .h2-hero .h2-district { cursor: pointer; outline: none; }
@@ -149,6 +168,9 @@ CSS = """
   .h2-hero .h2-criteria dt { font-size: 12px; margin-bottom: 2px; }
   .h2-hero .h2-criteria dd { font-size: 13px; }
   .h2-hero .h2-scene { flex: none; height: 245px; margin-top: 3px; }
+  .h2-hero[data-map="kakao"] .h2-scene { height: 380px; }
+  .h2-hero[data-map="kakao"] .h2-readout { top: 0; left: 0; right: 0; display: flex; align-items: baseline; gap: 6px; padding: 0; background: none; }
+  .h2-hero[data-map="kakao"] .h2-readout-count { line-height: 1.25; }
   .h2-hero .h2-city { height: calc(100% - 17px); }
   .h2-hero .h2-map-heading { display: none; }
   .h2-hero .h2-readout { top: 9px; }
@@ -173,6 +195,7 @@ const instances = new WeakMap();
 const opened = new Set();
 const NS = 'http://www.w3.org/2000/svg';
 const number = new Intl.NumberFormat('ko-KR');
+const NAME_SHIFT = {양천구: [-20, 0], 도봉구: [4, 0], 서대문구: [4, 4], 중랑구: [8, 0], 마포구: [0, 4], 노원구: [4, 0]};
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const ease = t => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
 const path = points => points.length ? 'M' + points.map(p => p.map(v => v.toFixed(2)).join(',')).join('L') + 'Z' : '';
@@ -267,7 +290,121 @@ function reconcile(state, id, react = false) {
     local.classList.remove('h2-changed'); void local.offsetWidth; local.classList.add('h2-changed');
   }
   readout(state, state.hovered ?? id);
+  paintKakao(state);
   schedule(state);
+}
+function paintKakao(state) {
+  if (!state.kakao) return;
+  state.kakao.items.forEach(item => {
+    const selected = item.id === state.selected;
+    const hovered = item.id === state.hovered;
+    item.button.setAttribute('aria-pressed', String(selected));
+    item.shapes.forEach(shape => shape.setOptions({
+      fillColor: selected ? '#FF7A66' : '#8E98CF',
+      fillOpacity: selected ? .6 : hovered ? .55 : .38,
+      strokeColor: selected ? '#C24C38' : hovered ? '#27336B' : '#FFFFFF',
+      strokeWeight: selected || hovered ? 3 : 1.5,
+    }));
+  });
+}
+function clearKakao(state) {
+  state.kakao.items.forEach(item => {
+    item.overlay.setMap(null);
+    item.shapes.forEach(shape => shape.setMap(null));
+  });
+  state.kakao.items = [];
+}
+function fitKakao(state) {
+  state.kakao.map.relayout();
+  state.kakao.map.setBounds(state.kakao.bounds, 12, 12, 12, 12);
+  placeKakao(state);
+}
+// 좁은 칸은 축척이 한 단계 작아 짧은 이름과 낮은 막대를 쓴다. 구 경계는 고정 자료라 겹치는 이름표의 이동량도 고정이다.
+function placeKakao(state) {
+  const {map, items} = state.kakao;
+  const compact = map.getLevel() > 9;
+  state.root.querySelector('.h2-kakao').dataset.compact = String(compact);
+  const max = Math.max(1, ...items.map(item => item.count ?? 0));
+  items.forEach(item => {
+    const [x, y] = compact ? NAME_SHIFT[item.label] ?? [0, 0] : [0, 0];
+    item.name.textContent = compact && item.label.length > 2 ? item.label.slice(0, -1) : item.label;
+    item.name.style.transform = `translate(${x}px, ${y}px)`;
+    requestAnimationFrame(() => {
+      item.stem.style.height = (item.count === null ? 12 : Math.max(4, Math.round(item.count / max * (compact ? 20 : 52)))) + 'px';
+    });
+  });
+}
+function drawKakao(state) {
+  const {api, map} = state.kakao;
+  clearKakao(state);
+  const bounds = new api.maps.LatLngBounds();
+  const districts = state.data.districts.filter(d => d.polygons.length);
+  state.kakao.items = districts.map(d => {
+    const shapes = d.polygons.map(rings => {
+      const path = rings.map(ring => ring.map(([lon, lat]) => {
+        const point = new api.maps.LatLng(lat, lon);
+        bounds.extend(point);
+        return point;
+      }));
+      const shape = new api.maps.Polygon({map, path});
+      api.maps.event.addListener(shape, 'click', () => choose(state, d.id));
+      api.maps.event.addListener(shape, 'mouseover', () => hover(state, d.id));
+      api.maps.event.addListener(shape, 'mouseout', () => hover(state, null));
+      return shape;
+    });
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'h2-bar';
+    button.dataset.regionId = d.id;
+    button.dataset.missing = String(d.count === null);
+    button.setAttribute('aria-label', `${d.name}, 등록 자동차 ${d.count === null ? '자료 없음' : number.format(d.count)+'대'}, 차량 보유 ${d.levels.ownership}. 동네 선택`);
+    const stem = document.createElement('span');
+    stem.className = 'h2-bar-stem';
+    const name = document.createElement('span');
+    name.className = 'h2-bar-name';
+    name.textContent = d.name;
+    button.append(stem, name);
+    button.onclick = () => choose(state, d.id);
+    button.onpointerenter = button.onfocus = () => hover(state, d.id);
+    button.onpointerleave = button.onblur = () => hover(state, null);
+    button.onkeydown = event => {
+      if (!['ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      const items = state.kakao.items;
+      const current = items.findIndex(item => item.id === d.id);
+      const step = ['ArrowRight','ArrowDown'].includes(event.key) ? 1 : -1;
+      items[(current + step + items.length) % items.length].button.focus();
+    };
+    // SDK는 앵커를 처음 크기로 한 번만 계산한다. 막대가 자라도 밑변이 구 중심에 남도록 CSS로 맞춘다.
+    const overlay = new api.maps.CustomOverlay({
+      map, content: button, clickable: true, xAnchor: 0, yAnchor: 0, zIndex: 2,
+      position: new api.maps.LatLng(d.center[1], d.center[0]),
+    });
+    return {id: d.id, label: d.name, count: d.count, shapes, button, stem, name, overlay};
+  });
+  state.kakao.bounds = bounds;
+  fitKakao(state);
+}
+function startKakao(state, appkey) {
+  state.kakaoRequested = true;
+  window.chachachaKakao(appkey).then(api => {
+    if (state.disposed) return;
+    const element = state.root.querySelector('.h2-kakao');
+    // 크기가 0인 칸에 지도를 만들지 않도록 먼저 영역을 보이게 한다.
+    state.root.dataset.map = 'kakao';
+    const map = new api.maps.Map(element, {
+      center: new api.maps.LatLng(37.56, 126.98), level: 9,
+      draggable: false, scrollwheel: false, disableDoubleClickZoom: true,
+    });
+    state.kakao = {api, map, items: [], bounds: null};
+    drawKakao(state);
+    paintKakao(state);
+    state.kakao.observer = new ResizeObserver(() => fitKakao(state));
+    state.kakao.observer.observe(element);
+  }).catch(() => {
+    state.kakao = null;
+    delete state.root.dataset.map;
+  });
 }
 function choose(state, id) {
   if (state.selected === id) return;
@@ -277,6 +414,7 @@ function choose(state, id) {
 function hover(state, id) {
   state.hovered = id;
   readout(state, id ?? state.selected);
+  paintKakao(state);
   schedule(state);
 }
 function draw(state, now) {
@@ -344,18 +482,21 @@ export default function(component) {
   if (state.signature !== signature) {
     state.signature = signature;
     buildCity(state);
+    if (state.kakao) drawKakao(state);
   }
   root.querySelector('.h2-empty').hidden = state.nodes.length > 0;
   root.querySelector('.h2-count').textContent = state.nodes.length ? state.nodes.length+'개의 동네' : '자료 없음';
   root.querySelector('.h2-month').textContent = '· '+data.month;
   const changed = state.selected !== null && state.selected !== data.selected_id;
   reconcile(state,data.selected_id,changed);
-  
+  if (data.kakao_key && state.nodes.length && !state.kakaoRequested) startKakao(state, data.kakao_key);
+
   if (state.reduced) { if (state.raf !== null) cancelAnimationFrame(state.raf); draw(state,performance.now()); }
   return () => {
     state.disposed = true;
     if (state.raf !== null) cancelAnimationFrame(state.raf);
     state.media.removeEventListener('change',state.motionChange);
+    if (state.kakao) { state.kakao.observer?.disconnect(); clearKakao(state); state.kakao = null; }
     state.nodes.forEach(n => {
       n.group.onpointerenter = n.group.onpointerleave = n.group.onfocus = n.group.onblur = null;
       n.group.onclick = n.group.onkeydown = null;
@@ -366,7 +507,7 @@ export default function(component) {
 """
 
 _HERO = st.components.v2.component(
-    "chachacha_h2_seoul", html=HTML, css=CSS, js=JS, isolate_styles=False,
+    "chachacha_h2_seoul", html=HTML, css=CSS, js=SDK_LOADER_JS + JS, isolate_styles=False,
 )
 
 
@@ -420,7 +561,7 @@ def render_hero(district_name: str, *, ranking: pd.DataFrame | None = None) -> N
         ranking = load_frame(q.get_district_ranking)
     boundaries = load_frame(q.get_region_boundaries)
     selected_id = st.session_state.get("district_id")
-    data = _payload(ranking, boundaries, selected_id, district_name)
+    data = {**_payload(ranking, boundaries, selected_id, district_name), "kakao_key": javascript_key()}
     st.session_state["_h2_region_ids"] = tuple(
         int(value) for value in ranking.get("region_id", pd.Series(dtype=int))
     )

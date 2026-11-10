@@ -1,10 +1,9 @@
 import altair as alt
 import pandas as pd
-import pydeck as pdk
-from pydeck.data_utils import compute_view
 import streamlit as st
 
 from db import queries as q
+from parking_explorer import charger_records, render_map
 from ui import date_text, display_table, district_row, load_frame, load_options, number, word
 
 
@@ -138,36 +137,6 @@ def _source_caption(options: dict) -> None:
     )
 
 
-def _station_map(points: pd.DataFrame) -> None:
-    if points.empty:
-        st.info("이 조건에서는 지도에 표시할 위치(좌표) 정보가 없어요. 아래 목록에서 주소로 확인해 주세요.")
-        return
-    data = points[["latitude", "longitude", "place_name", "address", "operator_name"]].copy()
-    for column in ("place_name", "address", "operator_name"):
-        data[column] = data[column].map(word)
-    coordinates = data[["longitude", "latitude"]].drop_duplicates()
-    if len(coordinates) == 1:
-        point = coordinates.iloc[0]
-        view = pdk.ViewState(latitude=float(point.latitude), longitude=float(point.longitude), zoom=15)
-    else:
-        view = compute_view(coordinates.to_numpy().tolist())
-        view.zoom = min(view.zoom, 15)
-    st.pydeck_chart(
-        pdk.Deck(
-            map_style=None, initial_view_state=view,
-            layers=[pdk.Layer(
-                "ScatterplotLayer", id="charging-stations", data=data,
-                get_position="[longitude, latitude]", get_fill_color=[39, 51, 107],
-                get_radius=35, radius_min_pixels=5, radius_max_pixels=12,
-                pickable=True, stroked=True, get_line_color=[255, 255, 255], line_width_min_pixels=1,
-            )],
-            tooltip={"text": "{place_name}\n{operator_name}\n{address}"},
-        ),
-        key="charging_station_map", width="stretch", height=370,
-        alt="선택한 조건의 충전소 지도. 확인된 좌표가 있는 충전소만 표시해요.",
-    )
-
-
 selected = st.session_state.get("district_id")
 if selected is None:
     st.info("위 메뉴에서 동네를 선택해 주세요.")
@@ -268,7 +237,7 @@ st.caption(f"현재 조건의 충전소 {len(stations):,}곳 · 충전기 {len(d
 if len(stations) > len(visible_points):
     st.caption(f"좌표가 없거나 표시 범위를 벗어난 충전소 {len(stations) - len(visible_points):,}곳은 목록에서 확인해 주세요.")
 st.caption("지도 점 하나는 같은 운영기관이 관리하는 충전소예요. 같은 장소의 다른 운영기관은 점이 겹칠 수 있어요.")
-_station_map(visible_points)
+render_map(charger_records(visible_points, devices), district, key="charging_station_map", region_id=region_id)
 
 if not stations.empty:
     mapped_ids = set(visible_points.place_id) if not visible_points.empty else set()

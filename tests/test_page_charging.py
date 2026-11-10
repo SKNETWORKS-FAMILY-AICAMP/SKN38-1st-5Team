@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -155,6 +156,9 @@ class ChargingPageTest(unittest.TestCase):
         cls.ids = dict(zip(cls.ranking.district_name.astype(str), cls.ranking.region_id.astype(int)))
 
     def setUp(self):
+        key_patch = patch("parking_explorer.javascript_key", return_value="")
+        key_patch.start()
+        self.addCleanup(key_patch.stop)
         environment = patch.dict(os.environ, {"CHACHACHA_ALLOW_BOTS": "1", "CHACHACHA_DEV": "1"})
         environment.start()
         self.addCleanup(environment.stop)
@@ -255,11 +259,17 @@ class ChargingPageTest(unittest.TestCase):
                          expected.loc[expected.station_id.eq(selected)].source_charger_id.tolist())
         points = q.get_place_points(self.ids["마포구"], kinds=("charger",), speed="fast")
         points = points.loc[points.place_id.isin(expected.station_id)]
-        spec = json.loads(self.app.get("deck_gl_json_chart")[0].proto.json)
-        self.assertEqual(len(spec["layers"][0]["data"]), len(points))
-        self.assertEqual(spec["mapProvider"], "carto")
-        self.assertIsNone(spec.get("mapStyle"))
-        self.assertNotIn("apiKey", spec)
+        html = self.app.get("iframe")[0].proto.srcdoc
+        match = re.search(r"const data=(.*?);\nconst esc", html, re.S)
+        if match is None:
+            self.fail("지도 입력 자료가 없어요.")
+        payload = json.loads(match.group(1))
+        self.assertCountEqual([place["id"] for place in payload["places"]],
+                              [f"charger-{value}" for value in points.place_id])
+        self.assertTrue(all(place["kind"] == "충전소" for place in payload["places"]))
+        self.assertIn("map.kakao.com/link/to/", html)
+        self.assertNotIn("appkey", html)
+        self.assertFalse(self.app.get("deck_gl_json_chart"))
 
     def test_search_is_literal_and_empty_search_has_no_stale_map(self):
         devices = q.get_charger_detail(self.ids["마포구"], limit=None).head(2).copy()
@@ -272,6 +282,7 @@ class ChargingPageTest(unittest.TestCase):
         self.assert_ready()
         self.assertFalse(self.app.get("deck_gl_json_chart"))
         self.assertIn("현재 조건의 충전소 0곳", self.text())
+        self.assertFalse(self.app.get("iframe"))
         self.assertFalse(any("충전소" in item.value for item in self.app.dataframe))
 
     def test_stations_without_coordinates_stay_in_list(self):
@@ -282,6 +293,7 @@ class ChargingPageTest(unittest.TestCase):
         self.assertEqual(len(self.table("충전소")), devices.station_id.nunique())
         self.assertTrue(self.table("충전소")["지도 안내"].eq("좌표 없음·범위 밖").all())
         self.assertFalse(self.app.get("deck_gl_json_chart"))
+        self.assertFalse(self.app.get("iframe"))
 
     def test_missing_source_preserves_missing_metrics_and_no_fabricated_points(self):
         summary = q.get_summary_metrics(self.ids["마포구"]).copy()
@@ -299,6 +311,40 @@ class ChargingPageTest(unittest.TestCase):
         self.assertFalse(self.app.get("deck_gl_json_chart"))
         self.assertIn("충전소 목록과 지도는 자료 없음이에요", self.text())
         self.assertNotIn("현재 조건의 충전소 0곳", self.text())
+
+    def test_kakao_component_matches_filters_without_changing_identity(self):
+        def component():
+            return next(item.proto for item in self.app.get("bidi_component")
+                        if item.proto.component_name == "chachacha_kakao_places")
+        with patch("parking_explorer.javascript_key", return_value="test-only"):
+            self.app.run()
+            self.assert_ready()
+            identity = component().id
+            self.app.segmented_control(key="charging_speed").set_value("fast").run()
+            self.app.toggle(key="charging_free_only").set_value(True).run()
+            self.assert_ready()
+            devices = q.get_charger_detail(self.ids["마포구"], speed="fast", limit=None)
+            devices = devices.loc[devices.parking_free.eq("Y")]
+            points = q.get_place_points(self.ids["마포구"], kinds=("charger",), speed="fast", limit=None)
+            points = points.loc[points.place_id.isin(devices.station_id)]
+            payload = json.loads(component().json)
+            self.assertCountEqual([place["id"] for place in payload["places"]],
+                                  [f"charger-{value}" for value in points.place_id])
+            self.assertTrue(all("주차 무료" in place["price"] for place in payload["places"]))
+            for place in payload["places"]:
+                station_id = int(place["id"].removeprefix("charger-"))
+                self.assertEqual(place["capacity"], f"충전기 {int(devices.station_id.eq(station_id).sum())}기")
+            self.assertEqual(component().id, identity)
+            self.assertFalse(self.app.get("iframe"))
+            self.assertFalse(self.app.get("deck_gl_json_chart"))
+            self.app.selectbox(key="district_id").select(self.ids["강남구"]).run()
+            self.assert_ready()
+            self.assertEqual(component().id, identity)
+            self.assertEqual(json.loads(component().json)["district"], "강남구")
+            self.app.text_input(key="charging_keyword").set_value("없는충전소xyz987").run()
+            self.assert_ready()
+            self.assertEqual(json.loads(component().json)["places"], [])
+            self.assertEqual(component().id, identity)
 
 
 if __name__ == "__main__":

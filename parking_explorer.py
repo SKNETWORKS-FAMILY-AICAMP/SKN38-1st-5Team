@@ -8,8 +8,20 @@ import pandas as pd
 import requests
 import streamlit as st
 
+from kakao_map import SDK_LOADER_JS, javascript_key, rest_key
+from kakao_routes import get_walking_route
+from db import queries as q
+from ui import district_row, load_frame
+
 ROOT = Path(__file__).parent
 SOURCE = "https://parking.seoul.go.kr"
+_PLACES = st.components.v2.component(
+    "chachacha_kakao_places",
+    html=(ROOT / "assets/kakao_places.html").read_text(),
+    css=(ROOT / "assets/kakao_places.css").read_text(),
+    js=SDK_LOADER_JS + "\n" + (ROOT / "assets/kakao_places.js").read_text(),
+    isolate_styles=False,
+)
 
 
 def text(value, fallback="정보 미제공"):
@@ -192,7 +204,7 @@ def charger_records(points, details):
             "address": text(point.address), "latitude": float(point.latitude), "longitude": float(point.longitude),
             "kind": "충전소", "operation": "충전소", "price": parking + " / 충전요금: 금액 정보 미제공 (운영사·회원·출력별 확인)",
             "hours": values("operating_time_text"), "note": restriction_label(devices),
-            "capacity": f"충전기 {int(point.charger_count)}기", "operator": text(point.operator_name),
+            "capacity": f"충전기 {len(devices) if not devices.empty else int(point.charger_count)}기", "operator": text(point.operator_name),
             "updated": "환경공단 수집 자료 · 실시간 상태 아님",
         })
     return result
@@ -207,19 +219,114 @@ def fallback_parking(points):
             for _, r in points.iterrows()]
 
 
+def map_payload(records, station=None, radius=500, animate=True):
+    places = {}
+    for index, record in enumerate(records):
+        positions = [p for p in (record.get("positions") or [record])
+                     if valid_position(p.get("latitude"), p.get("longitude"))]
+        if not positions:
+            continue
+        place = {name: text(record.get(name)) for name in
+                 ("name", "address", "kind", "operation", "price", "hours", "note", "capacity", "operator", "updated")}
+        place["id"] = text(record.get("id"), f"place-{index}")
+        place["positions"] = [{"latitude": float(p["latitude"]), "longitude": float(p["longitude"])} for p in positions]
+        point = nearest_position(station, place) if station else positions[0]
+        place.update(latitude=float(point["latitude"]), longitude=float(point["longitude"]))
+        place["distance_m"] = distance_m(station, place) if station else None
+        place["near"] = place["distance_m"] is not None and place["distance_m"] <= radius
+        places[place["id"]] = place
+    return {"places": list(places.values()), "station": station, "radius": radius, "animate": animate}
+
+
 def map_html(records, station=None, radius=500, animate=True):
-    if station:
-        records = [{**place, **nearest_position(station, place)} for place in records]
-    payload = {"places": records, "station": station, "radius": radius, "animate": animate}
+    payload = map_payload(records, station, radius, animate)
     # Escaping '<' prevents source data from terminating the script element.
     data = json.dumps(payload, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
     template = (ROOT / "assets" / "parking_explorer.html").read_text()
+    template = template.replace(
+        "distance=center?center.distanceTo(pos):null,near=distance!==null&&distance<=data.radius",
+        "distance=p.distance_m,near=p.near",
+    ).replace(
+        "https://map.naver.com/p/search/${encodeURIComponent(p.name+' '+p.address)}",
+        "https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${p.latitude},${p.longitude}",
+    ).replace(
+        "지도에서 장소 찾아보기 ↗</a>",
+        '카카오맵 길찾기 ↗</a> · <a target="_blank" rel="noopener noreferrer" '
+        'href="https://map.kakao.com/link/roadview/${p.latitude},${p.longitude}">로드뷰 ↗</a>',
+    )
     return (template.replace("__LEAFLET_CSS__", (ROOT / "assets/vendor/leaflet.css").read_text())
             .replace("__LEAFLET_JS__", (ROOT / "assets/vendor/leaflet.js").read_text())
             .replace("__DATA__", data))
 
 
-def explorer(records, district, facility):
+def region_boundary(region_id):
+    if region_id is None:
+        return {}
+    row = district_row(load_frame(q.get_region_boundaries), region_id)
+    if row.empty:
+        return {}
+    try:
+        geometry = json.loads(row.geometry_json)
+        if geometry["type"] not in ("Polygon", "MultiPolygon"):
+            return {}
+        polygons = geometry["coordinates"] if geometry["type"] == "MultiPolygon" else [geometry["coordinates"]]
+        if not polygons or any(not polygon or any(len(ring) < 3 or any(
+                len(point) < 2 or not valid_position(point[1], point[0]) for point in ring)
+                for ring in polygon) for polygon in polygons):
+            return {}
+        return {"polygons": polygons, "year": int(row.boundary_year)}
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return {}
+
+
+def _walking_result(payload, district, key, enabled):
+    saved_key = f"{key}_walking"
+    component = st.session_state.get(key, {})
+    selection = component.get("selected_place")
+    place = None
+    if isinstance(selection, dict) and isinstance(selection.get("id"), str) and type(selection.get("revision")) is int:
+        place = next((p for p in payload["places"] if p["id"] == selection["id"]), None)
+    if not enabled or place is None:
+        st.session_state.pop(saved_key, None)
+        return None
+    station = payload["station"]
+    context = (district, station.get("name"), station["latitude"], station["longitude"],
+               place["id"], place["latitude"], place["longitude"], selection["revision"])
+    saved = st.session_state.get(saved_key)
+    if saved and saved["context"] != context:
+        st.session_state.pop(saved_key, None)
+        saved = None
+    request = component.get("walk_request")
+    if isinstance(request, str) and request == place["id"] and selection.get("requested") is True:
+        result = get_walking_route(station["latitude"], station["longitude"], place["latitude"], place["longitude"])
+        saved = {"context": context, "display": {"place_id": place["id"], "revision": selection["revision"], "result": result}}
+        st.session_state[saved_key] = saved
+    return saved["display"] if saved else None
+
+
+def render_map(records, district, station=None, radius=500, animate=True, *, key="parking_places_map", region_id=None):
+    appkey = javascript_key()
+    if appkey:
+        boundary = region_boundary(region_id)
+        payload = map_payload(records, station, radius, animate)
+        walk_enabled = bool(station and rest_key())
+        walking = _walking_result(payload, district, key, walk_enabled)
+        _PLACES(data={**payload, "appkey": appkey, "district": district, "boundary": boundary,
+                      "walk_enabled": walk_enabled, "walking": walking},
+                key=key, width="stretch", height="content",
+                on_selected_place_change=lambda: None, on_walk_request_change=lambda: None)
+        if boundary:
+            st.caption(f"구 경계: 통계청 {boundary['year']}년 수록 자료 · 지도: 카카오")
+    else:
+        st.session_state.pop(f"{key}_walking", None)
+        if records or station:
+            st.iframe(map_html(records, station, radius, animate), height=570,
+                      alt="주차장·충전소 지도. 핀을 누르면 이용시간과 요금 상세 안내를 볼 수 있어요.")
+        else:
+            st.info("이 조건에서 지도에 표시할 위치 자료가 없어요. 좌표가 없는 곳도 아래 목록에서 확인할 수 있어요.")
+
+
+def explorer(records, district, facility, *, region_id=None):
     with st.container(horizontal=True, vertical_alignment="bottom"):
         query = st.text_input("역 이름 검색", placeholder="예: 남부터미널역, 홍대입구역",
                               key="parking_station_query", help="역 이름을 입력하고 Enter를 누르면 검색해요.")
@@ -241,11 +348,7 @@ def explorer(records, district, facility):
         if not nearby:
             st.info("선택한 반경에 표시할 시설이 없어요. 반경을 늘리거나 동네·검색 조건을 바꿔 주세요.")
     st.caption("핀에 마우스를 올리면 요약, 클릭하면 상세 안내를 볼 수 있어요. P는 주차장, ⚡는 충전소예요.")
-    if records or station:
-        st.iframe(map_html(records, station, radius, animate), height=570,
-                  alt="주차장·충전소 지도. 핀을 누르면 이용시간과 요금 상세 안내를 볼 수 있어요.")
-    else:
-        st.info("이 조건에서 지도에 표시할 위치 자료가 없어요. 좌표가 없는 곳도 아래 목록에서 확인할 수 있어요.")
+    render_map(records, district, station, radius, animate, region_id=region_id)
     if nearby:
         with st.expander(f"역에서 가까운 {facility} 목록 · {len(nearby)}곳"):
             st.dataframe(pd.DataFrame([{"장소": p["name"], "역에서 직선거리": f"{d:,.0f}m", "요금": p["price"],
