@@ -157,7 +157,8 @@ h1 em::after { content:''; position:absolute; left:0; right:0; bottom:2px; heigh
   font-size:13px; line-height:26px; z-index:2; transform-origin:left center; }
 .destination svg { width:18px; height:22px; fill:var(--coral); stroke:var(--navy); stroke-width:1.7; }
 .destination svg circle { fill:var(--pale); }
-.destination b { color:var(--navy); font-weight:800; }
+.destination b { color:#B45309; font-size:clamp(28px,3.5vw,40px); line-height:1.3; font-weight:800; }
+.destination > span { display:flex; flex-wrap:wrap; align-items:baseline; gap:3px; }
 .arrived { color:var(--muted); margin-left:3px; }
 .motion { position:absolute; top:6px; right:5px; display:flex; align-items:center; gap:5px;
   background:transparent; color:var(--muted); border:0; border-radius:6px; cursor:pointer;
@@ -226,7 +227,7 @@ button:focus-visible { outline:3px solid var(--navy); outline-offset:-3px; }
 @media (max-width:700px) {
   .hero { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto;
     min-height:0; gap:14px; padding:18px 14px; border-radius:18px; }
-  .scene { min-height:280px; }
+  .scene { min-height:310px; }
   .copy { align-self:start; padding:0; }
   .brand { margin-bottom:9px; font-size:12px; gap:8px; }
   .brand-mark { font-size:18px; padding-right:8px; }
@@ -235,13 +236,14 @@ button:focus-visible { outline:3px solid var(--navy); outline-offset:-3px; }
   .intro { margin-top:10px; font-size:18px; line-height:1.7; }
   .verdict { margin-top:10px; font-size:12px; }
   .verdict strong { display:inline; margin-left:5px; font-size:24px; }
-  .destination { top:0; left:1px; font-size:12px; line-height:24px; gap:4px; }
+  .destination { top:0; left:1px; max-width:calc(100% - 32px); font-size:12px; line-height:24px; gap:4px; }
   .destination svg { width:14px; height:17px; }
   .motion { top:0; right:0; min-height:26px; font-size:12px; gap:4px; padding:2px; }
   .motion-icon { font-size:12px; }
-  .city { top:24px; height:85px; opacity:.55; }
-  .road { top:122px; height:53px; }
-  .garage { top:32px; gap:2px; }
+  .motion-text { display:none; }
+  .city { top:54px; height:85px; opacity:.55; }
+  .road { top:152px; height:53px; }
+  .garage { top:62px; gap:2px; }
   .car { padding:0 0 3px; border-radius:10px; }
   .speech { min-height:26px; padding:3px 6px; font-size:12px; line-height:18px; margin-bottom:1px; border-radius:9px; white-space:normal; text-align:center; }
   .car-sprite { max-width:94px; height:105px; }
@@ -428,7 +430,8 @@ export default function(component) {
 }
 """
 
-_COMPONENT = st.components.v2.component("chachacha_transit_drive", html=HTML, css=CSS, js=JS)
+_COMPONENT = st.components.v2.component("chachacha_transit_drive", html=HTML, css=CSS, js=JS,
+                                      isolate_styles=True)
 
 
 def hero_props(ranking: pd.DataFrame, district_id: int | None,

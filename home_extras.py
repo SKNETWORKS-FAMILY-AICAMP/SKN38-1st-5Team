@@ -34,14 +34,14 @@ LINKS = {
                      "무공해차 통합누리집", "정부",
                      "https://ev.or.kr/nportal/buySupprt/initSubsidyPaymentCheckAction.do"),
 }
-# 차 필요성 판정별로 보여 줄 링크. 판정 문구는 ui.TOPICS의 단계와 같다.
+# 대중교통 이용 지표별 참고 링크. 내부 단계 이름은 ui.TOPICS와 호환한다.
 PLANS = {
-    "차가 필요한 편": ("차가 있으면 생활이 편한 동네예요. 차를 알아볼 때 도움이 되는 공공 사이트를 모았어요.",
+    "차가 필요한 편": ("주민 대비 대중교통 이용 지표가 낮은 편이에요. 실제 이동 경로와 주차 여건, 차량 비용을 함께 확인해 보세요.",
                   "차를 살지 고민이라면", ("used", "newcar", "insure")),
-    "있으면 편함": ("차가 있으면 편하지만 꼭 필요하지는 않아요. 사기 전에 비용부터 따져 보세요.",
+    "있으면 편함": ("주민 대비 대중교통 이용 지표는 보통이에요. 통근 경로와 주차 가능 여부를 확인하고 이동 비용을 비교해 보세요.",
                "비용부터 따져 보려면", ("used", "insure", "topis")),
-    "대중교통으로 충분": ("대중교통으로도 충분한 동네예요. 차를 팔거나 줄일 생각이라면 이런 곳을 참고하세요.",
-                   "차를 줄일 생각이라면", ("sell", "topis", "insure")),
+    "대중교통으로 충분": ("주민 대비 대중교통 이용 지표가 높은 편이에요. 실제 노선과 운행 시간, 목적지 주차 여건을 함께 확인해 보세요.",
+                   "이동 방법과 비용을 비교하려면", ("topis", "parking", "insure")),
 }
 QUICK_MENU = (
     ("app_pages/home.py", "우리 동네", ":material/map:"),
@@ -69,14 +69,17 @@ CSS = """
 .st-key-home_next p.home-lead { color: #4A5270; font-size: 16px; margin: -6px 0 4px; }
 .st-key-home_next [class*="st-key-next_card_"] {
   border: 1px solid #E2E5F0; border-radius: 16px; background: #fff; padding: 18px; height: 100%;
+  min-height: 280px; display: flex; flex-direction: column;
 }
+.st-key-home_next [data-testid="stColumn"] { display: flex; align-items: stretch; }
+.st-key-home_next [data-testid="stLinkButton"] { margin-top: auto; }
 .st-key-home_next [class*="st-key-next_card_"]:hover { border-color: #8E98CF; }
 .next-why { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #EEF0FA;
   color: #27336B; font-size: 13px; font-weight: 700; }
 .next-title { display: block; margin-top: 10px; font-size: 18px; font-weight: 800; color: #1B2340; }
 .next-desc { display: block; margin-top: 4px; font-size: 15px; line-height: 1.55; color: #3D4560; }
-.next-src { display: block; margin-top: 10px; font-size: 13px; color: #4A5270; }
-.home-ext { font-size: 14px; color: #4A5270; }
+.next-src { display: block; margin-top: 10px; font-size: 16px; color: #4A5270; line-height: 1.5; }
+.home-ext { font-size: 16px; color: #4A5270; line-height: 1.5; }
 .st-key-home_quick { gap: 12px; }
 .st-key-home_quick [data-testid="stPageLink"] { flex: 1 1 0; min-width: 104px; }
 .st-key-home_quick a {
@@ -88,27 +91,34 @@ CSS = """
 .st-key-home_quick a p { font-size: 16px; font-weight: 700; }
 .home-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid #E2E5F0;
   border-radius: 18px; overflow: hidden; }
-.home-stats > div { padding: 22px 20px; border-right: 1px solid #E2E5F0; }
+.home-stats > div { padding: 22px 20px; border-right: 1px solid #E2E5F0; min-width: 0; display: flex; flex-direction: column; background: #F7F8FC; }
 .home-stats > div:last-child { border-right: none; }
-.home-stats dt { font-size: 14px; color: #4A5270; }
-.home-stats dd { margin: 8px 0 0; font-size: 26px; font-weight: 800; color: #27336B; font-variant-numeric: tabular-nums; }
+.home-stats dt { font-size: 16px; font-weight: 600; line-height: 1.5; min-height: 3em; color: #1B2340; }
+.home-stats dd { margin: 8px 0 0; font-size: 26px; line-height: 1.4; font-weight: 800; color: #27336B; font-variant-numeric: tabular-nums; }
 .home-stats dd small { font-size: 14px; font-weight: 500; color: #4A5270; margin-left: 2px; }
-.home-stats .s { display: block; margin-top: 4px; font-size: 13px; font-weight: 400; color: #4A5270; }
+.home-stats .s { display: block; margin-top: 8px; font-size: 16px; line-height: 1.5; font-weight: 400; color: #4A5270; }
 .home-ranks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid #E2E5F0;
   border-radius: 18px; overflow: hidden; }
-.home-ranks > div { padding: 22px 20px; border-right: 1px solid #E2E5F0; display: flex; flex-direction: column; gap: 14px; }
+.home-ranks > div { padding: 22px 20px; border-right: 1px solid #E2E5F0; display: flex; flex-direction: column; gap: 14px; min-width: 0; height: 100%; }
+.home-ranks .home-rank-heading { min-height: 76px; }
 .home-ranks > div:last-child { border-right: none; }
 .home-ranks h3 { margin: 0; font-size: 18px; color: #1B2340; }
-.home-ranks .m { font-size: 13px; color: #4A5270; }
+.home-ranks .m { font-size: 16px; color: #4A5270; line-height: 1.5; }
 .home-ranks ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.home-ranks li { display: grid; grid-template-columns: 22px 78px 1fr 48px; align-items: center; gap: 8px; font-size: 16px; }
+.home-ranks li { display: grid; grid-template-columns: 22px minmax(64px, auto) minmax(12px, 1fr) 48px; align-items: center; gap: 6px; font-size: 16px; min-height: 44px; padding: 4px; border-radius: 8px; }
 .home-ranks .n { font-size: 13px; font-weight: 800; color: #4A5270; text-align: center; }
-.home-ranks li:first-child .n { color: #684C00; background: #FFF2CC; border-radius: 6px; }
+.home-ranks .rank-first { color: #166534; background: #DCFCE7; }
+.home-ranks .rank-first .n, .home-ranks .rank-first .v { color: #166534; }
+.home-ranks .rank-first .t span { background: #15803D; }
+.home-ranks .rank-caution { color: #854D0E; background: #FEF9C3; }
+.home-ranks .rank-caution .n, .home-ranks .rank-caution .v { color: #854D0E; }
+.home-ranks .rank-caution .t span { background: #CA8A04; }
+.home-ranks .rank-other .t span { background: #8E98CF; }
 .home-ranks .t { height: 7px; background: #EEF0F4; border-radius: 4px; overflow: hidden; }
 .home-ranks .t span { display: block; height: 100%; }
 .home-ranks .v { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
 .home-ranks sup { color: #C24C38; }
-.home-ranks .last { margin-top: auto; padding-top: 12px; border-top: 1px solid #F0F2F6; font-size: 13px; color: #4A5270; }
+.home-ranks .last { margin-top: auto; padding: 12px 8px; border-top: 1px solid #F0F2F6; border-radius: 8px; font-size: 16px; line-height: 1.5; color: #991B1B; background: #FEE2E2; }
 @media (max-width: 1100px) {
   .home-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .home-stats > div:nth-child(3n) { border-right: none; }
@@ -236,15 +246,14 @@ def top_ranks(ranking: pd.DataFrame) -> None:
         top, last = frame.head(5), frame.iloc[-1]
         highest = float(top.value.iloc[0]) or 1.0
         rows = "".join(
-            f'<li><span class="n">{rank}</span><span>{escape(str(item.name))}'
+            f'<li class="{"rank-first" if rank == 1 else "rank-caution" if rank in (2, 3) else "rank-other"}"><span class="n">{rank}</span><span>{escape(str(item.name))}'
             f'{"<sup>*</sup>" if column in COMMUTER_COLUMNS and item.name in COMMUTER_DISTRICTS else ""}</span>'
-            f'<span class="t"><span style="width:{100 * item.value / highest:.1f}%;'
-            f'background:{"#27336B" if rank == 1 else "#8E98CF"}"></span></span>'
+            f'<span class="t"><span style="width:{100 * item.value / highest:.1f}%"></span></span>'
             f'<span class="v">{item.value:.{digits}f}</span></li>'
             for rank, item in enumerate(top.itertuples(), start=1))
         # 작은 양수가 0으로 보이면 수록 자료가 없는 것처럼 읽힌다.
         last_digits = 2 if 0 < last.value < 0.1 else digits
-        blocks.append(f'<div><div><h3>{title}</h3><span class="m">{metric}</span></div><ol>{rows}</ol>'
+        blocks.append(f'<div class="home-rank-card"><div class="home-rank-heading"><h3>{title}</h3><span class="m">{metric}</span></div><ol>{rows}</ol>'
                       f'<span class="last">가장 낮은 곳 · {escape(str(last["name"]))} {last.value:.{last_digits}f}</span></div>')
     if not blocks:
         return

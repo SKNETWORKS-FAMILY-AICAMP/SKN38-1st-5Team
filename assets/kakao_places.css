@@ -9,14 +9,14 @@
 .kakao-places .kp-map { width: 100%; height: 410px; background: #EEF0FA; border: 1px solid #C8CDE3; }
 .kakao-places .kp-status, .kakao-places .kp-legend { margin: 8px 0; font-size: 16px; color: #4A5270; }
 .kakao-places .kp-detail { margin-top: 10px; padding: 16px; border: 1px solid #C8CDE3; border-radius: 14px; background: #F7F8FC; overflow-wrap: anywhere; }
-.kakao-places .kp-popup { width: min(290px, calc(100vw - 90px)); max-height: 280px; overflow: auto; padding: 12px; font-size: 16px; line-height: 1.7; color: #1B2340; }
-.kakao-places .kp-popup strong, .kakao-places .kp-detail strong { font-size: 18px; }
+.kakao-places .kp-popup { width: min(290px, calc(100vw - 90px)); max-height: 400px; overflow: auto; padding: 12px; font-size: 18px; line-height: 1.85; color: #1B2340; }
+.kakao-places .kp-popup strong, .kakao-places .kp-detail strong { font-size: 24px; line-height:1.5; }
 .kakao-places .kp-tag { display: inline-block; margin-right: 8px; color: #27336B; font-weight: 600; }
 .kakao-places .kp-links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
 .kakao-places .kp-links a { color: #27336B; text-decoration: underline; }
 .kakao-places .kp-tooltip { max-width: 280px; padding: 10px; background: white; border: 1px solid #C8CDE3; border-radius: 8px; color: #1B2340; white-space: normal; font-size: 16px; }
-.kakao-places .kp-pin { position: relative; display: grid; place-items: center; width: 36px; height: 36px; min-height: 36px; padding: 0; border: 3px solid #FF7A66; border-radius: 50%; background: var(--pin); color: white; font-size: 18px; font-weight: 800; box-shadow: 0 0 0 4px #FF7A6650; }
-.kakao-places .kp-pin.kp-pulse::after { content: ''; position: absolute; inset: -10px; border: 3px solid #FF7A66; border-radius: 50%; animation: kp-pulse 1.8s ease-out infinite; pointer-events: none; }
+.kakao-places .kp-pin { position: relative; display: grid; place-items: center; width: 36px; height: 36px; min-height: 36px; padding: 0; border: 3px solid #FFFFFF; border-radius: 50%; background: var(--pin); color: white; font-size: 18px; font-weight: 800; box-shadow: 0 0 0 4px #27336B40; }
+.kakao-places .kp-pin.kp-pulse::after { content: ''; position: absolute; inset: -10px; border: 3px solid var(--pin); border-radius: 50%; animation: kp-pulse 1.8s ease-out infinite; pointer-events: none; }
 .kakao-places .kp-station { padding: 6px 10px; border: 2px solid white; border-radius: 8px; background: #1B2340; color: white; font-size: 16px; white-space: nowrap; }
 .kakao-places .kp-roadview-panel { margin-top: 12px; }
 .kakao-places .kp-roadview { width: 100%; height: 320px; }
@@ -25,3 +25,11 @@
 .kakao-places .kp-walk button:disabled { cursor: wait; opacity: .65; }
 @keyframes kp-pulse { from { transform: scale(.7); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .kakao-places .kp-pin.kp-pulse::after { animation: none; } }
+
+.kakao-places .kp-detail { font-size:18px; line-height:1.9; padding:22px 24px; }
+.kakao-places .kp-description > b, .kakao-places .kp-popup > b { display:block; margin-top:12px; font-size:17px; color:#4A5270; }
+.kakao-places .kp-fee { display:inline-block; padding:4px 12px; border-radius:999px; font-size:17px; font-weight:800; margin:6px 0; }
+.kakao-places .kp-fee-free { background:#DCFCE7; color:#166534; }
+.kakao-places .kp-fee-paid { background:#FFEDD5; color:#9A3412; }
+.kakao-places .kp-fee-unknown { background:#E2E8F0; color:#475569; }
+.kakao-places .kp-legend { padding:12px 16px; border-radius:12px; background:#F1F5F9; }

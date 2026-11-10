@@ -96,7 +96,14 @@ class TransitPageTests(unittest.TestCase):
                 series = frame.loc[(frame.series_type == "passenger") & (frame.mode_code == mode)]
                 peak = series.loc[series.known_passenger_sum.idxmax()]
                 hour = int(peak.hour_of_day)
-                self.assertIn(f"{DAYS[day]} · **{hour:02d}~{hour+1:02d}시** · {int(peak.known_passenger_sum):,}명", text)
+                self.assertIn(DAYS[day], text)
+                self.assertIn(f"**{hour:02d}~{hour+1:02d}시** · {int(peak.known_passenger_sum):,}명", text)
+                quiet = series.loc[series.known_passenger_sum.idxmin()]
+                hour = int(quiet.hour_of_day)
+                self.assertIn(f"· {int(quiet.known_passenger_sum):,}명", text)
+                if series.known_passenger_sum.eq(quiet.known_passenger_sum).sum() == 1:
+                    self.assertIn(f"**{hour:02d}~{hour+1:02d}시**", text)
+        self.assertEqual(text.count("가장 한산한 시간"), 4)
         self.assertIn("차량 안 혼잡도나 평소 이용량을 뜻하지 않아요", text)
 
     def test_district_selection_preserves_component_key_and_shared_state(self):
@@ -160,7 +167,8 @@ class TransitPageTests(unittest.TestCase):
             _, data = self.chart_data(mode)
             self.assertTrue(data.loc[data.day_label == DAYS[date(2026, 10, 31)], "known_passenger_sum"].isna().all())
             self.assertEqual(data.known_passenger_sum.notna().sum(), 24)
-        self.assertIn("10.31(토) · 자료 없음", self.page_text())
+        self.assertIn("10.31(토)", self.page_text())
+        self.assertEqual(self.page_text().count("**자료 없음**"), 4)
 
     def test_missing_hour_is_not_zero_and_breaks_the_line(self):
         frames = {day: frame.copy() for day, frame in self.trends.items()}
@@ -208,7 +216,8 @@ class TransitPageTests(unittest.TestCase):
         with self.patch_trends(frames):
             self.app.run()
         self.assert_ready()
-        self.assertIn("10.30(금) · **08~09시, 18~19시 (공동)** · 12,345명", self.page_text())
+        self.assertIn("**08~09시, 18~19시 (공동)** · 12,345명", self.page_text())
+        self.assertIn("**00~08시, 09~18시, 19~24시 (공동)** · 0명", self.page_text())
 
     def test_observed_zero_is_different_from_missing(self):
         frames = {day: frame.copy() for day, frame in self.trends.items()}
@@ -219,6 +228,21 @@ class TransitPageTests(unittest.TestCase):
         self.assert_ready()
         self.assertEqual(len(self.app.get("vega_lite_chart")), 2)
         self.assertEqual(self.page_text().count("수록 승객 모두 0명 · 붐비는 시간 없음"), 4)
+        self.assertEqual(self.page_text().count("**모든 시간 동일** · 0명"), 4)
+
+    def test_quiet_hours_ignore_missing_and_report_all_ties(self):
+        frames = {day: frame.copy() for day, frame in self.trends.items()}
+        weekday = frames[date(2026, 10, 30)]
+        bus = weekday.mode_code.eq("bus")
+        weekday.loc[bus, "known_passenger_sum"] = 5
+        weekday.loc[bus & weekday.hour_of_day.isin([2, 3]), "known_passenger_sum"] = float("nan")
+        weekday.loc[bus & weekday.hour_of_day.isin([8, 9]), "known_passenger_sum"] = 1
+        with self.patch_trends(frames):
+            self.app.run()
+        self.assert_ready()
+        self.assertIn("수록된 시간 중 **08~10시 (공동)** · 1명", self.page_text())
+        self.assertNotIn("**02~04시 (공동)** · 0명", "\n".join(
+            element.value for element in self.app.markdown[:8]))
 
     def test_query_failure_does_not_expose_connection_details(self):
         with patch.object(q, "get_trend_data", side_effect=RuntimeError("private-connection-detail")):

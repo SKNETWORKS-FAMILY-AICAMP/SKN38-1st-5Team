@@ -292,7 +292,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(self.app.metric[1].value, "자료 없음")
         self.assertEqual(self.app.metric[1].label, "차 100대당 주차면")
         self.assertTrue((self.ranking_table("parking").value["값"] == "자료 없음").all())
-        self.assertIn("주차 자료는 없고", data["selected"]["sentence"])
+        self.assertIn("주차 여건 자료는 없어요", data["selected"]["sentence"])
         for district in data["district_data"]:
             verdict = next(v for v in district["verdicts"] if v["topic"] == "parking")
             self.assertEqual(verdict["level"], "자료 없음")
@@ -368,7 +368,8 @@ class AppTestCase(unittest.TestCase):
                 self.assertEqual({d["id"] for d in data["district_data"]}, set(self.ids.values()))
                 legend = {item["level"]: item["color"] for item in data["legend"]}
                 for level, color in zip(TOPIC_LEVELS[topic], LEVEL_COLORS):
-                    self.assertEqual(legend[level], color)
+                    display_level = {"차가 필요한 편": "이용 적은 편", "있으면 편함": "이용 보통", "대중교통으로 충분": "이용 많은 편"}.get(level, level) if topic == "need" else level
+                    self.assertEqual(legend[display_level], color)
                 for district in data["district_data"]:
                     expected = self.ranking.loc[self.ranking.region_id == district["id"]].iloc[0]
                     self.assertEqual(district["name"], str(expected.district_name))

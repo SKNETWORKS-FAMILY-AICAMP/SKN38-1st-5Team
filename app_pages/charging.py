@@ -1,3 +1,5 @@
+import json
+
 import altair as alt
 import pandas as pd
 import streamlit as st
@@ -10,10 +12,11 @@ from ui import date_text, display_table, district_row, load_frame, load_options,
 SPEED_LABELS = {"all": "전체", "fast": "급속", "slow": "완속", "unknown": "속도 자료 없음"}
 _GAUGE = st.components.v2.component(
     "chachacha_charging_gauge",
+    isolate_styles=True,
     html="""
     <section class="scene">
       <div class="copy"><p class="eyebrow">우리 동네 충전 여건</p>
-        <h3 class="title"></h3><p class="detail"></p></div>
+        <h3 class="title"><span class="district-name"></span><span class="title-copy"></span></h3><p class="detail"></p></div>
       <div class="battery" role="img"><div class="fill"></div>
         <div class="divider first"></div><div class="divider second"></div>
         <svg class="bolt" viewBox="0 0 24 32" aria-hidden="true">
@@ -31,12 +34,14 @@ _GAUGE = st.components.v2.component(
     .eyebrow { color: #4A5270; font-size: 16px; margin: 0 0 8px; }
     .title { font-family: var(--st-heading-font, inherit); font-size: 27px;
       font-weight: 400; line-height: 1.3; margin: 0 0 8px; overflow-wrap: anywhere; }
+    .district-name { display:block; font-size:clamp(36px,5vw,52px); font-weight:800;
+      color:#B45309; margin-bottom:6px; }
     .detail { color: #4A5270; margin: 0; font-size: 16px; line-height: 1.6; }
     .battery { width: 152px; height: 66px; flex: 0 0 auto; position: relative;
-      border: 4px solid #27336B; border-radius: 13px; background: #FFFFFF; }
+      border: 4px solid var(--status-color, #64748B); border-radius: 13px; background: #E5E7EB; }
     .battery::after { content: ''; position: absolute; right: -13px; top: 20px;
-      height: 25px; width: 8px; border-radius: 0 4px 4px 0; background: #27336B; }
-    .fill { position: absolute; inset: 5px; border-radius: 5px; background: #8E98CF;
+      height: 25px; width: 8px; border-radius: 0 4px 4px 0; background: var(--status-color, #64748B); }
+    .fill { position: absolute; inset: 5px; border-radius: 5px; background: var(--status-color, #64748B);
       transform: scaleX(0); transform-origin: left center; }
     .divider { position: absolute; top: 4px; bottom: 4px; width: 4px; background: white; }
     .first { left: 33.33%; } .second { left: 66.66%; }
@@ -51,10 +56,14 @@ _GAUGE = st.components.v2.component(
       const scene = parentElement.querySelector('.scene');
       const fill = parentElement.querySelector('.fill');
       const battery = parentElement.querySelector('.battery');
-      parentElement.querySelector('.title').textContent = data.title;
+      parentElement.querySelector('.district-name').textContent = data.district_name;
+      parentElement.querySelector('.title-copy').textContent = data.title_copy;
       parentElement.querySelector('.detail').textContent = data.detail;
       battery.setAttribute('aria-label', data.accessibleLabel);
-      const target = Math.max(0, Math.min(3, Number(data.level) || 0)) / 3;
+      const level = Math.max(0, Math.min(3, Number(data.level) || 0));
+      const target = level / 3;
+      battery.style.setProperty('--status-color', data.color);
+      battery.dataset.level = String(level);
       fill.getAnimations().forEach(animation => animation.cancel());
       fill.style.transform = `scaleX(${target})`;
       if (data.animate && !scene.dataset.opened &&
@@ -102,18 +111,27 @@ def _bar_chart_height(item_count: int) -> int:
     return max(170, 32 * item_count + 100)
 
 
-def _bars(frame: pd.DataFrame, key: str, label: str) -> None:
+def _bars(frame: pd.DataFrame, key: str, label: str, *, height: int | None = None) -> None:
     if frame.empty:
         st.info("구성을 보여 줄 자료가 없어요.")
         return
-    chart = alt.Chart(frame).mark_bar(color="#27336B", cornerRadiusEnd=4, size=19).encode(
+    frame = frame.copy()
+    maximum = frame.charger_count.max()
+    frame["is_highest"] = frame.charger_count.eq(maximum) & frame.charger_count.gt(0)
+    leaders = frame.loc[frame.is_highest, "category_label"].astype(str).tolist()
+    is_leader = f"indexof({json.dumps(leaders, ensure_ascii=False)}, datum.value) >= 0"
+    chart = alt.Chart(frame).mark_bar(cornerRadiusEnd=4, size=19).encode(
         y=alt.Y("category_label:N", title=None, sort=None,
-                axis=alt.Axis(labelLimit=160, labelColor="#1B2340", labelOverlap=False)),
+                axis=alt.Axis(labelLimit=180, labelOverlap=False,
+                              labelFontWeight=alt.ExprRef(expr=f"{is_leader} ? 800 : 400"),
+                              labelColor=alt.ExprRef(expr=f"{is_leader} ? '#B45309' : '#4A5270'"),
+                              labelExpr=f"{is_leader} ? datum.label + ' ★' : datum.label")),
+        color=alt.condition(alt.datum.is_highest, alt.value("#FF7A66"), alt.value("#8E98CF")),
         x=alt.X("charger_count:Q", title="수록 충전기 (기)",
                 axis=alt.Axis(format=",d", tickCount=4), scale=alt.Scale(zero=True)),
         tooltip=[alt.Tooltip("category_label:N", title=label),
                  alt.Tooltip("charger_count:Q", title="충전기 수", format=",d")],
-    ).properties(height=_bar_chart_height(len(frame))).configure_view(stroke=None).configure_axis(
+    ).properties(height=height or _bar_chart_height(len(frame))).configure_view(stroke=None).configure_axis(
         labelFont="Noto Sans KR", titleFont="Noto Sans KR", labelFontSize=15, titleFontSize=15,
         labelColor="#1B2340", titleColor="#4A5270", gridColor="#EEF0FA",
     )
@@ -154,43 +172,58 @@ ratio_label = f"전기차 한 대당 {number(ratio, 2, '기')}" if pd.notna(rati
 animate = bool(gauge_level and not st.session_state.get("charging_gauge_opened", False))
 _GAUGE(
     data={"title": f"{district}, 충전기는 {level}" if gauge_level else f"{district}, 충전 여건 자료 없음",
+          "district_name": district,
+          "title_copy": f"충전기는 {level}" if gauge_level else "충전 여건 자료 없음",
+          "color": ("#64748B", "#DC2626", "#EAB308", "#15803D")[gauge_level],
           "detail": f"{ratio_label} · {rank_label}", "level": gauge_level, "animate": animate,
-          "accessibleLabel": f"수록 충전기 여건 {level}. {rank_label}. 실제 충전량이 아닌 상대적 판정이에요."},
+          "accessibleLabel": f"수록 충전기 여건 {level}. {gauge_level}칸. {rank_label}. 실제 배터리 충전량이나 주차 여건이 아닌 충전기 비율의 상대적 판정이에요."},
     key="charging_gauge", width="stretch", height="content",
 )
 if gauge_level:
     st.session_state.charging_gauge_opened = True
-st.caption("게이지는 서울 25구 순위의 세 구간이에요. 1위부터 8위는 많은 편, 9위부터 17위는 보통, 18위부터 25위는 적은 편이에요.")
-st.info("실시간 빈자리 정보가 아니에요. 수집 당시 등록된 충전기이며, 이용 제한과 운영시간을 방문 전에 확인해 주세요.", icon=":material/info:")
+st.caption("게이지는 전기차 대비 충전기 비율의 서울 25구 순위예요. 1–8위는 초록 3칸(많은 편), 9–17위는 노랑 2칸(보통), 18–25위는 빨강 1칸(적은 편), 자료 없음은 회색 0칸이에요. 실제 배터리 충전량이나 주차 여건을 뜻하지 않아요.")
+with st.container(key="charging_warning"):
+    st.warning("실시간 빈자리 정보가 아니에요. 수집 당시 등록된 충전기이며, 이용 제한과 운영시간을 방문 전에 확인해 주세요.", icon=":material/info:")
+st.html("""<style>
+.st-key-site_root .st-key-charging_warning [data-testid="stAlertContainer"],
+.st-key-charging_warning [data-testid="stAlert"] {background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;}
+.st-key-charging_warning [data-testid="stAlert"] p {color:#991B1B;}
+.st-key-charging_metrics [data-testid="stMetric"], .st-key-charging_speed_metrics [data-testid="stMetric"] {min-height:130px;box-sizing:border-box;}
+.st-key-charging_reference {min-height:130px;}
+.st-key-charging_breakdown [data-testid="stHeading"] {min-height:72px;}
+</style>""")
 
-with st.grid(3, min_column_width=185, gap="small"):
+with st.grid(3, min_column_width=185, gap="small", key="charging_metrics"):
     st.metric("전기차 한 대당 충전기", number(ratio, 2, "기"), border=True)
     st.metric("서울 순위 · 충전기 비율", f"{int(rank)}위 / 25구" if gauge_level else "자료 없음", border=True)
     st.metric("수록 충전소", number(row.get("listed_station_count"), suffix="곳"), border=True)
-st.caption(
-    f"전기차 {number(row.get('electric_count'), suffix='대')} · 수록 충전기 {number(row.get('listed_count'), suffix='기')} "
-    f"· 차량 등록 기준 {date_text(row.get('stat_month'), month=True)} · "
-    f"서울 구별 비율 평균 {number(row.get('charger_per_electric_vehicle_seoul_avg'), 2, '기/대')}"
-)
-st.caption("서울 평균은 자료가 있는 구별 비율의 산술평균이에요. 같은 장소도 운영기관이 다르면 별도 충전소로 세어요.")
-_source_caption(options)
+with st.container(key="charging_reference"):
+    st.caption(
+        f"전기차 {number(row.get('electric_count'), suffix='대')} · 수록 충전기 {number(row.get('listed_count'), suffix='기')} "
+        f"· 차량 등록 기준 {date_text(row.get('stat_month'), month=True)} · "
+        f"서울 구별 비율 평균 {number(row.get('charger_per_electric_vehicle_seoul_avg'), 2, '기/대')}"
+    )
+    st.caption("서울 평균은 자료가 있는 구별 비율의 산술평균이에요. 같은 장소도 운영기관이 다르면 별도 충전소로 세어요.")
+    _source_caption(options)
 
 st.subheader("급속과 완속, 얼마나 있을까요?", anchor=False)
-with st.grid(3, min_column_width=160, gap="small"):
+with st.grid(3, min_column_width=160, gap="small", key="charging_speed_metrics"):
     for field, label in (("fast_count", "급속"), ("slow_count", "완속"), ("unknown_count", "속도 자료 없음")):
         st.metric(label, number(row.get(field), suffix="기"), border=True)
 
 breakdown = load_frame(q.get_charger_breakdown, region_id)
-with st.grid(2, min_column_width=350, gap="medium"):
-    with st.container(border=True, height="stretch"):
+operators = _category(breakdown, "operator")
+top = operators.loc[operators.category_code.ne("__other__")] if not operators.empty else operators
+connectors = _category(breakdown, "connector")
+breakdown_height = _bar_chart_height(max(len(top), len(connectors)))
+with st.grid(2, min_column_width=350, gap="medium", key="charging_breakdown"):
+    with st.container(border=True, height="stretch", key="charging_operator_card"):
         st.subheader("충전기가 많은 운영기관", anchor=False)
-        operators = _category(breakdown, "operator")
-        top = operators.loc[operators.category_code.ne("__other__")] if not operators.empty else operators
-        _bars(top, "charging_operators", "운영기관")
+        _bars(top, "charging_operators", "운영기관", height=breakdown_height)
         st.caption(f"충전기 수 상위 10곳이에요. 그 외 운영기관 {number(_category_count(breakdown, 'operator', '__other__'), suffix='기')}")
-    with st.container(border=True, height="stretch"):
+    with st.container(border=True, height="stretch", key="charging_connector_card"):
         st.subheader("내 차에 맞는 커넥터", anchor=False)
-        _bars(_category(breakdown, "connector"), "charging_connectors", "커넥터")
+        _bars(connectors, "charging_connectors", "커넥터", height=breakdown_height)
         st.caption("여러 커넥터가 달린 기기도 한 대로 세어요. 이름이 없는 코드는 자료 없음으로 남겨 두었어요.")
 
 st.subheader("무료 주차와 이용 조건", anchor=False)

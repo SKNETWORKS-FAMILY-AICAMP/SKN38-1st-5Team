@@ -1,4 +1,5 @@
 from datetime import date
+from html import escape
 from math import isfinite
 
 import altair as alt
@@ -67,15 +68,21 @@ def _passenger_chart(frame: pd.DataFrame) -> alt.Chart:
     ).configure_legend(labelFont="Noto Sans KR", labelFontSize=15, titleFontSize=15, labelColor="#1B2340")
 
 
-def _peak_text(frame: pd.DataFrame) -> str:
+def _peak_text(frame: pd.DataFrame, *, busiest: bool = True) -> str:
     known = frame.dropna(subset=["known_passenger_sum"])
     if known.empty:
         return "자료 없음"
-    maximum = known.known_passenger_sum.max()
-    if maximum == 0:
+    maximum = known.known_passenger_sum.max() if busiest else known.known_passenger_sum.min()
+    if busiest and maximum == 0:
         return "수록 승객 모두 0명 · 붐비는 시간 없음"
     hours = known.loc[known.known_passenger_sum == maximum, "hour_of_day"].tolist()
-    times = ", ".join(f"{int(hour):02d}~{int(hour)+1:02d}시" for hour in hours)
+    groups = []
+    for hour in sorted(map(int, hours)):
+        if groups and groups[-1][1] == hour:
+            groups[-1][1] = hour + 1
+        else:
+            groups.append([hour, hour + 1])
+    times = ", ".join(f"{start:02d}~{end:02d}시" for start, end in groups)
     if len(hours) == 24:
         times = "모든 시간 동일"
     elif len(hours) > 1:
@@ -99,7 +106,18 @@ if row.empty:
 with st.container(key="transit_hero"):
     render_hero(ranking, region_id, district_name)
 
-st.subheader(f":orange[**{district_name}**], 차 없이 다니기 어떨까요?", anchor=False)
+st.html(f'<h2 class="transit-district-heading"><span>{escape(district_name)}</span>, 차 없이 다니기 어떨까요?</h2>')
+st.html("""<style>
+.transit-district-heading {font-size:26px;line-height:1.5;}
+.transit-district-heading span {font-size:clamp(34px,4vw,46px);color:#B45309;font-weight:800;}
+.st-key-transit_judgment [data-testid="stMetric"] {min-height:120px;box-sizing:border-box;}
+.st-key-transit_reference {min-height:110px;}
+.st-key-transit_chart_bus, .st-key-transit_chart_subway {height:100%;}
+[class*="st-key-transit_time_"] {min-height:166px;box-sizing:border-box;}
+[class*="st-key-transit_time_"] strong {display:inline-block;font-size:26px;font-weight:800;padding:3px 7px;border-radius:6px;line-height:1.6;overflow-wrap:anywhere;}
+[class*="st-key-transit_time_peak_"] strong {color:#991B1B;background:#FEE2E2;}
+[class*="st-key-transit_time_quiet_"] strong {color:#166534;background:#DCFCE7;}
+</style>""")
 with st.container(border=True, gap="small", key="transit_judgment"):
     value = row.get("need_value")
     valid_need = value is not None and pd.notna(value) and isfinite(float(value))
@@ -109,12 +127,13 @@ with st.container(border=True, gap="small", key="transit_judgment"):
     st.html(f'<style>.st-key-transit_judgment [data-testid="stColumn"]:first-child [data-testid="stMetricValue"] {{color:{status_color} !important;font-weight:800;}} .st-key-transit_judgment [data-testid="stCaptionContainer"] p:first-child {{font-size:18px;}}</style>')
     evidence.metric("주민 1명당 하루 승객", number(value, 2, "명") if valid_need else "자료 없음")
     rank.metric("서울 25구 중 이용 순위", number(row.get("need_rank"), suffix="위") if valid_need else "자료 없음")
-    st.caption(rank_text(row, "need") if valid_need else "순위 자료 없음")
-    st.caption(
-        f"판정은 {date_text(row.get('need_stat_date'))} 하루 승객 · 주민은 {date_text(row.get('stat_month'), month=True)} 기준이에요. "
-        "승객 수를 주민 수로 나눈 서울 25구 안의 상대적 추정이며, 실제 차량 구매 필요를 확정하지 않아요."
-    )
-    st.caption("승객 수는 고유 주민 수나 주민만의 이용 횟수가 아니에요. 나의 출퇴근 경로와 이동 불편도 함께 살펴보세요.")
+    with st.container(key="transit_reference"):
+        st.caption(rank_text(row, "need") if valid_need else "순위 자료 없음")
+        st.caption(
+            f"판정은 {date_text(row.get('need_stat_date'))} 하루 승객 · 주민은 {date_text(row.get('stat_month'), month=True)} 기준이에요. "
+            "승객 수를 주민 수로 나눈 서울 25구 안의 상대적 추정이며, 실제 차량 구매 필요를 확정하지 않아요."
+        )
+        st.caption("승객 수는 고유 주민 수나 주민만의 이용 횟수가 아니에요. 나의 출퇴근 경로와 이동 불편도 함께 살펴보세요.")
     if incomplete_transit(row):
         st.info(PARTIAL_NOTICE, icon=":material/info:")
 
@@ -126,7 +145,7 @@ trends = {day: load_frame(q.get_trend_data, region_id, stat_date=day, analysis_t
           for day in TRANSIT_DAYS}
 
 for column, (mode, label) in zip(st.columns(2, gap="medium"), MODES.items()):
-    with column.container(border=True, gap="small", key=f"transit_chart_{mode}"):
+    with column.container(border=True, height="stretch", gap="small", key=f"transit_chart_{mode}"):
         st.markdown(f"### :material/{'directions_bus' if mode == 'bus' else 'subway'}: {label}")
         series = {day: _passenger_series(frame, mode, day) for day, frame in trends.items()}
         combined = pd.concat(series.values(), ignore_index=True)
@@ -140,13 +159,19 @@ for column, (mode, label) in zip(st.columns(2, gap="medium"), MODES.items()):
                 st.caption("승객 자료가 없는 시간은 선을 잇지 않았어요. 가장 붐비는 시간도 수록된 시간 안에서만 비교해요.")
         else:
             st.info(f"{label} 시간대별 승객은 자료 없음")
-        st.markdown("**가장 붐비는 시간**")
-        with st.container(key=f"transit_peak_{mode}"):
-            for day, frame in series.items():
-                st.markdown(f"{TRANSIT_DAYS[day]} · {_peak_text(frame)}")
-        st.html(f'<style>.st-key-transit_peak_{mode} strong {{font-size:26px;color:#B45309;font-weight:800;background:#FFF2D6;padding:2px 7px;border-radius:6px;line-height:1.6;}}</style>')
+        for day, frame in series.items():
+            st.markdown(f"**{TRANSIT_DAYS[day]}**")
+            for card, (kind, title, busiest) in zip(st.columns(2, gap="small"), (
+                ("peak", "가장 붐비는 시간", True), ("quiet", "가장 한산한 시간", False),
+            )):
+                with card.container(border=True, height="stretch", gap="small",
+                                    key=f"transit_time_{kind}_{mode}_{day:%Y%m%d}"):
+                    st.caption(title)
+                    text = _peak_text(frame, busiest=busiest)
+                    # 0명·자료 없음도 같은 카드 안에서 강조한다.
+                    st.markdown(text if "**" in text else f"**{text}**")
 
-st.caption("버스와 지하철은 각 수단의 수록 승객 수예요. 전체 승객과 중복해서 더하지 않아요. 가장 붐비는 시간은 승객 수가 가장 많았던 때이며, 차량 안 혼잡도나 평소 이용량을 뜻하지 않아요.")
+st.caption("버스와 지하철은 각 수단의 수록 승객 수예요. 전체 승객과 중복해서 더하지 않아요. 가장 붐비는 시간과 한산한 시간은 수록 승객 수가 가장 많거나 적었던 때이며, 차량 안 혼잡도나 평소 이용량을 뜻하지 않아요.")
 
 st.subheader("대중교통을 타면 이런 점이 좋아요", anchor=False)
 for column, (icon, title, description) in zip(st.columns(3, gap="medium"), BENEFITS):

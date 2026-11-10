@@ -18,6 +18,26 @@ CSS = """
 .st-key-site_root [data-testid="stCaptionContainer"] {
   color: #4A5270; font-size: 16px; line-height: 1.5; opacity: 1;
 }
+.st-key-site_root [data-testid="stCaptionContainer"] p {
+  font-size: inherit; line-height: inherit; color: inherit;
+}
+.st-key-site_content h3 strong { font-size: 1.12em; line-height: 1.35; }
+/* 공유 카드와 출처 문구만 스타일링한다. 일반 본문 색은 유지한다. */
+.st-key-site_content [data-testid="stVerticalBlockBorderWrapper"] {
+  border-color: #DCE1ED; border-radius: 16px;
+}
+.st-key-site_content [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stCaptionContainer"] {
+  margin-block: 4px; line-height: 1.5;
+}
+.st-key-site_root .site-reference {
+  color: #4A5270; font-size: 16px; font-weight: 400; line-height: 1.5;
+}
+/* st.text의 인쇄용 고정폭 클래스에도 화면에서 읽을 수 있는 글꼴과 줄바꿈을 적용한다. */
+.st-key-site_content .stPrintFixedWidth,
+.st-key-site_content [data-testid="stText"] pre {
+  font-family: 'Noto Sans KR', sans-serif; font-size: 16px; line-height: 1.6;
+  color: #1B2340; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%;
+}
 .st-key-site_root { --site-navy: #27336B; --site-ink: #1B2340; }
 .st-key-site_root h1, .st-key-site_root h2, .st-key-site_root h3,
 .st-key-site_root p { word-break: keep-all; overflow-wrap: anywhere; }

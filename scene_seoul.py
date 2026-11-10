@@ -9,11 +9,13 @@ import streamlit as st
 from car_expression import add_expression, FACE_JS
 from db import queries as q
 from ui import (COLORS, TOPICS, date_text, district_row, load_frame, neighborhood_sentence,
-                number, rank_text, remember_region, set_topic, topic_value, word)
+                mobility_mood, number, rank_text, remember_region, set_topic, topic_value, word)
 
 
 KEY = "hero_h3_seoul_drawing"
 TOPIC_LABELS = {topic: spec.title for topic, spec in TOPICS.items()}
+TOPIC_LABELS["need"] = "대중교통 이용 지표"
+TRANSIT_LEVELS = {"차가 필요한 편": "이용 적은 편", "있으면 편함": "이용 보통", "대중교통으로 충분": "이용 많은 편"}
 
 
 def _car_svg(index: int) -> str:
@@ -34,7 +36,7 @@ HTML = """
   <div class="intro">
     <p class="eyebrow"><span class="brand">차차차</span><span>서울의 자동차 생활 안내서</span></p>
     <h1>우리 동네,<br>차와 살기 좋을까요<span class="coral">?</span></h1>
-    <p class="description">차량 보유, 주차 여건, 차가 꼭 필요한지 한눈에 확인할 수 있어요.</p>
+    <p class="description">차량 보유, 주차 여건, 대중교통 이용 지표를 한눈에 확인할 수 있어요.</p>
   </div>
   <figure class="map-scene">
     <svg class="seoul" viewBox="0 0 740 620" aria-label="서울 구 지도. 구를 누르면 동네를 바꿀 수 있어요.">
@@ -69,7 +71,7 @@ HTML = """
     <p class="arrival-title" aria-hidden="true"><span class="typed"></span><span class="cursor">|</span></p>
     <p class="sentence"></p>
     <div class="verdicts" aria-label="선택한 동네의 세 가지 판정">__VERDICTS__</div>
-    <p class="guide">세 기준을 누르면 지도가 바뀌어요.<br>서울 25구 안에서 비교한 참고 판정이에요.</p>
+    <p class="guide">세 기준을 누르면 지도가 바뀌어요.<br>서울 25구 안에서 비교한 참고 판정이에요. 대중교통은 주민 대비 수록 승객 수로, 개인의 차량 구매 필요를 뜻하지 않아요.</p>
     <span class="sr-only announcement" role="status" aria-live="polite" aria-atomic="true"></span>
   </div>
 </section>
@@ -85,7 +87,7 @@ HTML = """
 CSS = """
 :host { display: block; width: 100%; }
 * { box-sizing: border-box; }
-.hero { height: 700px; display: grid; grid-template-columns: minmax(340px, .72fr) minmax(0, 1.28fr);
+.hero { min-height: 700px; display: grid; grid-template-columns: minmax(340px, .72fr) minmax(0, 1.28fr);
   grid-template-rows: auto 1fr; column-gap: 28px; color: #1B2340;
   font-family: 'Noto Sans KR', var(--st-font), sans-serif; font-size: 18px; }
 p, figure, h1 { margin: 0; }
@@ -154,7 +156,7 @@ figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap
   .signals { font-size: 18px; }
 }
 @media (max-width: 900px) {
-  .hero { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; gap: 20px; }
+  .hero { min-height: 0; height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; gap: 20px; }
   .intro { grid-area: 1 / 1; padding: 0; }
   h1 { font-size: 40px; margin: 12px 0 10px; }
   .arrival { grid-area: 2 / 1; padding: 0; }
@@ -260,8 +262,8 @@ export default function(component) {
     const item = verdictFor(d.id);
     d.node.setAttribute('fill', item.color);
     d.node.setAttribute('aria-pressed', String(active));
-    d.node.setAttribute('aria-label', `${d.name}: ${item.level}. ${item.value}. ${item.rank}. 선택`);
-    d.title.textContent = `${d.name} · ${item.level} · ${item.value} · ${item.rank}`;
+    d.node.setAttribute('aria-label', `${d.name}: ${item.display_level}. ${item.value}. ${item.rank}. 선택`);
+    d.title.textContent = `${d.name} · ${item.display_level} · ${item.value} · ${item.rank}`;
     if (active) select('.districts').appendChild(d.node);
   });
   select('.source').textContent = data.boundary_source;
@@ -273,18 +275,16 @@ export default function(component) {
   root.querySelectorAll('.verdict').forEach(button => {
     const topic = button.dataset.topic;
     const item = selected.verdicts.find(v => v.topic === topic);
-    button.querySelector('.level').textContent = item.level;
+    button.querySelector('.level').textContent = item.display_level;
     setCarFace(button, {sufficient:'happy',normal:'smile',caution:'crying'}[item.signal_state] || 'smile');
     button.querySelector('.signals').dataset.state = item.signal_state;
     button.querySelector('.level').style.color = {sufficient:'#16803C', normal:'#A16207', caution:'#DC2626'}[item.signal_state] || '#1B2340';
     button.setAttribute('aria-pressed', String(data.topic === topic));
-    button.setAttribute('aria-label', `${item.label}: ${item.level}. ${item.value}. ${item.rank}. 이 기준으로 지도 보기`);
+    button.setAttribute('aria-label', `${item.label}: ${item.display_level}. ${item.value}. ${item.rank}. 이 기준으로 지도 보기`);
     button.title = `${item.value} · ${item.rank}`;
     button.onclick = () => { if (s.data.topic !== topic) s.emit('topic', topic); };
   });
-  const scores = selected.verdicts.map(v => v.signal_state === 'unknown' ? null : (v.signal_state === 'normal' ? 0 : (v.signal_state === 'sufficient' ? 1 : -1)) * (v.topic === 'need' ? -1 : 1));
-  const score = scores.reduce((sum, value) => sum + (value || 0), 0);
-  setCarFace(select('.travel .car'), scores.includes(null) ? 'smile' : score > 0 ? 'happy' : score < 0 ? 'crying' : 'smile');
+  setCarFace(select('.travel .car'), selected.mobility_mood || 'smile');
   s.title = selected.name === '자료 없음' ? '동네 자료 없음' : `${selected.name}는요`;
   const legendKey = JSON.stringify(data.legend);
   if (legendKey !== s.legendKey) {
@@ -456,6 +456,8 @@ export default function(component) {
     else opening();
   } else if (changed || shapesChanged) {
     respond(oldPoint);
+  } else {
+    announce();
   }
   
   return () => {
@@ -536,7 +538,8 @@ def _verdicts(row: pd.Series) -> list[dict]:
     for topic, spec in TOPICS.items():
         level = word(row.get(f"{topic}_level"))
         index = spec.levels.index(level) if level in spec.levels else None
-        result.append({"topic": topic, "label": spec.title, "level": level,
+        result.append({"topic": topic, "label": TOPIC_LABELS[topic], "level": level,
+                       "display_level": TRANSIT_LEVELS.get(level, level) if topic == "need" else level,
                        "value": topic_value(row, topic), "rank": rank_text(row, topic),
                        "signal_index": index,
                        "signal_state": {
@@ -560,7 +563,7 @@ def render_hero(district_name: str) -> None:
     districts: list[dict] = [{"id": int(item.region_id), "name": str(item.district_name),
                              "verdicts": _verdicts(item)}
                              for _, item in ranking.iterrows() if {"region_id", "district_name"} <= set(item.index)]
-    legend = [{"level": level, "color": color}
+    legend = [{"level": TRANSIT_LEVELS.get(level, level) if topic == "need" else level, "color": color}
               for level, color in zip(TOPICS[topic].levels, COLORS)]
     if ranking.empty or any(item["verdicts"][list(TOPICS).index(topic)]["signal_index"] is None
                             for item in districts):
@@ -578,6 +581,7 @@ def render_hero(district_name: str) -> None:
                 "name": word(row.get("district_name"), district_name),
                 "count": f"등록 {count} · {date_text(row.get('stat_month'), month=True)}",
                 "sentence": neighborhood_sentence(row),
+                "mobility_mood": mobility_mood(row),
                 "verdicts": _verdicts(row),
             },
         },
