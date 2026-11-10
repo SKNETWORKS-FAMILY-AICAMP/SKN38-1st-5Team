@@ -104,40 +104,49 @@ parking_value = topic_value(row, "parking")
 if pd.notna(row.get("parking_rank")):
     parking_value += f" · 서울 25구 중 {int(row['parking_rank'])}위"
 
-st.html("<style>.st-key-parking_page_hero { padding-bottom: 28px; }</style>")
-with st.container(key="parking_page_hero"):
+st.html("""<style>
+.st-key-parking_page_hero {padding-bottom:20px;}
+.st-key-parking_capacity [data-testid="stMetric"] {min-height:130px;box-sizing:border-box;}
+.st-key-parking_search_controls [data-testid="stWidgetLabel"],
+.st-key-parking_station_controls [data-testid="stWidgetLabel"] {min-height:48px;display:flex;align-items:end;}
+.st-key-parking_station_controls [data-testid="stTextInput"] input,
+.st-key-parking_station_controls [data-baseweb="select"] {min-height:44px;}
+</style>""")
+hero_column, map_column = st.columns([1, 1.6], gap="large")
+with hero_column.container(key="parking_page_hero"):
     parking_hero(
         district_id=region_id, district_name=district,
         parking_level=word(row.get("parking_level")), parking_value=parking_value,
         levels={topic: word(row.get(f"{topic}_level")) for topic in ("ownership", "parking", "need")},
-        active_topic="parking",
+        active_topic="parking", hide_scene=True,
     )
 
-capacity = district_row(load_frame(q.get_parking_summary, [region_id]), region_id)
-with st.grid(2, min_column_width=160, gap="small"):
-    st.metric("공영 주차면", number(capacity.get("public_space_count"), suffix="면"), border=True)
-    st.metric("민영 주차면", number(capacity.get("private_space_count"), suffix="면"), border=True)
-st.caption(
-    "수록된 주차장의 면수이며 아파트 주차장은 빠져 있어요. 실제 빈자리가 아니에요. "
-    "관리번호가 겹치는 항목은 면수 합계와 지도에서 제외하며, 면수 자료가 빠지면 자료 없음으로 표시해요."
-)
-
-st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
-with st.container(horizontal=True, vertical_alignment="bottom", gap="medium"):
-    facility = st.segmented_control(
-        "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,
-        key="parking_facility", persist_state="session",
+with hero_column:
+    capacity = district_row(load_frame(q.get_parking_summary, [region_id]), region_id)
+    with st.grid(2, min_column_width=160, gap="small", key="parking_capacity"):
+        st.metric("공영 주차면", number(capacity.get("public_space_count"), suffix="면"), border=True)
+        st.metric("민영 주차면", number(capacity.get("private_space_count"), suffix="면"), border=True)
+    st.caption(
+        "수록된 주차장의 면수이며 아파트 주차장은 빠져 있어요. 실제 빈자리가 아니에요. "
+        "관리번호가 겹치는 항목은 면수 합계와 지도에서 제외하며, 면수 자료가 빠지면 자료 없음으로 표시해요."
     )
-    keyword = st.text_input(
-        "이름·주소 검색", placeholder="주차장·충전소 이름이나 주소", max_chars=500,
-        key="parking_keyword", width="stretch", persist_state="session",
-        help="지도는 시설 이름이나 주소로, 아래 수록 주차장 목록은 주소로 찾아요. 검색 기호도 글자 그대로 찾아요.",
-    ).strip()
-    if facility == "주차장":
-        operation = st.segmented_control(
-            "주차장 운영", ["전체", "공영", "민영"], default="전체", required=True,
-            key="parking_operation", persist_state="session",
-        ) or "전체"
+
+    st.subheader(f":orange[**{district}**] 주차장 찾기", anchor=False)
+    with st.container(key="parking_search_controls"):
+        facility = st.segmented_control(
+            "찾을 시설", ["주차장", "충전소"], default="주차장", required=True,
+            key="parking_facility", persist_state="session",
+        )
+        keyword = st.text_input(
+            "이름·주소 검색", placeholder="주차장·충전소 이름이나 주소", max_chars=500,
+            key="parking_keyword", width="stretch", persist_state="session",
+            help="지도는 시설 이름이나 주소로, 아래 수록 주차장 목록은 주소로 찾아요. 검색 기호도 글자 그대로 찾아요.",
+        ).strip()
+        if facility == "주차장":
+            operation = st.segmented_control(
+                "주차장 운영", ["전체", "공영", "민영"], default="전체", required=True,
+                key="parking_operation", persist_state="session",
+            ) or "전체"
 
 if facility == "주차장":
     points = load_frame(q.get_place_points, region_id, kinds=("parking",), limit=None)
@@ -148,7 +157,7 @@ if facility == "주차장":
     parking = _parking_filter(catalog, keyword, operation)
     visible_points = _parking_filter(points, keyword, operation)
     st.caption(f"현재 조건의 수록 목록 {len(parking):,}건 · 좌표가 있는 수록 시설 {len(visible_points):,}건")
-    with st.container(border=True, gap="small", key="parking_map_panel"):
+    with map_column.container(border=True, gap="small", key="parking_map_panel"):
         public_records = seoul_parking(district)
         if public_records is None:
             st.warning("서울시 상세 안내를 가져오지 못해 수록 주차장 위치를 보여 드려요. 요금·운영시간은 현장 확인이 필요해요.")
@@ -185,7 +194,7 @@ else:
     visible_points = points.loc[_contains(points, keyword, ("address", "place_name"))].copy()
     chargers = chargers.loc[_contains(chargers, keyword, ("address", "station_name"))].copy()
     st.caption(f"현재 조건의 충전기 목록 {len(chargers):,}기 · 지도에 표시한 충전소 {len(visible_points):,}곳")
-    with st.container(border=True, gap="small", key="parking_map_panel"):
+    with map_column.container(border=True, gap="small", key="parking_map_panel"):
         explorer(charger_records(visible_points, chargers), district, "충전소", region_id=region_id)
         st.caption("주차 무료 여부와 충전요금은 별개예요. 충전 단가는 운영사·회원 여부·출력에 따라 달라 현장 안내를 확인해 주세요.")
     st.markdown("**충전기별 이용 안내**")

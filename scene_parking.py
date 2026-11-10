@@ -29,13 +29,13 @@ HTML = """
   <div class="hero-copy">
     <div class="eyebrow"><span class="brand">차차차</span><span>서울 25구의 자동차 생활</span></div>
     <h1 id="h4-title">우리 동네,<br>내 차 자리 있나요<span class="coral">?</span></h1>
-    <p class="intro">차량 보유 · 주차 · 차 필요를 한눈에 살펴요.</p>
+    <p class="intro">차량 보유 · 주차 여건 · 대중교통 지표를 함께 살펴요.</p>
     <div class="district-line" aria-live="polite" aria-atomic="true">
       <span class="district-chip"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18s6-6 6-11A6 6 0 0 0 4 7c0 5 6 11 6 11Z"/><circle cx="10" cy="7" r="2"/></svg><span data-text="district">자료 없음</span></span>
       <span class="verdict">주차 여건 <strong data-text="parking-level">자료 없음</strong></span>
     </div>
     <p class="measure" data-text="parking-value">자료 없음</p>
-    <div class="little-road" aria-hidden="true"><i></i><i></i><i></i><span>아래에서 주소로 주차장과 충전소를 찾아요 ↓</span></div>
+    <div class="little-road" aria-hidden="true"><i></i><i></i><i></i><span>지도에서 주차장과 충전소의 위치·요금을 확인해요</span></div>
   </div>
   <figure class="parking-scene">
     <svg class="lot" viewBox="0 0 660 340" role="group" aria-labelledby="h4-lot-title h4-lot-description">
@@ -77,6 +77,9 @@ HTML = """
 
 
 CSS = """
+.parking-hero.map-layout {display:block;}
+.parking-hero.map-layout .parking-scene {display:none;}
+
 :host { display: block; width: 100%; }
 * { box-sizing: border-box; }
 .parking-hero {
@@ -314,6 +317,7 @@ export default function(component) {
   const {parentElement, data} = component;
   const root = parentElement.querySelector('.parking-hero');
   if (!root || !data) return;
+  root.classList.toggle("map-layout", Boolean(data.hideScene));
   let state = instances.get(parentElement);
   const firstMount = !state;
   if (firstMount) {
@@ -387,6 +391,7 @@ def parking_hero(
     parking_value: str,
     levels: dict[str, str],
     active_topic: str,
+    hide_scene: bool = False,
 ) -> None:
     _PARKING_HERO(
         key="hero_h4_parking",
@@ -398,6 +403,7 @@ def parking_hero(
             "parkingValue": parking_value,
             "levels": levels,
             "activeTopic": active_topic,
+            "hideScene": hide_scene,
         },
         width="stretch",
         height="content",

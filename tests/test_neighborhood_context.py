@@ -53,16 +53,22 @@ class NeighborhoodContextTest(unittest.TestCase):
         self.assertIn('주차 공간부터 확인', sentence)
         self.assertIn('실제 대중교통 경로도 비교', sentence)
 
-    def test_all_27_moods_reward_transit_usage_without_ownership_penalties(self):
-        # Rows: good/normal/tight parking; columns: low/normal/high transit usage.
-        expected = (('smile', 'happy', 'happy'),
-                    ('smile', 'smile', 'happy'),
-                    ('crying', 'crying', 'smile'))
-        for ownership, (p_index, parking), (t_index, transit) in itertools.product(
-                OWNERSHIP, enumerate(PARKING), enumerate(TRANSIT)):
+    def test_red_threshold_and_low_ownership_expressions(self):
+        cases = (
+            ('많은 편', '빠듯함', '대중교통으로 충분', 'crying'),
+            ('보통', '빠듯함', '차가 필요한 편', 'crying'),
+            ('많은 편', '좋음', '차가 필요한 편', 'crying'),
+            ('적은 편', '빠듯함', '있으면 편함', 'smile'),
+            ('적은 편', '보통', '있으면 편함', 'happy'),
+            ('보통', '보통', '있으면 편함', 'smile'),
+            ('적은 편', '좋음', '대중교통으로 충분', 'happy'),
+        )
+        for ownership, parking, transit, mood in cases:
             with self.subTest(ownership=ownership, parking=parking, transit=transit):
-                self.assertEqual(mobility_mood(district(ownership, parking, transit)),
-                                 expected[p_index][t_index])
+                self.assertEqual(mobility_mood(district(ownership, parking, transit)), mood)
+        for ownership, parking, transit in itertools.product(OWNERSHIP, PARKING, TRANSIT):
+            red_count = sum((ownership == '많은 편', parking == '빠듯함', transit == '차가 필요한 편'))
+            self.assertEqual(mobility_mood(district(ownership, parking, transit)) == 'crying', red_count >= 2)
 
     def test_mapo_normal_ownership_parking_high_transit_is_happy(self):
         row = district()

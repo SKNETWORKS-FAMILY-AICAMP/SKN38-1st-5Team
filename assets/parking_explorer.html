@@ -8,13 +8,13 @@
 @keyframes pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.6);opacity:0}}
 @media(prefers-reduced-motion:reduce){.pin.near.pulse:after{animation:none}}
 .station-pin{padding:5px 9px;background:#1B2340;color:white;border:2px solid white;border-radius:9px;white-space:nowrap;font-size:12px;font-weight:700}
-#detail{height:260px;overflow:auto;margin-top:10px;padding:20px 24px;border:1px solid #C8CDE3;border-radius:14px;background:#F7F8FC;line-height:1.9;font-size:18px}
+#detail{height:260px;overflow:auto;margin-top:10px;padding:20px 24px;border:1px solid #C8CDE3;border-radius:14px;background:#FFF3D6;line-height:1.9;font-size:18px}
 #detail strong{font-size:24px}.tag{display:inline-block;margin-right:6px;color:#27336B;font-size:15px;font-weight:700}.popup{line-height:1.7;max-width:320px}.popup strong{font-size:22px}.muted{color:#59617b;font-size:15px}.leaflet-tooltip{white-space:normal;min-width:210px;max-width:310px;line-height:1.6}
 .popup b{display:block;margin-top:10px;color:#4A5270}.fee-legend{font-size:16px;padding:9px 12px;background:#F1F5F9;border-radius:10px}
 #motion{position:absolute;z-index:1000;top:12px;right:12px;padding:7px 10px;border:1px solid #C8CDE3;border-radius:9px;background:white;color:#27336B;cursor:pointer}
 </style></head><body>
 <div id="map" role="region" aria-label="주차장·충전소 위치 지도"></div>
-<p class="fee-legend">🟢 주차 무료 · 🟠 주차 유료 · 회색 미확인 · ⚡ 충전소 (충전요금과 별개)</p>
+<p class="fee-legend"><strong>범례</strong> · 🟢 주차 무료 · 🟠 주차 유료 · 회색 미확인 · ⚡ 충전소 (충전요금과 별개)</p>
 <button id="motion" type="button">깜빡임 끄기</button>
 <section id="detail" aria-live="polite"><strong>어디에 주차할까요?</strong><br>핀을 클릭하면 장소, 이용시간과 요금이 여기에 표시돼요.<br><span class="muted">운영시간·요금은 제공기관의 안내이며 현장 조건과 다를 수 있어요. 실시간 빈자리 정보가 아니에요.</span></section>
 <script>__LEAFLET_JS__</script><script>
