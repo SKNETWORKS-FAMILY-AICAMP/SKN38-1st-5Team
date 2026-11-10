@@ -304,6 +304,51 @@ class PrePushTests(unittest.TestCase):
         self.write("app.py", source)
         self.assertEqual(scan(self.root), [])
 
+    def test_kakao_aliases_and_sdk_url_literals_are_detected_without_values(self):
+        value = "a7b8c9d0" * 4
+        for name in ("javascript_api_key", "javascript_key", "appkey", "app_key",
+                     "KAKAO_JAVASCRIPT_API_KEY", "KAKAO_JAVASCRIPT_KEY", "KAKAO_APPKEY"):
+            with self.subTest(name=name):
+                self.assertTrue(content_findings("settings.py", f'{name} = "{value}"', set()))
+                self.assertTrue(content_findings("settings.json", f'{{"{name}": "{value}"}}', set()))
+        for query in (f"?appkey={value}", f"?autoload=false&appkey={value}&libraries=services",
+                      f"?autoload=false&amp;appkey={value}"):
+            with self.subTest(query=query):
+                findings = content_findings("map.py", f'url = "https://dapi.kakao.com/v2/maps/sdk.js{query}"', set())
+                self.assertTrue(any(item.reason == "SDK URL 키 직접 지정" for item in findings))
+        self.write("map.html", f'<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={value}"></script>')
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(main(["--root", str(self.root)]), 1)
+        self.assertIn("map.html:1", output.getvalue())
+        self.assertNotIn(value, output.getvalue())
+
+    def test_kakao_empty_examples_references_and_unrelated_md5_are_allowed(self):
+        example = (ROOT / ".streamlit/secrets.toml.example").read_text(encoding="utf-8")
+        self.assertIn('[kakao]\njavascript_api_key = ""', example)
+        self.assertEqual(content_findings(".streamlit/secrets.toml.example", example, set()), [])
+        source = ('javascript_key = os.environ["KAKAO_JAVASCRIPT_API_KEY"]\n'
+                  'appkey = st.secrets["kakao"]["javascript_api_key"]\n'
+                  'KAKAO_APPKEY = "${KAKAO_JAVASCRIPT_API_KEY}"\n'
+                  'url = f"https://dapi.kakao.com/v2/maps/sdk.js?appkey={javascript_api_key}"\n')
+        self.assertEqual(content_findings("map.py", source, set()), [])
+        value = hashlib.md5(b"fixture").hexdigest()
+        for path, body in (("manifest.json", '{"md5":"' + value + '"}'),
+                           ("notes.md", value), ("ids.py", f'identifier = "{value}"')):
+            with self.subTest(path=path):
+                self.assertEqual(content_findings(path, body, set()), [])
+
+    def test_kakao_local_alias_values_are_checked_when_copied(self):
+        value = "a7b8c9d0" * 4
+        self.write(".gitignore", ".streamlit/secrets.toml\n")
+        for name in ("javascript_key", "appkey", "KAKAO_JAVASCRIPT_API_KEY"):
+            with self.subTest(name=name):
+                self.write(".streamlit/secrets.toml", f'[kakao]\n{name} = "{value}"\n')
+                self.write("copied.txt", value)
+                findings = scan(self.root)
+                self.assertEqual([(item.path, item.reason) for item in findings],
+                                 [("copied.txt", "로컬 비밀값과 일치")])
+
     def test_example_markers_and_short_values_pass_but_long_literals_are_reviewed(self):
         examples = [f"prefix-{marker.upper()}-credential-value" for marker in
                     ("fake", "fixture", "dummy", "omit", "example", "test", "changeme")]
@@ -389,6 +434,9 @@ class NavigationSecurityTests(unittest.TestCase):
                 app.switch_page(f"app_pages/{path}.py").run()
                 self.assertFalse(app.exception)
                 self.assertEqual(len(app.get_by_key("site_page_header").title), 1)
+                footer = [link.proto.page for link in app.get_by_key("footer_menu").page_link]
+                self.assertEqual(len(footer), 12)
+                self.assertEqual(set(footer), expected)
 
     def test_footer_has_no_sources(self):
         app = AppTest.from_string("from site_shell import footer\nfooter([])\n").run()

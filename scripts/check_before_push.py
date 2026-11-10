@@ -193,10 +193,11 @@ def tracked_files(root: Path) -> set[str]:
     return paths
 
 
-SECRET_NAME = r"(?:password|passwd|pwd|[\w-]*api[_-]?key|service[_-]?key|[\w-]*token|[\w-]*secret)"
+SECRET_NAME = r"(?:password|passwd|pwd|[\w-]*api[_-]?key|[\w-]*javascript[_-]?key|[\w-]*app[_-]?key|service[_-]?key|[\w-]*token|[\w-]*secret)"
 ASSIGNMENT = re.compile(
     rf"(?i)\b{SECRET_NAME}\b[\"']?\s*(?::|=(?!=))\s*(?:([\"'])([^\r\n]*?)\1|([^\s,;}})\]]+))")
 ANTHROPIC_KEY = re.compile(r"sk-ant-[A-Za-z0-9_-]{12,}")
+SDK_APPKEY = re.compile(r"(?i)(?:[?&]|&amp;)appkey=([0-9a-f]{32})(?=$|[&#\s\"'<>`)])")
 LONG_KEY = re.compile(r"(?<![\w+/%=-])(?:[0-9a-fA-F]{64,128}|[A-Za-z0-9+/%]{80,128}={0,2})(?![\w+/%=-])")
 PLACEHOLDERS = {"", "...", "none", "null", "example", "test-only", "environment-only",
                 "test", "dummy", "changeme", "change-me", "replace-me", "password", "{}", "[]"}
@@ -249,6 +250,8 @@ def content_findings(path: str, body: str, known_values: set[str]) -> list[Findi
         reasons = set()
         if ANTHROPIC_KEY.search(line):
             reasons.add("API 키 패턴")
+        if SDK_APPKEY.search(line):
+            reasons.add("SDK URL 키 직접 지정")
         if re.search(r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----", line):
             reasons.add("개인 키 패턴")
         if any(pattern.search(line) for pattern in private_patterns):
